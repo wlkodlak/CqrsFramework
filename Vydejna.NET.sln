@@ -1,0 +1,56 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 2012 for Windows Desktop
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcceptanceTests", "AcceptanceTests\AcceptanceTests.csproj", "{75C63068-4029-4F05-A9F5-C945AD7583D8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vydejna.Interfaces", "Vydejna.Interfaces\Vydejna.Interfaces.csproj", "{E256DC31-A49C-45A7-9784-0A2C19953BFF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vydejna.Domain", "Vydejna.Domain\Vydejna.Domain.csproj", "{7642215D-B0AB-4F2A-AEC5-89507A15F264}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vydejna.Services", "Vydejna.Services\Vydejna.Services.csproj", "{656BA2DD-03D2-4598-9EEF-30AD366A83A8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vydejna.Gui", "Vydejna.Gui\Vydejna.Gui.csproj", "{76DB9988-6CCC-475E-9831-6D7B4A4A6FA6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vydejna.Tests", "Vydejna.Tests\Vydejna.Tests.csproj", "{3A75A125-4F1E-4664-9577-5BF34A0B14A4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vydejna.Runner", "Vydejna.Runner\Vydejna.Runner.csproj", "{9551EDAC-53EE-411B-8107-EC57032C4E8B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{75C63068-4029-4F05-A9F5-C945AD7583D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75C63068-4029-4F05-A9F5-C945AD7583D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75C63068-4029-4F05-A9F5-C945AD7583D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75C63068-4029-4F05-A9F5-C945AD7583D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E256DC31-A49C-45A7-9784-0A2C19953BFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E256DC31-A49C-45A7-9784-0A2C19953BFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E256DC31-A49C-45A7-9784-0A2C19953BFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E256DC31-A49C-45A7-9784-0A2C19953BFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7642215D-B0AB-4F2A-AEC5-89507A15F264}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7642215D-B0AB-4F2A-AEC5-89507A15F264}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7642215D-B0AB-4F2A-AEC5-89507A15F264}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7642215D-B0AB-4F2A-AEC5-89507A15F264}.Release|Any CPU.Build.0 = Release|Any CPU
+		{656BA2DD-03D2-4598-9EEF-30AD366A83A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{656BA2DD-03D2-4598-9EEF-30AD366A83A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{656BA2DD-03D2-4598-9EEF-30AD366A83A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{656BA2DD-03D2-4598-9EEF-30AD366A83A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76DB9988-6CCC-475E-9831-6D7B4A4A6FA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76DB9988-6CCC-475E-9831-6D7B4A4A6FA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76DB9988-6CCC-475E-9831-6D7B4A4A6FA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76DB9988-6CCC-475E-9831-6D7B4A4A6FA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A75A125-4F1E-4664-9577-5BF34A0B14A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A75A125-4F1E-4664-9577-5BF34A0B14A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A75A125-4F1E-4664-9577-5BF34A0B14A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A75A125-4F1E-4664-9577-5BF34A0B14A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9551EDAC-53EE-411B-8107-EC57032C4E8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9551EDAC-53EE-411B-8107-EC57032C4E8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9551EDAC-53EE-411B-8107-EC57032C4E8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9551EDAC-53EE-411B-8107-EC57032C4E8B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
