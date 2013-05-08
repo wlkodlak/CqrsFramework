@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Vydejna.Tests")]
+[assembly: AssemblyTitle("CqrsFramework")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Microsoft")]
-[assembly: AssemblyProduct("Vydejna.Tests")]
+[assembly: AssemblyProduct("CqrsFramework")]
 [assembly: AssemblyCopyright("Copyright © Microsoft 2013")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("a3f4e22c-4dcc-44b0-80a4-ad3de02f7867")]
+[assembly: Guid("0d14f238-4ca4-420c-8610-93026a539b28")]
 
 // Version information for an assembly consists of the following four values:
 //
