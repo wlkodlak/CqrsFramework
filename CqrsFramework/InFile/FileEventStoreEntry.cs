@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CqrsFramework.EventStore.InFile
+namespace CqrsFramework.InFile
 {
     public class DataFileEntry
     {

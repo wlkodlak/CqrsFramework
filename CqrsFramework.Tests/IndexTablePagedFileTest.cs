@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CqrsFramework.IndexTable.InFile;
+using CqrsFramework.InFile;
 
 namespace CqrsFramework.Tests
 {

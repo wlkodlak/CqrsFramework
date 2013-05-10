@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CqrsFramework.EventStore.InMemory
+namespace CqrsFramework.InMemory
 {
     internal class MemoryEventStream : IEventStream
     {

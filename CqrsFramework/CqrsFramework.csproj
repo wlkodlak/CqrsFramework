@@ -43,20 +43,24 @@
     <Compile Include="Bus.cs" />
     <Compile Include="EventSerializer.cs" />
     <Compile Include="EventStore.cs" />
-    <Compile Include="EventStore.InFile\DataFileEntry.cs" />
-    <Compile Include="EventStore.InFile\FileDataFile.cs" />
-    <Compile Include="EventStore.InFile\FileEventStore.cs" />
-    <Compile Include="EventStore.InFile\FileEventStream.cs" />
-    <Compile Include="EventStore.InMemory\MemoryEventStream.cs" />
-    <Compile Include="EventStore.InMemory\MemoryEventStore.cs" />
-    <Compile Include="EventStore.InSql\SqlEventStore.cs" />
-    <Compile Include="IndexTable.InFile\PagedFile.cs" />
+    <Compile Include="InFile\FileEventStoreEntry.cs" />
+    <Compile Include="InFile\FileEventStoreDataFile.cs" />
+    <Compile Include="InFile\FileEventStore.cs" />
+    <Compile Include="InFile\FileEventStream.cs" />
+    <Compile Include="InMemory\MemoryEventStream.cs" />
+    <Compile Include="InMemory\MemoryEventStore.cs" />
+    <Compile Include="InTable\TableEventStore.cs" />
+    <Compile Include="InTable\TableEventStream.cs" />
+    <Compile Include="InFile\PagedFile.cs" />
+    <Compile Include="InSql\TableProvider.cs" />
     <Compile Include="Messages.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RepositoryBase.cs" />
     <Compile Include="RepositorySaveFlags.cs" />
     <Compile Include="StreamProvider.cs" />
-    <Compile Include="StreamProvider.InMemory\MemoryStreamProvider.cs" />
+    <Compile Include="InMemory\MemoryStreamProvider.cs" />
+    <Compile Include="TableProvider.cs" />
+    <Compile Include="InMemory\MemoryTableProvider.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

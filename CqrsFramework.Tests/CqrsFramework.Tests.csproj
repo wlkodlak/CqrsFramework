@@ -57,6 +57,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="DatabaseMock.cs" />
     <Compile Include="EventStoreTestBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AggregateBaseTest.cs" />
@@ -69,7 +70,8 @@
     <Compile Include="StreamProviderMemoryTest.cs" />
     <Compile Include="IndexTableFileTest.cs" />
     <Compile Include="IndexTablePagedFileTest.cs" />
-    <Compile Include="EventStoreSqlTest.cs" />
+    <Compile Include="EventStoreTableTest.cs" />
+    <Compile Include="TableProviderInSqlTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqrsFramework\CqrsFramework.csproj">

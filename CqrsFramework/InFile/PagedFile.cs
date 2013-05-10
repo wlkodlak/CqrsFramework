@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace CqrsFramework.IndexTable.InFile
+namespace CqrsFramework.InFile
 {
     public interface IPagedFile : IDisposable
     {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace CqrsFramework.EventStore.InFile
+namespace CqrsFramework.InFile
 {
     public class FileEventStore : IEventStore
     {
