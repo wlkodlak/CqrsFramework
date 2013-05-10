@@ -30,22 +30,25 @@ namespace CqrsFramework.Tests
             public Builder()
             {
                 _dataTableStreams = new DataTable("es_streams");
+                _dataTableStreams.Columns.Add("id", typeof(int));
                 _dataTableStreams.Columns.Add("name", typeof(string));
                 _dataTableStreams.Columns.Add("version", typeof(int));
                 _dataTableStreams.Columns.Add("snapshotversion", typeof(int));
                 _dataTableSnapshots = new DataTable("es_snapshots");
+                _dataTableSnapshots.Columns.Add("id", typeof(int));
                 _dataTableSnapshots.Columns.Add("name", typeof(string));
                 _dataTableSnapshots.Columns.Add("snapshot", typeof(byte[]));
                 _dataTableEvents = new DataTable("es_events");
+                _dataTableEvents.Columns.Add("id", typeof(int));
                 _dataTableEvents.Columns.Add("name", typeof(string));
                 _dataTableEvents.Columns.Add("version", typeof(int));
                 _dataTableEvents.Columns.Add("clock", typeof(int));
                 _dataTableEvents.Columns.Add("data", typeof(byte[]));
                 _dataTableEvents.Columns.Add("published", typeof(int));
 
-                _tableStreams = new MemoryTableProvider(_dataTableStreams);
-                _tableEvents = new MemoryTableProvider(_dataTableEvents);
-                _tableSnapshots = new MemoryTableProvider(_dataTableSnapshots);
+                _tableStreams = new MemoryTableProvider(_dataTableStreams, null);
+                _tableEvents = new MemoryTableProvider(_dataTableEvents, null);
+                _tableSnapshots = new MemoryTableProvider(_dataTableSnapshots, null);
             }
 
             public IEventStore Build()
@@ -61,26 +64,26 @@ namespace CqrsFramework.Tests
                 if (events.Length > 0)
                     version = events.Max(e => e.Version);
 
-                var rowStream = _dataTableStreams.NewRow();
-                rowStream.SetField<string>("name", name);
-                rowStream.SetField<int>("version", version);
-                rowStream.SetField<int>("snapshotversion", snapshot == null ? 0 : snapshot.Version);
-                _dataTableStreams.Rows.Add(rowStream);
+                var rowStream = _tableStreams.NewRow();
+                rowStream["name"] = name;
+                rowStream["version"] = version;
+                rowStream["snapshotversion"] = snapshot == null ? 0 : snapshot.Version;
+                _tableStreams.Insert(rowStream);
 
-                var rowSnapshot = _dataTableSnapshots.NewRow();
-                rowSnapshot.SetField<string>("name", name);
-                rowSnapshot.SetField<byte[]>("snapshot", snapshot == null ? null : snapshot.Data);
-                _dataTableSnapshots.Rows.Add(rowSnapshot);
+                var rowSnapshot = _tableSnapshots.NewRow();
+                rowSnapshot["name"] = name;
+                rowSnapshot["snapshot"] = snapshot == null ? null : snapshot.Data;
+                _tableSnapshots.Insert(rowSnapshot);
 
                 foreach (var @event in events)
                 {
-                    var rowEvent = _dataTableEvents.NewRow();
-                    rowEvent.SetField<string>("name", name);
-                    rowEvent.SetField<int>("version", @event.Version);
-                    rowEvent.SetField<byte[]>("data", @event.Data);
-                    rowEvent.SetField<int>("published", @event.Published ? 1 : 0);
-                    rowEvent.SetField<int>("clock", (int)@event.Clock);
-                    _dataTableEvents.Rows.Add(rowEvent);
+                    var rowEvent = _tableEvents.NewRow();
+                    rowEvent["name"] = name;
+                    rowEvent["version"] = @event.Version;
+                    rowEvent["data"] = @event.Data;
+                    rowEvent["published"] = @event.Published ? 1 : 0;
+                    rowEvent["clock"] = (int)@event.Clock;
+                    _tableEvents.Insert(rowEvent);
                 }
 
                 _dataTableStreams.AcceptChanges();

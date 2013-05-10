@@ -53,7 +53,7 @@ namespace CqrsFramework.InTable
         public IEnumerable<EventStoreEvent> GetSince(long clock)
         {
             var events = new List<EventStoreEvent>();
-            var table = _tableEvents.GetRows().Where("clock").IsAtLeast(clock).OrderBy(r => r.Get<int>("clock")).ToList();
+            var table = _tableEvents.GetRows().Where("clock").IsAtLeast((int)clock).OrderBy(r => r.Get<int>("clock")).ToList();
             foreach (var item in table)
             {
                 var @event = new EventStoreEvent();

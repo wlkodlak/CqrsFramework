@@ -106,9 +106,9 @@ namespace CqrsFramework.InTable
         public IEnumerable<EventStoreEvent> GetEvents(int minVersion)
         {
             var events = new List<EventStoreEvent>();
-            var table = _tableEvents.GetRows()
-                .Where("name").Is(_name).And("version").IsAtLeast(minVersion)
-                .OrderBy(r => r.Get<int>("version")).ToList();
+            var filterable = _tableEvents.GetRows();
+            filterable = filterable.Where("name").Is(_name).And("version").IsAtLeast(minVersion);
+            var table = filterable.OrderBy(r => r.Get<int>("version")).ToList();
             foreach (var item in table)
             {
                 var @event = new EventStoreEvent();
@@ -138,6 +138,7 @@ namespace CqrsFramework.InTable
         private void SaveEventToDb(EventStoreEvent @event)
         {
             var row = _tableEvents.NewRow();
+            row["name"] = @event.Key;
             row["version"] = @event.Version;
             row["clock"] = (int)@event.Clock;
             row["published"] = @event.Published ? 1 : 0;

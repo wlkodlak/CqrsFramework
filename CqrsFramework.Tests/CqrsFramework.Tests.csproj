@@ -72,6 +72,7 @@
     <Compile Include="IndexTablePagedFileTest.cs" />
     <Compile Include="EventStoreTableTest.cs" />
     <Compile Include="TableProviderInSqlTest.cs" />
+    <Compile Include="TableProviderMemoryTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqrsFramework\CqrsFramework.csproj">
