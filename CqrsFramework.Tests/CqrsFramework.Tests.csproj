@@ -59,8 +59,11 @@
   <ItemGroup>
     <Compile Include="DatabaseMock.cs" />
     <Compile Include="EventStore\EventStoreTestBase.cs" />
+    <Compile Include="IndexTable\IndexTableCellTest.cs" />
     <Compile Include="IndexTable\IndexTableFreeListTest.cs" />
     <Compile Include="IndexTable\IndexTableHeaderTest.cs" />
+    <Compile Include="IndexTable\IndexTableKeyTest.cs" />
+    <Compile Include="IndexTable\IndexTableLeafTest.cs" />
     <Compile Include="IndexTable\IndexTableOverflowTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Domain\AggregateBaseTest.cs" />
