@@ -6,7 +6,7 @@ using System.Xml.Linq;
 using System.IO;
 using System.Linq;
 
-namespace CqrsFramework.Tests
+namespace CqrsFramework.Tests.Domain
 {
     [TestClass]
     public class RepositoryBaseTest

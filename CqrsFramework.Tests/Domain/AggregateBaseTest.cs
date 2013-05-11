@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CqrsFramework.Tests
+namespace CqrsFramework.Tests.Domain
 {
     [TestClass]
     public class AggregateBaseTest

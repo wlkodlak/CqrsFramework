@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using CqrsFramework.InMemory;
 using CqrsFramework.InTable;
 
-namespace CqrsFramework.Tests
+namespace CqrsFramework.Tests.EventStore
 {
     [TestClass]
     public class EventStoreTableTest : EventStoreTestBase

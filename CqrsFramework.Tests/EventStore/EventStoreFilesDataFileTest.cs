@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CqrsFramework.InFile;
 
-namespace CqrsFramework.Tests
+namespace CqrsFramework.Tests.EventStore
 {
     [TestClass]
     public class EventStoreFilesDataFileTest

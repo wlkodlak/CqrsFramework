@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Text;
 
-namespace CqrsFramework.Tests
+namespace CqrsFramework.Tests.EventStore
 {
     public interface IEventStoreTestBuilder
     {

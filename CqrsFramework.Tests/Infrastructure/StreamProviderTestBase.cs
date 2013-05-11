@@ -4,7 +4,7 @@ using System.Text;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace CqrsFramework.Tests
+namespace CqrsFramework.Tests.Infrastructure
 {
     public interface IStreamProviderBuilder
     {

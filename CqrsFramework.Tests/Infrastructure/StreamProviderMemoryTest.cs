@@ -2,7 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CqrsFramework.InMemory;
 
-namespace CqrsFramework.Tests
+namespace CqrsFramework.Tests.Infrastructure
 {
     [TestClass]
     public class StreamProviderMemoryTest : StreamProviderTestBase

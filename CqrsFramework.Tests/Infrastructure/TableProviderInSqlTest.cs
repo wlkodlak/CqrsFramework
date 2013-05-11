@@ -6,7 +6,7 @@ using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SqlTableProvider = CqrsFramework.InSql.TableProvider;
 
-namespace CqrsFramework.Tests
+namespace CqrsFramework.Tests.Infrastructure
 {
     [TestClass]
     public class TableProviderInSqlTest

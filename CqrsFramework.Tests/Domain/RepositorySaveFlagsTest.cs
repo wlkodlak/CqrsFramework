@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace CqrsFramework.Tests
+namespace CqrsFramework.Tests.Domain
 {
     [TestClass]
     public class RepositorySaveFlagsTest

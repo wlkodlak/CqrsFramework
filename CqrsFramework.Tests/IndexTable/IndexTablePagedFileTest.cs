@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CqrsFramework.InFile;
 
-namespace CqrsFramework.Tests
+namespace CqrsFramework.Tests.IndexTable
 {
     [TestClass]
     public class IndexTablePagedFileTest
