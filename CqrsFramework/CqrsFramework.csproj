@@ -43,6 +43,9 @@
     <Compile Include="Bus.cs" />
     <Compile Include="EventSerializer.cs" />
     <Compile Include="EventStore.cs" />
+    <Compile Include="IndexTable\IdxFreeList.cs" />
+    <Compile Include="IndexTable\IdxHeader.cs" />
+    <Compile Include="IndexTable\IdxOverflow.cs" />
     <Compile Include="InFile\FileEventStoreEntry.cs" />
     <Compile Include="InFile\FileEventStoreDataFile.cs" />
     <Compile Include="InFile\FileEventStore.cs" />

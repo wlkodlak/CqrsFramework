@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace CqrsFramework.InFile
+namespace CqrsFramework.IndexTable
 {
     public interface IPagedFile : IDisposable
     {
@@ -17,7 +17,7 @@ namespace CqrsFramework.InFile
 
     public class PagedFile : IPagedFile
     {
-        private const int PageSize = 4096;
+        public const int PageSize = 4096;
         private Stream _stream;
         private int _size = 0;
 
