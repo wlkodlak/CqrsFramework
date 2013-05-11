@@ -92,5 +92,13 @@ namespace CqrsFramework.Tests.IndexTable
             Assert.AreEqual(276, cell.OverflowPage);
             Assert.AreEqual(encodedCell.Count, cell.CellSize);
         }
+
+        [TestMethod]
+        public void ExtremelySmallCellSize()
+        {
+            var minSize = PagedFile.PageSize / 256;
+            var actual = IdxCell.CreateLeafCell(IdxKey.FromString("Hi"), null).CellSize;
+            Assert.AreEqual(minSize, actual);
+        }
     }
 }

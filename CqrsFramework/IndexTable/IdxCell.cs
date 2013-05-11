@@ -15,6 +15,9 @@ namespace CqrsFramework.IndexTable
         private byte[] _value;
         private int _overflowLength;
         private int _overflowPage;
+        private int _ordinal;
+
+        private const int MinSize = PagedFile.PageSize / 256;
 
         private IdxCell()
         {
@@ -54,7 +57,7 @@ namespace CqrsFramework.IndexTable
             set { _overflowPage = value; }
         }
         public byte[] ValueBytes { get { return _value; } }
-        public int CellSize { get { return 8 + _keyLength + _valueLength; } }
+        public int CellSize { get { return Math.Max(MinSize, 8 + _keyLength + _valueLength); } }
 
         public static IdxCell LoadLeafCell(BinaryReader reader)
         {
@@ -66,6 +69,12 @@ namespace CqrsFramework.IndexTable
             cell._key = IdxKey.FromBytes(reader.ReadBytes(cell._keyLength));
             cell._value = reader.ReadBytes(cell._valueLength);
             return cell;
+        }
+
+        public int Ordinal
+        {
+            get { return _ordinal; }
+            set { _ordinal = value; }
         }
     }
 }
