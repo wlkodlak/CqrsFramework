@@ -51,7 +51,7 @@
     <Compile Include="InMemory\MemoryEventStore.cs" />
     <Compile Include="InTable\TableEventStore.cs" />
     <Compile Include="InTable\TableEventStream.cs" />
-    <Compile Include="InFile\PagedFile.cs" />
+    <Compile Include="IndexTable\PagedFile.cs" />
     <Compile Include="InSql\TableProvider.cs" />
     <Compile Include="Messages.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

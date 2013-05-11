@@ -58,21 +58,21 @@
   </Choose>
   <ItemGroup>
     <Compile Include="DatabaseMock.cs" />
-    <Compile Include="EventStoreTestBase.cs" />
+    <Compile Include="EventStore\EventStoreTestBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="AggregateBaseTest.cs" />
-    <Compile Include="EventStoreMemoryTest.cs" />
-    <Compile Include="EventStoreFilesTest.cs" />
-    <Compile Include="EventStoreFilesDataFileTest.cs" />
-    <Compile Include="RepositoryBaseTest.cs" />
-    <Compile Include="RepositorySaveFlagsTest.cs" />
-    <Compile Include="StreamProviderTestBase.cs" />
-    <Compile Include="StreamProviderMemoryTest.cs" />
-    <Compile Include="IndexTableFileTest.cs" />
-    <Compile Include="IndexTablePagedFileTest.cs" />
-    <Compile Include="EventStoreTableTest.cs" />
-    <Compile Include="TableProviderInSqlTest.cs" />
-    <Compile Include="TableProviderMemoryTest.cs" />
+    <Compile Include="Domain\AggregateBaseTest.cs" />
+    <Compile Include="EventStore\EventStoreMemoryTest.cs" />
+    <Compile Include="EventStore\EventStoreFilesTest.cs" />
+    <Compile Include="EventStore\EventStoreFilesDataFileTest.cs" />
+    <Compile Include="Domain\RepositoryBaseTest.cs" />
+    <Compile Include="Domain\RepositorySaveFlagsTest.cs" />
+    <Compile Include="Infrastructure\StreamProviderTestBase.cs" />
+    <Compile Include="Infrastructure\StreamProviderMemoryTest.cs" />
+    <Compile Include="IndexTable\IndexTableFileTest.cs" />
+    <Compile Include="IndexTable\IndexTablePagedFileTest.cs" />
+    <Compile Include="EventStore\EventStoreTableTest.cs" />
+    <Compile Include="Infrastructure\TableProviderInSqlTest.cs" />
+    <Compile Include="Infrastructure\TableProviderMemoryTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqrsFramework\CqrsFramework.csproj">
@@ -83,6 +83,7 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
       <ItemGroup>
