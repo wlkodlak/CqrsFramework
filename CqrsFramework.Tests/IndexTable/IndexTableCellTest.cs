@@ -100,5 +100,27 @@ namespace CqrsFramework.Tests.IndexTable
             var actual = IdxCell.CreateLeafCell(IdxKey.FromString("Hi"), null).CellSize;
             Assert.AreEqual(minSize, actual);
         }
+
+        [TestMethod]
+        public void SaveLeafCell()
+        {
+            var keyBytes = Encoding.ASCII.GetBytes("Hello World");
+            var valueBytes = new byte[48];
+            new Random(493).NextBytes(valueBytes);
+
+            var cell = IdxCell.CreateLeafCell(IdxKey.FromBytes(keyBytes), valueBytes);
+            cell.OverflowPage = 276;
+            
+            var stream = new MemoryStream();
+            using (var writer = new BinaryWriter(stream))
+                cell.SaveLeafCell(writer);
+
+            var encodedCell = new List<byte>();
+            encodedCell.AddRange(new byte[8] { 11, 48, 0, 0, 20, 1, 0, 0 });
+            encodedCell.AddRange(keyBytes);
+            encodedCell.AddRange(valueBytes);
+
+            CollectionAssert.AreEqual(encodedCell.ToArray(), stream.ToArray());
+        }
     }
 }

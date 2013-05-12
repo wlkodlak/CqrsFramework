@@ -71,6 +71,16 @@ namespace CqrsFramework.IndexTable
             return cell;
         }
 
+        public void SaveLeafCell(BinaryWriter writer)
+        {
+            writer.Write((byte)_keyLength);
+            writer.Write((byte)_valueLength);
+            writer.Write((short)_overflowLength);
+            writer.Write(_overflowPage);
+            writer.Write(_key.ToBytes());
+            writer.Write(_value);
+        }
+
         public int Ordinal
         {
             get { return _ordinal; }
