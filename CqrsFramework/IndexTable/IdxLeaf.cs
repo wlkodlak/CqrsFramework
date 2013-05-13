@@ -7,14 +7,15 @@ using System.IO;
 
 namespace CqrsFramework.IndexTable
 {
-    public class IdxLeaf
+    public class IdxNode
     {
+        private int _pageNumber = 0;
         private List<IdxCell> _cells = new List<IdxCell>();
         private int _leafSize = 16;
         private bool _dirty = false;
         private int _next = 0;
 
-        public IdxLeaf(byte[] data)
+        public IdxNode(byte[] data)
         {
             if (data == null)
                 return;
@@ -73,7 +74,15 @@ namespace CqrsFramework.IndexTable
             return buffer;
         }
 
-        public int Next { get { return _next; } set { _next = value; } }
+        public int Next
+        {
+            get { return _next; }
+            set
+            {
+                _next = value;
+                _dirty = true;
+            }
+        }
         public int CellsCount { get { return _cells.Count; } }
         public bool IsSmall { get { return _leafSize < PagedFile.PageSize / 4; } }
         public bool IsFull { get { return _leafSize >= PagedFile.PageSize - 128; } }
@@ -81,15 +90,63 @@ namespace CqrsFramework.IndexTable
 
         public void AddCell(IdxCell cell)
         {
-            _cells.Add(cell);
+            int position = PositionForInsert(cell.Key);
+            _cells.Insert(position, cell);
             _leafSize += cell.CellSize;
-            cell.Ordinal = _cells.Count - 1;
+            for (int i = 0; i < _cells.Count; i++)
+                _cells[i].Ordinal = i;
             _dirty = true;
+        }
+
+        private int PositionForInsert(IdxKey key)
+        {
+            for (int i = 0; i < _cells.Count; i++)
+            {
+                var cellKey = _cells[i].Key;
+                if (key <= cellKey)
+                    return i;
+            }
+            return _cells.Count;
         }
 
         public IdxCell GetCell(int number)
         {
             return _cells[number];
+        }
+
+        public int PageNumber
+        {
+            get { return _pageNumber; }
+            set { _pageNumber = value; }
+        }
+
+        public IdxKey SplitLeaf(IdxNode newPage, IdxCell addedCell)
+        {
+            int position = PositionForInsert(addedCell.Key);
+            var newCells = _cells.ToList();
+            newCells.Insert(position, addedCell);
+            int leftCount = 0;
+            int leftLength = 16;
+            foreach (var cell in newCells)
+            {
+                if (leftLength < PagedFile.PageSize / 2)
+                {
+                    leftLength += cell.CellSize;
+                    leftCount++;
+                }
+            }
+
+            _dirty = true;
+            _cells = newCells.Take(leftCount).ToList();
+            _leafSize = 16 + _cells.Sum(c => c.CellSize);
+            
+            newPage._dirty = true;
+            newPage._cells = newCells.Skip(leftCount).ToList();
+            newPage._leafSize = 16 + newPage._cells.Sum(c => c.CellSize);
+
+            newPage._next = _next;
+            _next = newPage._pageNumber;
+            return newPage._cells[0].Key;
         }
     }
 }
