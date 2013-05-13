@@ -70,7 +70,7 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
-        public void LoadCellFromBytes()
+        public void LoadLeafCellFromBytes()
         {
             var keyBytes = Encoding.ASCII.GetBytes("Hello World");
             var valueBytes = new byte[48];
@@ -84,6 +84,7 @@ namespace CqrsFramework.Tests.IndexTable
             using (var reader = new BinaryReader(new MemoryStream(encodedCell.ToArray())))
                 cell = IdxCell.LoadLeafCell(reader);
 
+            Assert.IsTrue(cell.IsLeaf);
             Assert.AreEqual(11, cell.KeyLength);
             Assert.AreEqual(IdxKey.FromBytes(keyBytes), cell.Key);
             Assert.AreEqual(48, cell.ValueLength);
@@ -91,6 +92,37 @@ namespace CqrsFramework.Tests.IndexTable
             Assert.AreEqual(2, cell.OverflowLength);
             Assert.AreEqual(276, cell.OverflowPage);
             Assert.AreEqual(encodedCell.Count, cell.CellSize);
+        }
+
+        [TestMethod]
+        public void LoadTinyLeafCell()
+        {
+            var keyBytes = Encoding.ASCII.GetBytes("Hi");
+            var valueBytes = new byte[2];
+            new Random(77).NextBytes(valueBytes);
+            var encodedCell = new List<byte>();
+            encodedCell.AddRange(new byte[8] { 2, 2, 0, 0, 0, 0, 0, 0 });
+            encodedCell.AddRange(keyBytes);
+            encodedCell.AddRange(valueBytes);
+            encodedCell.AddRange(new byte[4]);
+
+            IdxCell cell;
+            int endPosition;
+            using (var reader = new BinaryReader(new MemoryStream(encodedCell.ToArray())))
+            {
+                cell = IdxCell.LoadLeafCell(reader);
+                endPosition = (int)reader.BaseStream.Position;
+            }
+
+            Assert.IsTrue(cell.IsLeaf);
+            Assert.AreEqual(2, cell.KeyLength);
+            Assert.AreEqual(IdxKey.FromBytes(keyBytes), cell.Key);
+            Assert.AreEqual(0, cell.OverflowLength);
+            Assert.AreEqual(0, cell.OverflowPage);
+            Assert.AreEqual(2, cell.ValueLength);
+            CollectionAssert.AreEqual(valueBytes, cell.ValueBytes);
+            Assert.AreEqual(16, cell.CellSize);
+            Assert.AreEqual(16, endPosition);
         }
 
         [TestMethod]
@@ -110,7 +142,7 @@ namespace CqrsFramework.Tests.IndexTable
 
             var cell = IdxCell.CreateLeafCell(IdxKey.FromBytes(keyBytes), valueBytes);
             cell.OverflowPage = 276;
-            
+
             var stream = new MemoryStream();
             using (var writer = new BinaryWriter(stream))
                 cell.SaveLeafCell(writer);
@@ -122,5 +154,55 @@ namespace CqrsFramework.Tests.IndexTable
 
             CollectionAssert.AreEqual(encodedCell.ToArray(), stream.ToArray());
         }
+
+        [TestMethod]
+        public void CreateInteriorCell()
+        {
+            IdxCell cell = IdxCell.CreateInteriorCell(IdxKey.FromInteger(53), 314);
+            Assert.IsFalse(cell.IsLeaf);
+            Assert.AreEqual(IdxKey.FromInteger(53), cell.Key);
+            Assert.AreEqual(4, cell.KeyLength);
+            Assert.AreEqual(314, cell.ChildPage);
+            Assert.AreEqual(16, cell.CellSize);
+        }
+
+        [TestMethod]
+        public void LoadInteriorCellFromBytes()
+        {
+            var keyBytes = Encoding.ASCII.GetBytes("Hello");
+            var encodedCell = new List<byte>();
+            encodedCell.AddRange(new byte[8] { 5, 0, 0, 0, 20, 2, 0, 0 });
+            encodedCell.AddRange(keyBytes);
+            encodedCell.AddRange(new byte[3]);
+
+            IdxCell cell;
+            int endPosition;
+            using (var reader = new BinaryReader(new MemoryStream(encodedCell.ToArray())))
+            {
+                cell = IdxCell.LoadInteriorCell(reader);
+                endPosition = (int)reader.BaseStream.Position;
+            }
+
+            Assert.IsFalse(cell.IsLeaf);
+            Assert.AreEqual(5, cell.KeyLength);
+            Assert.AreEqual(IdxKey.FromBytes(keyBytes), cell.Key);
+            Assert.AreEqual(532, cell.ChildPage);
+            Assert.AreEqual(16, cell.CellSize);
+            Assert.AreEqual(16, endPosition);
+        }
+
+        [TestMethod]
+        public void SaveInteriorCell()
+        {
+            var buffer = new byte[24];
+            var cell = IdxCell.CreateInteriorCell(IdxKey.FromString("Help me, please!"), 514);
+            using (var writer = new BinaryWriter(new MemoryStream(buffer)))
+                cell.SaveInteriorCell(writer);
+            var expected = new List<byte>();
+            expected.AddRange(new byte[8] { 16, 0, 0, 0, 2, 2, 0, 0 });
+            expected.AddRange(IdxKey.FromString("Help me, please!").ToBytes());
+            CollectionAssert.AreEqual(expected.ToArray(), buffer);
+        }
+
     }
 }

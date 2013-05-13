@@ -14,9 +14,12 @@ namespace CqrsFramework.IndexTable
         private int _leafSize = 16;
         private bool _dirty = false;
         private int _next = 0;
+        private bool _isLeaf;
+        private int _leftmostChild = 0;
 
-        public IdxNode(byte[] data)
+        public IdxNode(bool isLeaf, byte[] data)
         {
+            _isLeaf = isLeaf;
             if (data == null)
                 return;
             using (var reader = new BinaryReader(new MemoryStream(data)))
@@ -24,11 +27,15 @@ namespace CqrsFramework.IndexTable
                 var pageType = reader.ReadByte();
                 int cellsCount = reader.ReadByte();
                 reader.ReadInt16();
-                _next = reader.ReadInt32();
+                var nextOrLeftmost = reader.ReadInt32();
+                if (_isLeaf)
+                    _next = nextOrLeftmost;
+                else
+                    _leftmostChild = nextOrLeftmost;
                 reader.ReadBytes(8);
                 for (int i = 0; i < cellsCount; i++)
                 {
-                    var cell = IdxCell.LoadLeafCell(reader);
+                    var cell = _isLeaf ? IdxCell.LoadLeafCell(reader) : IdxCell.LoadInteriorCell(reader);
                     cell.Ordinal = i;
                     _cells.Add(cell);
                     _leafSize += cell.CellSize;
@@ -36,7 +43,7 @@ namespace CqrsFramework.IndexTable
             }
         }
 
-        public IdxCell FindByKey(IdxKey key)
+        public IdxCell FindLeafCellByKey(IdxKey key)
         {
             foreach (var cell in _cells)
             {
@@ -44,6 +51,19 @@ namespace CqrsFramework.IndexTable
                     return cell;
             }
             return null;
+        }
+
+        public int FindPageByKey(IdxKey key)
+        {
+            int candidate = _leftmostChild;
+            foreach (var cell in _cells)
+            {
+                if (key >= cell.Key)
+                    candidate = cell.ChildPage;
+                else
+                    break;
+            }
+            return candidate;
         }
 
         public void RemoveCell(int index)
@@ -64,11 +84,22 @@ namespace CqrsFramework.IndexTable
             var buffer = new byte[PagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
-                writer.Write(new byte[4] { 1, (byte)_cells.Count, 0, 0 });
-                writer.Write(_next);
-                writer.Write(new byte[8]);
-                foreach (var cell in _cells)
-                    cell.SaveLeafCell(writer);
+                if (_isLeaf)
+                {
+                    writer.Write(new byte[4] { 1, (byte)_cells.Count, 0, 0 });
+                    writer.Write(_next);
+                    writer.Write(new byte[8]);
+                    foreach (var cell in _cells)
+                        cell.SaveLeafCell(writer);
+                }
+                else
+                {
+                    writer.Write(new byte[4] { 2, (byte)_cells.Count, 0, 0 });
+                    writer.Write(_leftmostChild);
+                    writer.Write(new byte[8]);
+                    foreach (var cell in _cells)
+                        cell.SaveInteriorCell(writer);
+                }
             }
             _dirty = false;
             return buffer;
@@ -87,6 +118,16 @@ namespace CqrsFramework.IndexTable
         public bool IsSmall { get { return _leafSize < PagedFile.PageSize / 4; } }
         public bool IsFull { get { return _leafSize >= PagedFile.PageSize - 128; } }
         public bool IsDirty { get { return _dirty; } }
+        public bool IsLeaf { get { return _isLeaf; } }
+        public int LeftmostChildPage
+        {
+            get { return _leftmostChild; }
+            set
+            {
+                _leftmostChild = value;
+                _dirty = true;
+            }
+        }
 
         public void AddCell(IdxCell cell)
         {
@@ -139,7 +180,7 @@ namespace CqrsFramework.IndexTable
             _dirty = true;
             _cells = newCells.Take(leftCount).ToList();
             _leafSize = 16 + _cells.Sum(c => c.CellSize);
-            
+
             newPage._dirty = true;
             newPage._cells = newCells.Skip(leftCount).ToList();
             newPage._leafSize = 16 + newPage._cells.Sum(c => c.CellSize);

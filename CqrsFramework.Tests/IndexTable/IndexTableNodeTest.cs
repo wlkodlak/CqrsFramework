@@ -12,20 +12,33 @@ namespace CqrsFramework.Tests.IndexTable
     public class IndexTableNodeTest
     {
         [TestMethod]
-        public void CreateEmpty()
+        public void CreateEmptyLeaf()
         {
-            IdxNode leaf = new IdxNode(null);
+            IdxNode leaf = new IdxNode(true, null);
             Assert.AreEqual(0, leaf.Next);
             Assert.AreEqual(0, leaf.CellsCount);
             Assert.IsTrue(leaf.IsSmall);
             Assert.IsFalse(leaf.IsFull);
             Assert.IsFalse(leaf.IsDirty);
+            Assert.IsTrue(leaf.IsLeaf);
+        }
+
+        [TestMethod]
+        public void CreateEmptyInterior()
+        {
+            IdxNode node = new IdxNode(false, null);
+            Assert.IsFalse(node.IsLeaf);
+            Assert.AreEqual(0, node.LeftmostChildPage);
+            Assert.AreEqual(0, node.CellsCount);
+            Assert.IsTrue(node.IsSmall);
+            Assert.IsFalse(node.IsFull);
+            Assert.IsFalse(node.IsDirty);
         }
 
         [TestMethod]
         public void AddCellToEmptyLeaf()
         {
-            IdxNode leaf = new IdxNode(null);
+            IdxNode leaf = new IdxNode(true, null);
             IdxCell cell = IdxCell.CreateLeafCell(IdxKey.FromInteger(482), null);
             leaf.AddCell(cell);
             Assert.AreEqual(1, leaf.CellsCount);
@@ -36,9 +49,22 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
+        public void AddCellToEmptyInterior()
+        {
+            IdxNode leaf = new IdxNode(false, null);
+            IdxCell cell = IdxCell.CreateInteriorCell(IdxKey.FromInteger(48), 669);
+            leaf.AddCell(cell);
+            Assert.AreEqual(1, leaf.CellsCount);
+            Assert.IsTrue(leaf.IsSmall);
+            Assert.IsFalse(leaf.IsFull);
+            Assert.AreEqual(IdxKey.FromInteger(48), leaf.GetCell(0).Key);
+            Assert.IsTrue(leaf.IsDirty);
+        }
+
+        [TestMethod]
         public void MediumSizedLeafUsingBigCells()
         {
-            IdxNode leaf = new IdxNode(null);
+            IdxNode leaf = new IdxNode(true, null);
             for (int i = 0; i < 8; i++)
                 leaf.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(i), new byte[116]));
             Assert.IsFalse(leaf.IsSmall);
@@ -49,7 +75,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void SmallSizedLeafUsingTinyCells()
         {
-            IdxNode leaf = new IdxNode(null);
+            IdxNode leaf = new IdxNode(true, null);
             for (int i = 0; i < 16; i++)
                 leaf.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(i), new byte[4]));
             Assert.IsTrue(leaf.IsSmall);
@@ -59,7 +85,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void MediumSizedLeafUsingTinyCells()
         {
-            IdxNode leaf = new IdxNode(null);
+            IdxNode leaf = new IdxNode(true, null);
             for (int i = 0; i < 64; i++)
                 leaf.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(i), new byte[4]));
             Assert.IsFalse(leaf.IsSmall);
@@ -69,7 +95,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void FullSizedLeafUsingBigCells()
         {
-            IdxNode leaf = new IdxNode(null);
+            IdxNode leaf = new IdxNode(true, null);
             for (int i = 0; i < 31; i++)
                 leaf.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(i), new byte[116]));
             Assert.IsFalse(leaf.IsSmall);
@@ -79,7 +105,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void FullSizedLeafUsingTinyCells()
         {
-            IdxNode leaf = new IdxNode(null);
+            IdxNode leaf = new IdxNode(true, null);
             for (int i = 0; i < 247; i++)
                 leaf.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(i), new byte[4]));
             Assert.IsFalse(leaf.IsSmall);
@@ -89,7 +115,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void CellsHaveOrdinalNumber()
         {
-            IdxNode leaf = new IdxNode(null);
+            IdxNode leaf = new IdxNode(true, null);
             for (int i = 0; i < 64; i++)
                 leaf.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(i), new byte[16]));
             for (int i = 0; i < leaf.CellsCount; i++)
@@ -99,9 +125,9 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void LoadingMediumSizedLeafFromBytes()
         {
-            var data = SampleData();
+            var data = LeafSampleData();
 
-            IdxNode leaf = new IdxNode(data);
+            IdxNode leaf = new IdxNode(true, data);
 
             Assert.AreEqual(16, leaf.CellsCount);
             Assert.AreEqual(8109, leaf.Next);
@@ -126,7 +152,7 @@ namespace CqrsFramework.Tests.IndexTable
             Assert.AreEqual(16, leaf.GetCell(9).CellSize);
         }
 
-        private byte[] SampleData()
+        private byte[] LeafSampleData()
         {
             var data = new byte[PagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(data)))
@@ -184,22 +210,38 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
-        public void FindingNearestCell()
+        public void FindingLeafCellForRangeSearch()
         {
-            var data = SampleData();
-            var leaf = new IdxNode(data);
-            Assert.AreEqual(0, leaf.FindByKey(IdxKey.FromString("abc")).Ordinal);
-            Assert.AreEqual(8, leaf.FindByKey(IdxKey.FromString("ncsf")).Ordinal);
-            Assert.AreEqual(11, leaf.FindByKey(IdxKey.FromString("opat")).Ordinal);
-            Assert.AreEqual(12, leaf.FindByKey(IdxKey.FromString("rcd")).Ordinal);
-            Assert.IsNull(leaf.FindByKey(IdxKey.FromString("twz")));
+            var data = LeafSampleData();
+            var leaf = new IdxNode(true, data);
+            Assert.AreEqual(0, leaf.FindLeafCellByKey(IdxKey.FromString("abc")).Ordinal);
+            Assert.AreEqual(8, leaf.FindLeafCellByKey(IdxKey.FromString("ncsf")).Ordinal);
+            Assert.AreEqual(11, leaf.FindLeafCellByKey(IdxKey.FromString("opat")).Ordinal);
+            Assert.AreEqual(12, leaf.FindLeafCellByKey(IdxKey.FromString("rcd")).Ordinal);
+            Assert.IsNull(leaf.FindLeafCellByKey(IdxKey.FromString("twz")));
+        }
+
+        [TestMethod]
+        public void FindChildPageByKey()
+        {
+            var data = new IdxNode(false, null);
+            data.LeftmostChildPage = 55;
+            data.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(3), 110));
+            data.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(8), 180));
+            data.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(12), 10));
+            data.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(48), 70));
+            data.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(90), 64));
+            Assert.AreEqual(10, data.FindPageByKey(IdxKey.FromInteger(12)));
+            Assert.AreEqual(110, data.FindPageByKey(IdxKey.FromInteger(7)));
+            Assert.AreEqual(55, data.FindPageByKey(IdxKey.FromInteger(1)));
+            Assert.AreEqual(64, data.FindPageByKey(IdxKey.FromInteger(99)));
         }
 
         [TestMethod]
         public void RemoveCell()
         {
-            var data = SampleData();
-            var leaf = new IdxNode(data);
+            var data = LeafSampleData();
+            var leaf = new IdxNode(true, data);
             leaf.RemoveCell(10);
             Assert.IsTrue(leaf.IsDirty);
             Assert.AreEqual(15, leaf.CellsCount);
@@ -208,45 +250,86 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
+        public void RemoveInteriorCell()
+        {
+            var node = new IdxNode(false, SampleInteriorData());
+            node.RemoveCell(3);
+            Assert.IsTrue(node.IsDirty);
+            Assert.AreEqual(4, node.CellsCount);
+            Assert.AreEqual(3, node.GetCell(3).Ordinal);
+            Assert.AreEqual(98, node.GetCell(3).ChildPage);
+        }
+
+        [TestMethod]
+        public void LoadInterior()
+        {
+            var node = new IdxNode(false, SampleInteriorData());
+            Assert.IsFalse(node.IsDirty);
+            Assert.AreEqual(5, node.CellsCount);
+            Assert.AreEqual(2, node.GetCell(2).Ordinal);
+            Assert.AreEqual(632, node.LeftmostChildPage);
+            Assert.AreEqual(99, node.GetCell(3).ChildPage);
+            Assert.AreEqual(
+                IdxKey.FromBytes(new byte[16] { 4, 4, 0, 0, 0, 10, 0, 20, 33, 14, 22, 18, 94, 112, 223, 200 }),
+                node.GetCell(3).Key);
+        }
+
+        private byte[] SampleInteriorData()
+        {
+            var buffer = new byte[PagedFile.PageSize];
+            using (var writer = new BinaryWriter(new MemoryStream(buffer)))
+            {
+                writer.Write(new byte[8] { 2, 5, 0, 0, 120, 2, 0, 0 });
+                writer.Write(new byte[8]);
+                writer.Write(new byte[16] { 4, 0, 0, 0, 18, 0, 0, 0, 1, 4, 7, 0, 0, 0, 0, 0 });
+                writer.Write(new byte[16] { 3, 0, 0, 0, 88, 0, 0, 0, 2, 4, 7, 0, 0, 0, 0, 0 });
+                writer.Write(new byte[16] { 5, 0, 0, 0, 38, 0, 0, 0, 2, 4, 7, 1, 2, 0, 0, 0 });
+                writer.Write(new byte[24] { 16, 0, 0, 0, 99, 0, 0, 0, 4, 4, 0, 0, 0, 10, 0, 20, 33, 14, 22, 18, 94, 112, 223, 200 });
+                writer.Write(new byte[16] { 5, 0, 0, 0, 98, 0, 0, 0, 6, 4, 7, 1, 2, 0, 0, 0 });
+            }
+            return buffer;
+        }
+
+        [TestMethod]
         public void RemovingCellsDecreasesUsedSize()
         {
-            var data = SampleData();
-            var leaf = new IdxNode(data);
+            var data = LeafSampleData();
+            var leaf = new IdxNode(true, data);
             for (int i = 0; i < 14; i++)
                 leaf.RemoveCell(0);
             Assert.IsTrue(leaf.IsSmall);
         }
 
         [TestMethod]
-        public void SavingBytes()
+        public void SavingLeafBytes()
         {
-            var leaf = new IdxNode(null);
+            var leaf = new IdxNode(true, null);
             leaf.Next = 8109;
 
-            GenerateCell(leaf, "abc", 483, 16, 0);               // 0
-            GenerateCell(leaf, "kdjif", 3829, 12000, 4938);
-            GenerateCell(leaf, "kdzrf", 32, 4232, 423);
-            GenerateCell(leaf, "lsdf", 8743, 623, 223);
-            GenerateCell(leaf, "lzdkf", 543, 5233, 884);         // 4
-            GenerateCell(leaf, "mwcjdaa", 223, 3112, 854);
-            GenerateCell(leaf, "mz", 543, 3322, 65);
-            GenerateCell(leaf, "naa", 6443, 419, 45);
-            GenerateCell(leaf, "ncsf", 2234, 8832, 223);         // 8
-            GenerateCell(leaf, "oodkc", 9382, 16, 0);
-            GenerateCell(leaf, "opa", 6334, 16, 0);
-            GenerateCell(leaf, "pasf", 9382, 16, 0);
-            GenerateCell(leaf, "rcdf", 9842, 16, 0);             // 12
-            GenerateCell(leaf, "sdhr", 2699, 16, 0);
-            GenerateCell(leaf, "ssfue", 385, 16, 0);
-            GenerateCell(leaf, "twoic", 112, 16, 544);
+            GenerateLeafCell(leaf, "abc", 483, 16, 0);               // 0
+            GenerateLeafCell(leaf, "kdjif", 3829, 12000, 4938);
+            GenerateLeafCell(leaf, "kdzrf", 32, 4232, 423);
+            GenerateLeafCell(leaf, "lsdf", 8743, 623, 223);
+            GenerateLeafCell(leaf, "lzdkf", 543, 5233, 884);         // 4
+            GenerateLeafCell(leaf, "mwcjdaa", 223, 3112, 854);
+            GenerateLeafCell(leaf, "mz", 543, 3322, 65);
+            GenerateLeafCell(leaf, "naa", 6443, 419, 45);
+            GenerateLeafCell(leaf, "ncsf", 2234, 8832, 223);         // 8
+            GenerateLeafCell(leaf, "oodkc", 9382, 16, 0);
+            GenerateLeafCell(leaf, "opa", 6334, 16, 0);
+            GenerateLeafCell(leaf, "pasf", 9382, 16, 0);
+            GenerateLeafCell(leaf, "rcdf", 9842, 16, 0);             // 12
+            GenerateLeafCell(leaf, "sdhr", 2699, 16, 0);
+            GenerateLeafCell(leaf, "ssfue", 385, 16, 0);
+            GenerateLeafCell(leaf, "twoic", 112, 16, 544);
 
             var saved = leaf.Save();
-            var expected = SampleData();
+            var expected = LeafSampleData();
             Assert.IsFalse(leaf.IsDirty);
             CollectionAssert.AreEqual(expected, saved);
         }
 
-        private void GenerateCell(IdxNode leaf, string id, int seed, int length, int oflPage)
+        private void GenerateLeafCell(IdxNode leaf, string id, int seed, int length, int oflPage)
         {
             int valueLength = length - id.Length - 8;
             var cell = IdxCell.CreateLeafCell(IdxKey.FromString(id), GenerateValue(seed, valueLength));
@@ -255,9 +338,37 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
-        public void AddingKeepsCellsSorted()
+        public void SavingInterior()
         {
-            var leaf = new IdxNode(null);
+            var node = new IdxNode(false, null);
+            node.LeftmostChildPage = 741;
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(1742), 84652));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(2447), 21324));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(9922), 81124));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(17342), 993154));
+            var serialized = node.Save();
+            var expected = new byte[PagedFile.PageSize];
+            using (var writer = new BinaryWriter(new MemoryStream(expected)))
+            {
+                writer.Write((byte)2);
+                writer.Write((byte)4);
+                writer.Write((byte)0);
+                writer.Write((byte)0);
+                writer.Write(741);
+                writer.Write(new byte[8]);
+                IdxCell.CreateInteriorCell(IdxKey.FromInteger(1742), 84652).SaveInteriorCell(writer);
+                IdxCell.CreateInteriorCell(IdxKey.FromInteger(2447), 21324).SaveInteriorCell(writer);
+                IdxCell.CreateInteriorCell(IdxKey.FromInteger(9922), 81124).SaveInteriorCell(writer);
+                IdxCell.CreateInteriorCell(IdxKey.FromInteger(17342), 993154).SaveInteriorCell(writer);
+            }
+            Assert.IsFalse(node.IsDirty);
+            CollectionAssert.AreEqual(expected, serialized);
+        }
+
+        [TestMethod]
+        public void AddingKeepsLeafCellsSorted()
+        {
+            var leaf = new IdxNode(true, null);
             leaf.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(153), null));
             leaf.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(3), null));
             leaf.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(53), null));
@@ -269,9 +380,23 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
+        public void AddingKeepsInteriorCellsSorted()
+        {
+            var leaf = new IdxNode(true, null);
+            leaf.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(153), 58));
+            leaf.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(3), 84));
+            leaf.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(53), 334));
+            leaf.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(13), 2123));
+            Assert.AreEqual(IdxKey.FromInteger(3), leaf.GetCell(0).Key);
+            Assert.AreEqual(IdxKey.FromInteger(13), leaf.GetCell(1).Key);
+            Assert.AreEqual(IdxKey.FromInteger(53), leaf.GetCell(2).Key);
+            Assert.AreEqual(IdxKey.FromInteger(153), leaf.GetCell(3).Key);
+        }
+
+        [TestMethod]
         public void UpdatingNextDirties()
         {
-            var leaf = new IdxNode(SampleData());
+            var leaf = new IdxNode(true, LeafSampleData());
             leaf.Next = 4874;
             Assert.IsTrue(leaf.IsDirty);
         }
@@ -279,16 +404,16 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void PageNumber()
         {
-            var leaf = new IdxNode(null);
+            var leaf = new IdxNode(true, null);
             leaf.PageNumber = 382;
             Assert.IsFalse(leaf.IsDirty);
         }
 
         [TestMethod]
-        public void SplitAtKey125Size16()
+        public void SplitLeafAtKey125Size16()
         {
             var leaf = PrepareSplitLeaf();
-            var newPage = new IdxNode(null);
+            var newPage = new IdxNode(true, null);
             newPage.PageNumber = 888;
             IdxCell addedCell = IdxCell.CreateLeafCell(IdxKey.FromInteger(125), new byte[4]);
             IdxKey splitKey = leaf.SplitLeaf(newPage, addedCell);
@@ -299,10 +424,10 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
-        public void SplitAtKey125Size128()
+        public void SplitLeafAtKey125Size128()
         {
             var leaf = PrepareSplitLeaf();
-            var newPage = new IdxNode(null);
+            var newPage = new IdxNode(true, null);
             newPage.PageNumber = 888;
             IdxCell addedCell = IdxCell.CreateLeafCell(IdxKey.FromInteger(125), new byte[116]);
             IdxKey splitKey = leaf.SplitLeaf(newPage, addedCell);
@@ -313,10 +438,10 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
-        public void SplitAtKey435Size128()
+        public void SplitLeafAtKey435Size128()
         {
             var leaf = PrepareSplitLeaf();
-            var newPage = new IdxNode(null);
+            var newPage = new IdxNode(true, null);
             newPage.PageNumber = 888;
             IdxCell addedCell = IdxCell.CreateLeafCell(IdxKey.FromInteger(435), new byte[116]);
             IdxKey splitKey = leaf.SplitLeaf(newPage, addedCell);
@@ -327,10 +452,10 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
-        public void SplitAtKey455Size128()
+        public void SplitLeafAtKey455Size128()
         {
             var leaf = PrepareSplitLeaf();
-            var newPage = new IdxNode(null);
+            var newPage = new IdxNode(true, null);
             newPage.PageNumber = 888;
             IdxCell addedCell = IdxCell.CreateLeafCell(IdxKey.FromInteger(455), new byte[116]);
             IdxKey splitKey = leaf.SplitLeaf(newPage, addedCell);
@@ -344,23 +469,32 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var cells = new List<IdxCell>();
             for (int i = 1; i <= 12; i++)
-                cells.Add(CellForSplit(i, 116));
+                cells.Add(LeafCellForSplit(i, 116));
             for (int i = 1; i <= 64; i++)
-                cells.Add(CellForSplit(i + 12, 4));
+                cells.Add(LeafCellForSplit(i + 12, 4));
             for (int i = 1; i <= 11; i++)
-                cells.Add(CellForSplit(i + 12 + 64, 116));
-            var leaf = new IdxNode(null);
+                cells.Add(LeafCellForSplit(i + 12 + 64, 116));
+            var leaf = new IdxNode(true, null);
             foreach (var cell in cells)
                 leaf.AddCell(cell);
             leaf.Save();
             return leaf;
         }
 
-        private IdxCell CellForSplit(int key, int length)
+        private IdxCell LeafCellForSplit(int key, int length)
         {
             var value = new byte[length];
             value[0] = (byte)key;
             return IdxCell.CreateLeafCell(IdxKey.FromInteger(10 * key), value);
+        }
+
+        [TestMethod]
+        public void UpdatingLeftmostChildDirties()
+        {
+            var node = new IdxNode(false, null);
+            node.LeftmostChildPage = 388;
+            Assert.AreEqual(388, node.LeftmostChildPage);
+            Assert.IsTrue(node.IsDirty);
         }
     }
 }
