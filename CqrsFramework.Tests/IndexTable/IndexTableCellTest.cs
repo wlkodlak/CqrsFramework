@@ -156,6 +156,16 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
+        public void SaveTinyCellSaves16Bytes()
+        {
+            var cell = IdxCell.CreateLeafCell(IdxKey.FromString("A"), null);
+            var stream = new MemoryStream();
+            using (var writer = new BinaryWriter(stream))
+                cell.SaveLeafCell(writer);
+            Assert.AreEqual(16, stream.ToArray().Length);
+        }
+
+        [TestMethod]
         public void CreateInteriorCell()
         {
             IdxCell cell = IdxCell.CreateInteriorCell(IdxKey.FromInteger(53), 314);

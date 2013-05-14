@@ -90,7 +90,11 @@ namespace CqrsFramework.IndexTable
             writer.Write((short)_overflowLength);
             writer.Write(_overflowPage);
             writer.Write(_key.ToBytes());
-            writer.Write(_value);
+            if (_valueLength > 0)
+                writer.Write(_value);
+            int remainingBytes = 8 - Math.Min(8, _keyLength + _valueLength);
+            if (remainingBytes > 0)
+                writer.Write(new byte[remainingBytes]);
         }
 
         public int Ordinal

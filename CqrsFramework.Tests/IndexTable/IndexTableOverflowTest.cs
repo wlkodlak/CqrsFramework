@@ -6,7 +6,7 @@ using System.Linq;
 using CqrsFramework.IndexTable;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace CqrsFramework.Tests.IndexTable
+namespace CqrsFramework.Tests.IndexTable.OverflowPage
 {
     [TestClass]
     public class IndexTableOverflowTest
@@ -18,8 +18,6 @@ namespace CqrsFramework.Tests.IndexTable
 
             IdxOverflow page = new IdxOverflow(null);
             int written = page.WriteData(data, 48);
-            var readBuffer = new byte[4096];
-            var readCount = page.ReadData(readBuffer, 0);
 
             Assert.AreEqual(534, written);
             Assert.IsTrue(page.IsDirty);
@@ -27,6 +25,10 @@ namespace CqrsFramework.Tests.IndexTable
             Assert.AreEqual(0, page.Next);
             Assert.IsFalse(page.HasNextPage);
             Assert.IsFalse(page.NeedsNextPage);
+
+            var readBuffer = new byte[4096];
+            var readCount = page.ReadData(readBuffer, 0);
+
             Assert.AreEqual(534, readCount);
             CollectionAssert.AreEqual(data.Skip(48).ToArray(), readBuffer.Take(534).ToArray());
         }

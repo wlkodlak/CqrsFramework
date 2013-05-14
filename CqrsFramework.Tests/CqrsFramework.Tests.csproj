@@ -63,7 +63,9 @@
     <Compile Include="IndexTable\IndexTableFreeListTest.cs" />
     <Compile Include="IndexTable\IndexTableHeaderTest.cs" />
     <Compile Include="IndexTable\IndexTableKeyTest.cs" />
-    <Compile Include="IndexTable\IndexTableNodeTest.cs" />
+    <Compile Include="IndexTable\IndexTableLeafBasicTests.cs" />
+    <Compile Include="IndexTable\IndexTableLeafMergeTests.cs" />
+    <Compile Include="IndexTable\IndexTableLeafSplitTests.cs" />
     <Compile Include="IndexTable\IndexTableOverflowTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Domain\AggregateBaseTest.cs" />
