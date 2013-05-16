@@ -30,7 +30,7 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
-        public void OriginalsAreMergable()
+        public void OriginalsAreMergeable()
         {
             Assert.IsTrue(_leftNode.IsSmall);
             Assert.IsTrue(_rightNode.IsSmall);
