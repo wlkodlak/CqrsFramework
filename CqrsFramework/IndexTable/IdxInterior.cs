@@ -129,40 +129,16 @@ namespace CqrsFramework.IndexTable
 
         public IdxKey Split(IdxInterior target, IdxCell addedCell)
         {
-            var cells = _cells.ToList();
-            cells.Insert(InsertPosition(addedCell), addedCell);
-            int leftCount = 0;
-            int leftSize = 0;
-            int boundarySize = (_size + addedCell.CellSize) / 2;
-            for (int i = 0; i < cells.Count; i++)
-            {
-                var cell = cells[i];
-                if (leftSize + cell.CellSize < boundarySize)
-                {
-                    leftSize += cell.CellSize;
-                    leftCount++;
-                }
-                else
-                    break;
-            }
-            _cells = cells.Take(leftCount).ToList();
-            var resultCell = cells.Skip(leftCount).First();
-            target._cells = cells.Skip(1 + leftCount).ToList();
-            target._leftMost = resultCell.ChildPage;
-
-            _cellsCount = _cells.Count;
             _dirty = true;
-            _size = 16 + _cells.Sum(c => c.CellSize);
-            for (int i = 0; i < _cellsCount; i++)
-                _cells[i].Ordinal = i;
-
-            target._cellsCount = target._cells.Count;
             target._dirty = true;
-            target._size = 16 + target._cells.Sum(c => c.CellSize);
-            for (int i = 0; i < target._cellsCount; i++)
-                target._cells[i].Ordinal = i;
 
-            return resultCell.Key;
+            _cells.Insert(InsertPosition(addedCell), addedCell);
+            var parentCell = IdxCell.CreateInteriorCell(_cells[_cellsCount].Key, target.PageNumber);
+            target._leftMost = _cells[_cellsCount].ChildPage;
+            _cells.RemoveAt(_cellsCount);
+
+            int moveCount = CellsToMove(this, target, parentCell, true);
+            return MoveToRight(target, parentCell, moveCount);
         }
 
         public IdxKey Merge(IdxInterior node, IdxCell parent)
