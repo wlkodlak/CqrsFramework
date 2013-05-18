@@ -50,20 +50,21 @@ namespace CqrsFramework.IndexTable
             }
         }
 
+        private const int SmallSize = PagedFile.PageSize / 4;
+        private const int FullSize = PagedFile.PageSize - 128;
+
         public int PageNumber { get; set; }
         public int CellsCount { get { return _cellsCount; } }
-        public bool IsSmall { get { return _size < PagedFile.PageSize / 4; } }
-        public bool IsFull { get { return _size + 128 > PagedFile.PageSize; } }
+        public bool IsSmall { get { return _size < SmallSize; } }
+        public bool IsFull { get { return _size > FullSize; } }
         public bool IsDirty { get { return _dirty; } }
 
         public void AddCell(IdxCell cell)
         {
             int position = InsertPosition(cell);
             _cells.Insert(position, cell);
-            _cellsCount++;
-            _size += cell.CellSize;
             _dirty = true;
-            FixOrdinals();
+            CompleteFix();
         }
 
         private int InsertPosition(IdxCell cell)
@@ -76,10 +77,15 @@ namespace CqrsFramework.IndexTable
             return _cellsCount;
         }
 
-        private void FixOrdinals()
+        private void CompleteFix()
         {
+            _cellsCount = _cells.Count;
+            _size = 16;
             for (int i = 0; i < _cellsCount; i++)
+            {
                 _cells[i].Ordinal = i;
+                _size += _cells[i].CellSize;
+            }
         }
 
         public IdxCell GetCell(int index)
@@ -107,12 +113,9 @@ namespace CqrsFramework.IndexTable
 
         public void RemoveCell(int index)
         {
-            var cell = _cells[index];
-            _size -= cell.CellSize;
-            _cellsCount--;
             _dirty = true;
             _cells.RemoveAt(index);
-            FixOrdinals();
+            CompleteFix();
         }
 
         public int FindPage(IdxKey key)
@@ -164,15 +167,94 @@ namespace CqrsFramework.IndexTable
 
         public IdxKey Merge(IdxInterior node, IdxCell parent)
         {
+            if (_size < node._size)
+            {
+                int cellsToMove = CellsToMove(node, this, parent, false);
+                if (cellsToMove == 0)
+                    return MergeToSingle(node, parent);
+                else
+                    return MoveToLeft(node, parent, cellsToMove);
+            }
+            else
+            {
+                int cellsToMove = CellsToMove(this, node, parent, true);
+                if (cellsToMove == 0)
+                    return MergeToSingle(node, parent);
+                else
+                    return MoveToRight(node, parent, cellsToMove);
+            }
+        }
+
+        private int CellsToMove(IdxInterior fromNode, IdxInterior toNode, IdxCell parent, bool pickLast)
+        {
+            var missingSize = SmallSize - toNode._size;
+            var idealSize = Math.Max((fromNode._size + toNode._size) / 2, SmallSize);
+            var remainingSize = fromNode._size;
+            var count = 0;
+            var parentSize = parent.CellSize;
+            var fromPosition = pickLast ? fromNode._cellsCount - 1 : 0;
+            var plusPosition = pickLast ? -1 : 1;
+            while (missingSize > 0)
+            {
+                missingSize -= parentSize;
+                parentSize = fromNode._cells[fromPosition].CellSize;
+                remainingSize -= parentSize;
+                if (remainingSize < SmallSize)
+                    return 0;
+                fromPosition += plusPosition;
+                count++;
+            }
+            while (remainingSize > idealSize)
+            {
+                missingSize -= parentSize;
+                parentSize = fromNode._cells[fromPosition].CellSize;
+                remainingSize -= parentSize;
+                if (remainingSize >= idealSize)
+                {
+                    fromPosition += plusPosition;
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        private IdxKey MergeToSingle(IdxInterior node, IdxCell parent)
+        {
             var cells = new List<IdxCell>(_cellsCount + 1 + node._cellsCount);
             cells.AddRange(_cells);
             cells.Add(IdxCell.CreateInteriorCell(parent.Key, node.LeftmostPage));
             cells.AddRange(node._cells);
             _cells = cells;
-            _cellsCount = _cells.Count;
-            FixOrdinals();
-            _size = 16 + _cells.Sum(c => c.CellSize);
+            CompleteFix();
             return null;
+        }
+
+        private IdxKey MoveToLeft(IdxInterior rightNode, IdxCell parent, int count)
+        {
+            var movedCells = new List<IdxCell>(count + 1);
+            movedCells.Add(IdxCell.CreateInteriorCell(parent.Key, rightNode.LeftmostPage));
+            movedCells.AddRange(rightNode._cells.Take(count));
+            _cells.AddRange(movedCells.Take(count));
+            rightNode._cells.RemoveRange(0, count);
+            rightNode.LeftmostPage = movedCells[count].ChildPage;
+            CompleteFix();
+            rightNode.CompleteFix();
+            return movedCells[count].Key;
+        }
+
+        private IdxKey MoveToRight(IdxInterior rightNode, IdxCell parent, int count)
+        {
+            var startIndex = _cellsCount - count;
+            var movedCells = new List<IdxCell>(count + 1);
+            movedCells.AddRange(_cells.Skip(startIndex));
+            movedCells.Add(IdxCell.CreateInteriorCell(parent.Key, rightNode.LeftmostPage));
+            movedCells.AddRange(rightNode._cells);
+            _cells.RemoveRange(startIndex, count);
+            rightNode._cells = movedCells.Skip(1).ToList();
+            rightNode.LeftmostPage = movedCells[0].ChildPage;
+            CompleteFix();
+            rightNode.CompleteFix();
+            return movedCells[0].Key;
         }
     }
 }

@@ -64,6 +64,7 @@
     <Compile Include="IndexTable\IndexTableHeaderTest.cs" />
     <Compile Include="IndexTable\IndexTableInteriorBasicTests.cs" />
     <Compile Include="IndexTable\IndexTableInteriorMergeTest.cs" />
+    <Compile Include="IndexTable\IndexTableInteriorRedistributeTests.cs" />
     <Compile Include="IndexTable\IndexTableInteriorSplitTests.cs" />
     <Compile Include="IndexTable\IndexTableKeyTest.cs" />
     <Compile Include="IndexTable\IndexTableLeafBasicTests.cs" />

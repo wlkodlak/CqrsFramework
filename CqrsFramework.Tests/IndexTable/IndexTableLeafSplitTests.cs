@@ -24,16 +24,14 @@ namespace CqrsFramework.Tests.IndexTable
             _leftNode.PageNumber = 1222;
             _rightNode = new IdxLeaf(null);
             _rightNode.PageNumber = 2344;
-            var addedCellValue = new byte[4];
-            new Random(122).NextBytes(addedCellValue);
-            _addedCell = IdxCell.CreateLeafCell(IdxKey.FromInteger(10 * _position + 5), addedCellValue);
+            _addedCell = CreateCell(10 * _position + 5, 16);
         }
 
         public static IdxCell CreateCell(int index, int size)
         {
             var valueBytes = new byte[size - 12];
             new Random(index * 548).NextBytes(valueBytes);
-            return IdxCell.CreateLeafCell(IdxKey.FromInteger(10 * index), valueBytes);
+            return IdxCell.CreateLeafCell(IdxKey.FromInteger(index), valueBytes);
         }
 
         public static IdxLeaf CreateForSplit()
@@ -41,14 +39,14 @@ namespace CqrsFramework.Tests.IndexTable
             var node = new IdxLeaf(null);
             node.NextLeaf = 8432;
             for (int i = 0; i < 64; i++)
-                node.AddCell(CreateCell(i, 16));
+                node.AddCell(CreateCell(i * 10, 16));
             for (int i = 0; i < 16; i++)
-                node.AddCell(CreateCell(i + 64, 64));
+                node.AddCell(CreateCell(i * 10 + 640, 64));
             for (int i = 0; i < 8; i++)
-                node.AddCell(CreateCell(i + 80, 128));
+                node.AddCell(CreateCell(i * 10 + 800, 128));
             for (int i = 0; i < 1024; i++)
                 if (!node.IsFull)
-                    node.AddCell(CreateCell(i + 88, 16));
+                    node.AddCell(CreateCell(i * 10 + 880, 16));
             return node;
         }
 
@@ -166,15 +164,13 @@ namespace CqrsFramework.Tests.IndexTable
         public void ExistsKeyThatCanBeAddedAndBeReturned()
         {
             bool found = false;
-            for (int position = 70; position < 90 && !found; position++)
+            for (int position = 78; position < 90 && !found; position++)
             {
                 var leftNode = IndexTableLeafSplitTestBase.CreateForSplit();
                 leftNode.PageNumber = 1222;
                 var rightNode = new IdxLeaf(null);
                 rightNode.PageNumber = 2344;
-                var addedCellValue = new byte[4];
-                new Random(122).NextBytes(addedCellValue);
-                var addedCell = IdxCell.CreateLeafCell(IdxKey.FromInteger(10 * position + 5), addedCellValue);
+                var addedCell = IndexTableLeafSplitTestBase.CreateCell(10 * position + 5, 64);
                 var key = leftNode.Split(rightNode, addedCell);
                 if (key == addedCell.Key)
                     found = true;

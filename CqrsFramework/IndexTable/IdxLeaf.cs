@@ -116,38 +116,14 @@ namespace CqrsFramework.IndexTable
                     break;
                 }
             }
-            var combinedCells = new List<IdxCell>(_cells);
-            combinedCells.Insert(positionToAdd, cell);
-            var totalSize = combinedCells.Sum(c => c.CellSize);
-            var boundarySize = totalSize / 2;
-            int leftCount = 0;
-            int leftSize = 0;
-            foreach (var measuredCell in combinedCells)
-            {
-                if (leftSize < boundarySize)
-                {
-                    leftSize += measuredCell.CellSize;
-                    leftCount++;
-                }
-            }
-            _cells = combinedCells.Take(leftCount).ToList();
-            _cellsCount = _cells.Count;
-            _size = leftSize + 16;
-            _dirty = true;
-            for (int i = 0; i < _cellsCount; i++)
-                _cells[i].Ordinal = i;
-
-            rightNode._cells = combinedCells.Skip(leftCount).ToList();
-            rightNode._cellsCount = rightNode._cells.Count;
-            rightNode._size = totalSize - leftSize + 16;
-            rightNode._dirty = true;
-            for (int i = 0; i < rightNode._cellsCount; i++)
-                rightNode._cells[i].Ordinal = i;
+            _cells.Insert(positionToAdd, cell);
+            _cellsCount++;
 
             rightNode._next = _next;
             _next = rightNode.PageNumber;
 
-            return rightNode._cells[0].Key;
+            int cellsToMove = CellsToMove(this, rightNode, true);
+            return MergeToRight(rightNode, cellsToMove);
         }
 
         public IdxKey Merge(IdxLeaf rightLeaf)
@@ -174,10 +150,8 @@ namespace CqrsFramework.IndexTable
         {
             _next = rightLeaf._next;
             _cells.AddRange(rightLeaf._cells);
-            _cellsCount += rightLeaf._cellsCount;
-            _size += rightLeaf._size - 16;
-            for (int i = 0; i < _cellsCount; i++)
-                _cells[i].Ordinal = i;
+            _dirty = true;
+            CompleteFix();
             return null;
         }
 
@@ -214,6 +188,8 @@ namespace CqrsFramework.IndexTable
         {
             _cells.AddRange(rightLeaf._cells.Take(cellsToMove));
             rightLeaf._cells.RemoveRange(0, cellsToMove);
+            _dirty = true;
+            rightLeaf._dirty = true;
             CompleteFix();
             rightLeaf.CompleteFix();
             return rightLeaf._cells[0].Key;
@@ -227,6 +203,8 @@ namespace CqrsFramework.IndexTable
             rightCells.AddRange(rightLeaf._cells);
             rightLeaf._cells = rightCells;
             _cells.RemoveRange(leftStartIndex, cellsToMove);
+            _dirty = true;
+            rightLeaf._dirty = true;
             CompleteFix();
             rightLeaf.CompleteFix();
             return rightLeaf._cells[0].Key;
