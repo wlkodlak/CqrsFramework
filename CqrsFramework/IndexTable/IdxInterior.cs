@@ -161,5 +161,18 @@ namespace CqrsFramework.IndexTable
 
             return resultCell.Key;
         }
+
+        public IdxKey Merge(IdxInterior node, IdxCell parent)
+        {
+            var cells = new List<IdxCell>(_cellsCount + 1 + node._cellsCount);
+            cells.AddRange(_cells);
+            cells.Add(IdxCell.CreateInteriorCell(parent.Key, node.LeftmostPage));
+            cells.AddRange(node._cells);
+            _cells = cells;
+            _cellsCount = _cells.Count;
+            FixOrdinals();
+            _size = 16 + _cells.Sum(c => c.CellSize);
+            return null;
+        }
     }
 }

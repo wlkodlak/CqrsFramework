@@ -68,6 +68,7 @@
     <Compile Include="IndexTable\IndexTableKeyTest.cs" />
     <Compile Include="IndexTable\IndexTableLeafBasicTests.cs" />
     <Compile Include="IndexTable\IndexTableLeafMergeTests.cs" />
+    <Compile Include="IndexTable\IndexTableLeafRedistributeTest.cs" />
     <Compile Include="IndexTable\IndexTableLeafSplitTests.cs" />
     <Compile Include="IndexTable\IndexTableOverflowTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

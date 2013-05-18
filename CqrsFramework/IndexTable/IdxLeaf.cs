@@ -15,6 +15,9 @@ namespace CqrsFramework.IndexTable
         private int _next = 0;
         private int _size = 16;
 
+        private const int SmallSize = PagedFile.PageSize / 4;
+        private const int FullSize = PagedFile.PageSize - 128;
+
         public IdxLeaf(byte[] bytesToLoad)
         {
             if (bytesToLoad != null)
@@ -37,8 +40,8 @@ namespace CqrsFramework.IndexTable
 
         public int PageNumber { get; set; }
         public int CellsCount { get { return _cellsCount; } }
-        public bool IsSmall { get { return _size < PagedFile.PageSize / 4; } }
-        public bool IsFull { get { return _size + 128 > PagedFile.PageSize; } }
+        public bool IsSmall { get { return _size < SmallSize; } }
+        public bool IsFull { get { return _size > FullSize; } }
         public bool IsDirty { get { return _dirty; } }
 
         public int NextLeaf
@@ -149,14 +152,95 @@ namespace CqrsFramework.IndexTable
 
         public IdxKey Merge(IdxLeaf rightLeaf)
         {
-            var key = rightLeaf.GetCell(0).Key;
+            if (_size < rightLeaf._size)
+            {
+                int cellsToMove = CellsToMove(rightLeaf, this, false);
+                if (cellsToMove == 0)
+                    return MergeToSingle(rightLeaf);
+                else
+                    return MergeToLeft(rightLeaf, cellsToMove);
+            }
+            else
+            {
+                int cellsToMove = CellsToMove(this, rightLeaf, true);
+                if (cellsToMove == 0)
+                    return MergeToSingle(rightLeaf);
+                else
+                    return MergeToRight(rightLeaf, cellsToMove);
+            }
+        }
+
+        private IdxKey MergeToSingle(IdxLeaf rightLeaf)
+        {
             _next = rightLeaf._next;
             _cells.AddRange(rightLeaf._cells);
             _cellsCount += rightLeaf._cellsCount;
             _size += rightLeaf._size - 16;
             for (int i = 0; i < _cellsCount; i++)
                 _cells[i].Ordinal = i;
-            return key;
+            return null;
+        }
+
+        private static int CellsToMove(IdxLeaf fromLeaf, IdxLeaf toLeaf, bool takeFromEnd)
+        {
+            var remainingSize = fromLeaf._size;
+            var idealSize = Math.Max((toLeaf._size + fromLeaf._size) / 2, SmallSize);
+            var missingSize = SmallSize - toLeaf._size;
+            var cellsToMove = 0;
+            var fromPosition = takeFromEnd ? fromLeaf._cellsCount - 1 : 0;
+            while (missingSize > 0)
+            {
+                var cell = fromLeaf._cells[fromPosition];
+                missingSize -= cell.CellSize;
+                remainingSize -= cell.CellSize;
+                if (remainingSize < SmallSize)
+                    return 0;
+                fromPosition += takeFromEnd ? -1 : 1;
+                cellsToMove++;
+            }
+            while (remainingSize > idealSize)
+            {
+                var cell = fromLeaf._cells[fromPosition];
+                missingSize -= cell.CellSize;
+                remainingSize -= cell.CellSize;
+                if (remainingSize >= SmallSize)
+                    cellsToMove++;
+                fromPosition += takeFromEnd ? -1 : 1;
+            }
+            return cellsToMove;
+        }
+
+        private IdxKey MergeToLeft(IdxLeaf rightLeaf, int cellsToMove)
+        {
+            _cells.AddRange(rightLeaf._cells.Take(cellsToMove));
+            rightLeaf._cells.RemoveRange(0, cellsToMove);
+            CompleteFix();
+            rightLeaf.CompleteFix();
+            return rightLeaf._cells[0].Key;
+        }
+
+        private IdxKey MergeToRight(IdxLeaf rightLeaf, int cellsToMove)
+        {
+            int leftStartIndex = _cellsCount - cellsToMove;
+            var rightCells = new List<IdxCell>(cellsToMove + rightLeaf._cellsCount);
+            rightCells.AddRange(_cells.Skip(leftStartIndex).Take(cellsToMove));
+            rightCells.AddRange(rightLeaf._cells);
+            rightLeaf._cells = rightCells;
+            _cells.RemoveRange(leftStartIndex, cellsToMove);
+            CompleteFix();
+            rightLeaf.CompleteFix();
+            return rightLeaf._cells[0].Key;
+        }
+
+        private void CompleteFix()
+        {
+            _cellsCount = _cells.Count;
+            _size = 16;
+            for (int i = 0; i < _cells.Count; i++)
+            {
+                _cells[i].Ordinal = i;
+                _size += _cells[i].CellSize;
+            }
         }
     }
 }
