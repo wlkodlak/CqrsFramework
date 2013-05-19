@@ -35,8 +35,8 @@ namespace CqrsFramework.Tests.IndexTable
             IdxLeaf tableNode = new IdxLeaf(null);
 
             var file = new MemoryPagedFile(4);
-            file.Pages[0] = CreateHeader(1, 2);
-            file.Pages[1] = CreateFreeList(0, 3);
+            file.Pages[0] = ContainerTestUtilities.CreateHeader(1, 2);
+            file.Pages[1] = ContainerTestUtilities.CreateFreeList(0, 3);
             file.Pages[2] = NodeBuilder.Leaf(0).ToBytes();
 
             using (var container = new IdxContainer(file))
@@ -64,8 +64,8 @@ namespace CqrsFramework.Tests.IndexTable
         public void ReadNonExistentTable()
         {
             var file = new MemoryPagedFile(4);
-            file.Pages[0] = CreateHeader(1);
-            file.Pages[1] = CreateFreeList(0, 2, 3);
+            file.Pages[0] = ContainerTestUtilities.CreateHeader(1);
+            file.Pages[1] = ContainerTestUtilities.CreateFreeList(0, 2, 3);
             using (var container = new IdxContainer(file))
             {
                 IIdxNode root = container.ReadTree(0);
@@ -97,8 +97,8 @@ namespace CqrsFramework.Tests.IndexTable
             longCell1.OverflowPage = 7;
 
             var file = new MemoryPagedFile(16);
-            file.Pages[0] = CreateHeader(1, 0, 4, 6);
-            file.Pages[1] = CreateFreeList(0, Enumerable.Range(9, 7).ToArray());
+            file.Pages[0] = ContainerTestUtilities.CreateHeader(1, 0, 4, 6);
+            file.Pages[1] = ContainerTestUtilities.CreateFreeList(0, Enumerable.Range(9, 7).ToArray());
             file.Pages[2] = NodeBuilder.Leaf(3)
                 .AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(8), new byte[48]))
                 .AddCell(longCell0).ToBytes();
@@ -204,141 +204,6 @@ namespace CqrsFramework.Tests.IndexTable
                 Assert.AreEqual(11, interior.LeftmostPage, "Next leaf");
                 Assert.AreEqual(1, interior.CellsCount, "Cells count");
                 container.UnlockRead(1);
-            }
-        }
-
-        private static byte[] CreateHeader(int freeList, params int[] roots)
-        {
-            var header = new IdxHeader(null);
-            header.FreePagesList = freeList;
-            for (int i = 0; i < roots.Length; i++)
-                header.SetTreeRoot(i, roots[i]);
-            return header.Save();
-        }
-
-        private static byte[] CreateFreeList(int next, params int[] pages)
-        {
-            var freelist = new IdxFreeList(null);
-            freelist.Next = next;
-            foreach (var page in pages)
-                freelist.Add(page);
-            return freelist.Save();
-        }
-
-        private class MemoryPagedFile : IPagedFile
-        {
-            public bool Disposed = false;
-            public HashSet<int> ReadPages = new HashSet<int>();
-            public HashSet<int> WrittenPages = new HashSet<int>();
-            public List<byte[]> Pages = new List<byte[]>();
-            public bool IncreasedSize = false;
-            public bool DecreasedSize = false;
-            public bool ChangedSize { get { return IncreasedSize || DecreasedSize; } }
-
-            public MemoryPagedFile()
-            {
-            }
-
-            public MemoryPagedFile(int size)
-            {
-                for (int i = Pages.Count; i < size; i++)
-                    Pages.Add(null);
-            }
-
-            public void ClearStats()
-            {
-                IncreasedSize = false;
-                DecreasedSize = false;
-                ReadPages.Clear();
-                WrittenPages.Clear();
-                Disposed = false;
-                for (int i = 0; i < Pages.Count; i++)
-                    if (Pages[i] == null)
-                        Pages[i] = new byte[PagedFile.PageSize];
-            }
-
-            public int GetSize()
-            {
-                return Pages.Count;
-            }
-
-            public void SetSize(int finalCount)
-            {
-                if (finalCount == Pages.Count)
-                    return;
-                else if (finalCount > Pages.Count)
-                {
-                    IncreasedSize = true;
-                    for (int i = Pages.Count; i < finalCount; i++)
-                        Pages.Add(new byte[PagedFile.PageSize]);
-                }
-                else
-                {
-                    DecreasedSize = true;
-                    Pages.RemoveRange(finalCount, Pages.Count - finalCount);
-                }
-            }
-
-            public byte[] GetPage(int page)
-            {
-                ReadPages.Add(page);
-                return Pages[page];
-            }
-
-            public void SetPage(int page, byte[] data)
-            {
-                WrittenPages.Add(page);
-                Array.Copy(data, Pages[page], PagedFile.PageSize);
-            }
-
-            public void Dispose()
-            {
-                Disposed = true;
-            }
-        }
-
-        private class NodeBuilder
-        {
-            private bool _isLeaf;
-            private IdxLeaf _leaf;
-            private IdxInterior _interior;
-
-            private NodeBuilder(bool isLeaf)
-            {
-                _isLeaf = isLeaf;
-            }
-
-            public static NodeBuilder Leaf(int next)
-            {
-                var builder = new NodeBuilder(true);
-                builder._leaf = new IdxLeaf(null);
-                builder._leaf.NextLeaf = next;
-                return builder;
-            }
-
-            public static NodeBuilder Interior(int leftMost)
-            {
-                var builder = new NodeBuilder(false);
-                builder._interior = new IdxInterior(null);
-                builder._interior.LeftmostPage = leftMost;
-                return builder;
-            }
-
-            public NodeBuilder AddCell(IdxCell cell)
-            {
-                if (_isLeaf)
-                    _leaf.AddCell(cell);
-                else
-                    _interior.AddCell(cell);
-                return this;
-            }
-
-            public byte[] ToBytes()
-            {
-                if (_isLeaf)
-                    return _leaf.Save();
-                else
-                    return _interior.Save();
             }
         }
     }
