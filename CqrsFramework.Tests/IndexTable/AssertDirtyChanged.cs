@@ -8,12 +8,12 @@ using MsAssert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
 
 namespace CqrsFramework.Tests.IndexTable
 {
-    public class IndexTableAssertDirtyChanged
+    public class AssertDirtyChanged
     {
         private IIdxPage _page;
         private bool _dirty = false;
 
-        public IndexTableAssertDirtyChanged(IIdxPage page)
+        public AssertDirtyChanged(IIdxPage page)
         {
             _page = page;
             _page.IsDirtyChanged += IsDirtyChanged;

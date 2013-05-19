@@ -6,21 +6,18 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqrsFramework.Tests.IndexTable
 {
-    public abstract class IndexTableInteriorRedistributeTestBase
+    public abstract class LeafRedistributeTestBase
     {
-        private IdxInterior _leftNode, _rightNode;
-        private IdxCell _parentCell;
+        private IdxLeaf _leftNode, _rightNode;
 
-        protected abstract IdxInterior CreateLeftNode();
-        protected abstract IdxInterior CreateRightNode();
-        protected abstract IdxCell CreatMiddleCell();
+        protected abstract IdxLeaf CreateLeftNode();
+        protected abstract IdxLeaf CreateRightNode();
 
         [TestInitialize]
         public void Initialize()
         {
             _leftNode = CreateLeftNode();
             _rightNode = CreateRightNode();
-            _parentCell = CreatMiddleCell();
         }
 
         [TestMethod]
@@ -31,7 +28,7 @@ namespace CqrsFramework.Tests.IndexTable
             Assert.IsTrue(_leftNode.IsSmall || _rightNode.IsSmall, "Either small");
             Assert.IsTrue(_leftNode.IsSmall != _rightNode.IsSmall, "Only one of them can be small");
             Assert.IsTrue(leftMaxKey < rightMinKey, "Left max key is less than right min key: {0} < {1}", leftMaxKey, rightMinKey);
-            Assert.AreEqual(_rightNode.PageNumber, _parentCell.ChildPage, "Parent cell page");
+            Assert.AreEqual(_rightNode.PageNumber, _leftNode.NextLeaf);
             if (!_leftNode.IsSmall)
             {
                 for (int i = 0; i < 250 && _rightNode.IsSmall; i++)
@@ -61,7 +58,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void SumOfNodesConstant()
         {
             var originalSum = _leftNode.CellsCount + _rightNode.CellsCount;
-            _leftNode.Merge(_rightNode, _parentCell);
+            _leftNode.Merge(_rightNode);
             var newSum = _leftNode.CellsCount + _rightNode.CellsCount;
             Assert.AreEqual(originalSum, newSum);
         }
@@ -69,7 +66,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void LeftKeysAreLessThanReturnedKey()
         {
-            var key = _leftNode.Merge(_rightNode, _parentCell);
+            var key = _leftNode.Merge(_rightNode);
             for (int i = 0; i < _leftNode.CellsCount; i++)
             {
                 var cellKey = _leftNode.GetCell(i).Key;
@@ -80,7 +77,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void ResultingNodesHaveSimilarSize()
         {
-            var key = _leftNode.Merge(_rightNode, _parentCell);
+            var key = _leftNode.Merge(_rightNode);
             var leftSize = Enumerable.Range(0, _leftNode.CellsCount).Select(i => _leftNode.GetCell(i)).Sum(c => c.CellSize);
             var rightSize = Enumerable.Range(0, _rightNode.CellsCount).Select(i => _rightNode.GetCell(i)).Sum(c => c.CellSize);
             var difference = Math.Abs(leftSize - rightSize);
@@ -88,31 +85,31 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
-        public void RightKeysAreGreaterThanReturnedKey()
+        public void RightKeysAreMoreOrEqualReturnedKey()
         {
-            var key = _leftNode.Merge(_rightNode, _parentCell);
+            var key = _leftNode.Merge(_rightNode);
             for (int i = 0; i < _rightNode.CellsCount; i++)
             {
                 var cellKey = _rightNode.GetCell(i).Key;
-                Assert.IsTrue(cellKey > key, "Cell {0} key {1} >= returned key {2}", i, cellKey, key);
+                Assert.IsTrue(cellKey >= key, "Cell {0} key {1} >= returned key {2}", i, cellKey, key);
             }
         }
 
         [TestMethod]
         public void LeftNodeOrdered()
         {
-            _leftNode.Merge(_rightNode, _parentCell);
+            _leftNode.Merge(_rightNode);
             AssertNodeOrdered(_leftNode);
         }
 
         [TestMethod]
         public void RightNodeOrdered()
         {
-            _leftNode.Merge(_rightNode, _parentCell);
+            _leftNode.Merge(_rightNode);
             AssertNodeOrdered(_rightNode);
         }
 
-        private static void AssertNodeOrdered(IdxInterior node)
+        private static void AssertNodeOrdered(IdxLeaf node)
         {
             Assert.AreEqual(0, node.GetCell(0).Ordinal, "Cell 0 ordinal");
             for (int i = 1; i < node.CellsCount; i++)
@@ -128,107 +125,93 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void NeitherIsSmallNorFull()
         {
-            _leftNode.Merge(_rightNode, _parentCell);
+            _leftNode.Merge(_rightNode);
             Assert.IsFalse(_leftNode.IsSmall, "Left small");
             Assert.IsFalse(_rightNode.IsSmall, "Right small");
             Assert.IsFalse(_leftNode.IsFull, "Left full");
             Assert.IsFalse(_rightNode.IsFull, "Right full");
         }
 
-        [TestMethod]
-        public void ParentCell()
+        public static void AddNodeCell(IdxLeaf node, int keyBase, int cellLength)
         {
-            var keyPages = AllCells(_leftNode).Union(AllCells(_rightNode)).ToDictionary(c => c.Key, c => c.ChildPage);
-            var originalLeftMost = _rightNode.LeftmostPage;
-            var key = _leftNode.Merge(_rightNode, _parentCell);
-            if (key == _parentCell.Key)
-            {
-                Assert.IsFalse(AllCells(_leftNode).Any(c => c.Key == _parentCell.Key), "Parent cell key in left");
-                Assert.IsFalse(AllCells(_leftNode).Any(c => c.Key == _parentCell.Key), "Parent cell key in right");
-            }
-            else
-            {
-                var nodeWithParent = (key > _parentCell.Key) ? _leftNode : _rightNode;
-                var foundCell = AllCells(nodeWithParent).FirstOrDefault(c => c.Key == _parentCell.Key);
-                Assert.IsNotNull(foundCell, "Parent key not found");
-                Assert.AreEqual(originalLeftMost, foundCell.ChildPage, "Original leftmost page");
-                Assert.AreEqual(keyPages[key], _rightNode.LeftmostPage, "New leftmost page");
-            }
-        }
-
-        private IEnumerable<IdxCell> AllCells(IdxInterior node)
-        {
-            return Enumerable.Range(0, node.CellsCount).Select(i => node.GetCell(i));
-        }
-
-        public static IdxCell CreateCell(int keyBase, int page, int cellSize)
-        {
-            var bytes = new byte[cellSize - 8];
-            bytes[0] = (byte)((keyBase >> 24) & 0xff);
-            bytes[1] = (byte)((keyBase >> 16) & 0xff);
-            bytes[2] = (byte)((keyBase >> 8) & 0xff);
-            bytes[3] = (byte)(keyBase & 0xff);
-            return IdxCell.CreateInteriorCell(IdxKey.FromBytes(bytes), page);
+            var key = IdxKey.FromInteger(keyBase);
+            var cellData = new byte[cellLength - 12];
+            var cell = IdxCell.CreateLeafCell(key, cellData);
+            node.AddCell(cell);
         }
     }
 
     [TestClass]
-    public class IndexTableInteriorRedistributeTestToLeftFull : IndexTableInteriorRedistributeTestBase
+    public class LeafRedistributeTestToLeftWithFull : LeafRedistributeTestBase
     {
-        protected override IdxInterior CreateLeftNode()
+        protected override IdxLeaf CreateLeftNode()
         {
-            var node = new IdxInterior(null);
-            node.PageNumber = 1;
-            node.LeftmostPage = 2;
-            for (int i = 0; i < 7; i++)
-                node.AddCell(CreateCell(10 + i, 3 + i, 128));
+            var node = new IdxLeaf(null);
+            node.PageNumber = 1931;
+            node.NextLeaf = 1932;
+            for (int i = 0; i < 55; i++)
+                AddNodeCell(node, i * 10, 16);
             return node;
         }
 
-        protected override IdxInterior CreateRightNode()
+        protected override IdxLeaf CreateRightNode()
         {
-            var node = new IdxInterior(null);
-            node.PageNumber = 10;
-            node.LeftmostPage = 20;
-            for (int i = 0; i < 100; i++)
+            var node = new IdxLeaf(null);
+            node.PageNumber = 1932;
+            node.NextLeaf = 1933;
+            for (int i = 300; i < 1024; i++)
                 if (!node.IsFull)
-                    node.AddCell(CreateCell(100 + i, 103 + i, 128));
+                    AddNodeCell(node, i * 10, 16);
             return node;
         }
 
-        protected override IdxCell CreatMiddleCell()
+    }
+
+    [TestClass]
+    public class LeafRedistributeTestToLeftWithBorderline : LeafRedistributeTestBase
+    {
+        protected override IdxLeaf CreateLeftNode()
         {
-            return CreateCell(80, 10, 128);
+            var node = new IdxLeaf(null);
+            node.PageNumber = 1931;
+            node.NextLeaf = 1932;
+            for (int i = 0; i < 59; i++)
+                AddNodeCell(node, i * 10, 16);
+            return node;
+        }
+
+        protected override IdxLeaf CreateRightNode()
+        {
+            var node = new IdxLeaf(null);
+            node.PageNumber = 1932;
+            node.NextLeaf = 1933;
+            for (int i = 300; i < 367; i++)
+                AddNodeCell(node, i * 10, 16);
+            return node;
         }
     }
 
     [TestClass]
-    public class IndexTableInteriorRedistributeTestToRightBorderline : IndexTableInteriorRedistributeTestBase
+    public class LeafRedistributeTestToRightWithBorderline : LeafRedistributeTestBase
     {
-        protected override IdxInterior CreateLeftNode()
+        protected override IdxLeaf CreateLeftNode()
         {
-            var node = new IdxInterior(null);
-            node.PageNumber = 1;
-            node.LeftmostPage = 2;
+            var node = new IdxLeaf(null);
+            node.PageNumber = 1931;
+            node.NextLeaf = 1932;
             for (int i = 0; i < 63; i++)
-                node.AddCell(CreateCell(10 + i, 3 + i, 16));
-            node.AddCell(CreateCell(80, 293, 128));
-            node.AddCell(CreateCell(81, 28, 32));
+                AddNodeCell(node, i * 10, 16);
+            AddNodeCell(node, 64, 128);
             return node;
         }
 
-        protected override IdxCell CreatMiddleCell()
+        protected override IdxLeaf CreateRightNode()
         {
-            return CreateCell(90, 10, 16);
-        }
-
-        protected override IdxInterior CreateRightNode()
-        {
-            var node = new IdxInterior(null);
-            node.PageNumber = 10;
-            node.LeftmostPage = 20;
-            for (int i = 0; i < 60; i++)
-                node.AddCell(CreateCell(100 + i, 7 + i, 16));
+            var node = new IdxLeaf(null);
+            node.PageNumber = 1932;
+            node.NextLeaf = 1933;
+            for (int i = 300; i < 355; i++)
+                AddNodeCell(node, i * 10, 16);
             return node;
         }
     }

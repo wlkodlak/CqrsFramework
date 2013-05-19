@@ -6,7 +6,7 @@ using CqrsFramework.IndexTable;
 namespace CqrsFramework.Tests.IndexTable
 {
     [TestClass]
-    public class IndexTableFileTest
+    public class FileTest
     {
     }
 }

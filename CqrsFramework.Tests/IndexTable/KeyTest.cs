@@ -6,7 +6,7 @@ using CqrsFramework.IndexTable;
 namespace CqrsFramework.Tests.IndexTable
 {
     [TestClass]
-    public class IndexTableKeyTest
+    public class KeyTest
     {
         [TestMethod]
         public void CreateKeyFromString()

@@ -8,7 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace CqrsFramework.Tests.IndexTable
 {
     [TestClass]
-    public class IndexTableLeafBasicTests
+    public class LeafBasicTests
     {
         private byte[] RandomBytes(int seed, int length)
         {
@@ -100,7 +100,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void DirtyFlagSetByAdding()
         {
             IdxLeaf node = new IdxLeaf(null);
-            var dirty = new IndexTableAssertDirtyChanged(node);
+            var dirty = new AssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(44), null));
             dirty.AssertTrue();
         }
@@ -109,7 +109,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void DirtyFlagSetByRemoving()
         {
             IdxLeaf node = new IdxLeaf(null);
-            var dirty = new IndexTableAssertDirtyChanged(node);
+            var dirty = new AssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(44), null));
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(48), null));
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(52), null));
@@ -123,7 +123,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void DirtyFlagSetByChangingNextPage()
         {
             IdxLeaf node = new IdxLeaf(null);
-            var dirty = new IndexTableAssertDirtyChanged(node);
+            var dirty = new AssertDirtyChanged(node);
             node.NextLeaf = 8475;
             dirty.AssertTrue();
         }
@@ -132,7 +132,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void SavingClearsDirtyFlag()
         {
             IdxLeaf node = new IdxLeaf(null);
-            var dirty = new IndexTableAssertDirtyChanged(node);
+            var dirty = new AssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(44), null));
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(48), null));
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(52), null));

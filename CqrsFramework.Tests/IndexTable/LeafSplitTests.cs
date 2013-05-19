@@ -5,14 +5,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqrsFramework.Tests.IndexTable
 {
-    public abstract class IndexTableLeafSplitTestBase
+    public abstract class LeafSplitTestBase
     {
         private int _position;
         private IdxLeaf _leftNode;
         private IdxLeaf _rightNode;
         private IdxCell _addedCell;
 
-        public IndexTableLeafSplitTestBase(int position)
+        public LeafSplitTestBase(int position)
         {
             this._position = position;
         }
@@ -140,25 +140,25 @@ namespace CqrsFramework.Tests.IndexTable
     }
 
     [TestClass]
-    public class IndexTableLeafSplitTest5 : IndexTableLeafSplitTestBase
+    public class LeafSplitTest5 : LeafSplitTestBase
     {
-        public IndexTableLeafSplitTest5()
+        public LeafSplitTest5()
             : base(5)
         {
         }
     }
 
     [TestClass]
-    public class IndexTableLeafSplitTest200 : IndexTableLeafSplitTestBase
+    public class LeafSplitTest200 : LeafSplitTestBase
     {
-        public IndexTableLeafSplitTest200()
+        public LeafSplitTest200()
             : base(200)
         {
         }
     }
 
     [TestClass]
-    public class IndexTableLeafSplitTestMiddle
+    public class LeafSplitTestMiddle
     {
         [TestMethod]
         public void ExistsKeyThatCanBeAddedAndBeReturned()
@@ -166,11 +166,11 @@ namespace CqrsFramework.Tests.IndexTable
             bool found = false;
             for (int position = 78; position < 90 && !found; position++)
             {
-                var leftNode = IndexTableLeafSplitTestBase.CreateForSplit();
+                var leftNode = LeafSplitTestBase.CreateForSplit();
                 leftNode.PageNumber = 1222;
                 var rightNode = new IdxLeaf(null);
                 rightNode.PageNumber = 2344;
-                var addedCell = IndexTableLeafSplitTestBase.CreateCell(10 * position + 5, 64);
+                var addedCell = LeafSplitTestBase.CreateCell(10 * position + 5, 64);
                 var key = leftNode.Split(rightNode, addedCell);
                 if (key == addedCell.Key)
                     found = true;

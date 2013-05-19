@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqrsFramework.Tests.IndexTable
 {
-    public abstract class IndexTableLeafMergeTestBase
+    public abstract class LeafMergeTestBase
     {
         private IdxLeaf _leftNode;
         private IdxLeaf _rightNode;
@@ -102,7 +102,7 @@ namespace CqrsFramework.Tests.IndexTable
     }
 
     [TestClass]
-    public class IndexTableLeafMergeSmallTrees : IndexTableLeafMergeTestBase
+    public class LeafMergeSmallTrees : LeafMergeTestBase
     {
         protected override IdxLeaf CreateLeftNode()
         {
@@ -124,7 +124,7 @@ namespace CqrsFramework.Tests.IndexTable
     }
 
     [TestClass]
-    public class IndexTableLeafMergeBorderLine : IndexTableLeafMergeTestBase
+    public class LeafMergeBorderLine : LeafMergeTestBase
     {
         protected override IdxLeaf CreateLeftNode()
         {
@@ -146,7 +146,7 @@ namespace CqrsFramework.Tests.IndexTable
     }
 
     [TestClass]
-    public class IndexTableLeafMergeBigLastCell : IndexTableLeafMergeTestBase
+    public class LeafMergeBigLastCell : LeafMergeTestBase
     {
         protected override IdxLeaf CreateLeftNode()
         {

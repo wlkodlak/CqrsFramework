@@ -6,13 +6,13 @@ using System.Collections.Generic;
 
 namespace CqrsFramework.Tests.IndexTable
 {
-    public class IndexTableInteriorSplitTestsBase
+    public class InteriorSplitTestsBase
     {
         private int _position;
         private IdxInterior _leftNode, _rightNode;
         private IdxCell _addedCell;
 
-        protected IndexTableInteriorSplitTestsBase(int position)
+        protected InteriorSplitTestsBase(int position)
         {
             _position = position;
         }
@@ -154,39 +154,39 @@ namespace CqrsFramework.Tests.IndexTable
     }
 
     [TestClass]
-    public class IndexTableInteriorSplitA : IndexTableInteriorSplitTestsBase
+    public class InteriorSplitA : InteriorSplitTestsBase
     {
-        public IndexTableInteriorSplitA()
+        public InteriorSplitA()
             : base(0)
         {
         }
     }
 
     [TestClass]
-    public class IndexTableInteriorSplitB : IndexTableInteriorSplitTestsBase
+    public class InteriorSplitB : InteriorSplitTestsBase
     {
-        public IndexTableInteriorSplitB()
+        public InteriorSplitB()
             : base(104)
         {
         }
     }
 
     [TestClass]
-    public class IndexTableInteriorSplitC : IndexTableInteriorSplitTestsBase
+    public class InteriorSplitC : InteriorSplitTestsBase
     {
-        public IndexTableInteriorSplitC()
+        public InteriorSplitC()
             : base(78)
         {
         }
     }
 
     [TestClass]
-    public class IndexTableInteriorSplitR : IndexTableInteriorSplitTestsBase
+    public class InteriorSplitR : InteriorSplitTestsBase
     {
         private Random _random;
         private HashSet<IdxKey> _usedKeys;
 
-        public IndexTableInteriorSplitR()
+        public InteriorSplitR()
             : base(80)
         {
             _random = new Random(847245);

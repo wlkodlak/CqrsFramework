@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace CqrsFramework.Tests.IndexTable
 {
     [TestClass]
-    public class IndexTableFreeListTest
+    public class FreeListTest
     {
         [TestMethod]
         public void LoadEmptyList()
@@ -57,7 +57,7 @@ namespace CqrsFramework.Tests.IndexTable
             var contents = GeneratePagesList(442);
             var data = CreateCorrectData(222, contents);
             IdxFreeList list = new IdxFreeList(data);
-            var dirty = new IndexTableAssertDirtyChanged(list);
+            var dirty = new AssertDirtyChanged(list);
             list.Add(2933);
             contents.Add(2933);
             byte[] serialized = list.Save();
@@ -75,7 +75,7 @@ namespace CqrsFramework.Tests.IndexTable
             var contents = GeneratePagesList(1021);
             var data = CreateCorrectData(0, contents);
             IdxFreeList list = new IdxFreeList(data);
-            var dirtyChanged = new IndexTableAssertDirtyChanged(list);
+            var dirtyChanged = new AssertDirtyChanged(list);
             list.Add(2200);
             contents.Add(2200);
             Assert.AreEqual(0, list.Next);
@@ -91,7 +91,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var data = CreateCorrectData(4, new int[] { 2930 });
             var list = new IdxFreeList(data);
-            var dirty = new IndexTableAssertDirtyChanged(list);
+            var dirty = new AssertDirtyChanged(list);
             int allocated = list.Alloc();
             Assert.AreEqual(2930, allocated);
             Assert.AreEqual(4, list.Next);

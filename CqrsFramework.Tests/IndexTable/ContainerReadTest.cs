@@ -9,7 +9,7 @@ using Moq;
 namespace CqrsFramework.Tests.IndexTable
 {
     [TestClass]
-    public class IndexTableContainerTests
+    public class ContainerReadTest
     {
         [TestMethod]
         public void LoadEmpty()

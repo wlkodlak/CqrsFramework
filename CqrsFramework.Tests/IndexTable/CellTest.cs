@@ -9,7 +9,7 @@ using CqrsFramework.IndexTable;
 namespace CqrsFramework.Tests.IndexTable
 {
     [TestClass]
-    public class IndexTableCellTest
+    public class CellTest
     {
         [TestMethod]
         public void CreateLeafCellWithOverflow()

@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace CqrsFramework.Tests.IndexTable
 {
     [TestClass]
-    public class IndexTableHeaderTest
+    public class HeaderTest
     {
         [TestMethod]
         public void CanLoadEmptyHeader()

@@ -17,7 +17,7 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             var data = CreateData(49083, 582);
 
             IdxOverflow page = new IdxOverflow(null);
-            var dirty = new IndexTableAssertDirtyChanged(page);
+            var dirty = new AssertDirtyChanged(page);
             page.PageNumber = 426;
             int written = page.WriteData(data, 48);
 
@@ -69,7 +69,7 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             var data = CreateData(39924, 8231);
 
             IdxOverflow page = new IdxOverflow(null);
-            var dirty = new IndexTableAssertDirtyChanged(page);
+            var dirty = new AssertDirtyChanged(page);
             page.WriteData(data, 120);
             page.Next = 37;
             byte[] serialized = page.Save();
@@ -147,7 +147,7 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             var changed = CreateData(3843, 4200);
 
             IdxOverflow page = new IdxOverflow(bytes);
-            var dirty = new IndexTableAssertDirtyChanged(page);
+            var dirty = new AssertDirtyChanged(page);
             int written = page.WriteData(changed, 0);
 
             Assert.IsTrue(page.NeedsNextPage);
@@ -170,7 +170,7 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             var changed = CreateData(3843, 400);
 
             IdxOverflow page = new IdxOverflow(bytes);
-            var dirty = new IndexTableAssertDirtyChanged(page);
+            var dirty = new AssertDirtyChanged(page);
             page.WriteData(changed, 0);
             byte[] serialized = page.Save();
 

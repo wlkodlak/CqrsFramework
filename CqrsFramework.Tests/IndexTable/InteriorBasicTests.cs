@@ -6,7 +6,7 @@ using System.IO;
 namespace CqrsFramework.Tests.IndexTable
 {
     [TestClass]
-    public class IndexTableInteriorBasicTests
+    public class InteriorBasicTests
     {
         [TestMethod]
         public void CreateEmptyNode()
@@ -97,7 +97,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void DirtyFlagIsSetByAddingCells()
         {
             IdxInterior node = new IdxInterior(null);
-            var dirty = new IndexTableAssertDirtyChanged(node);
+            var dirty = new AssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672));
             dirty.AssertTrue();
         }
@@ -106,7 +106,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void DirtyFlagIsSetByRemovingCells()
         {
             IdxInterior node = new IdxInterior(null);
-            var dirty = new IndexTableAssertDirtyChanged(node);
+            var dirty = new AssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672));
             node.Save();
             dirty.AssertFalse("Not dirty before removing");
@@ -118,7 +118,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void DirtyFlagIsSetBySettingLeftmostPage()
         {
             IdxInterior node = new IdxInterior(null);
-            var dirty = new IndexTableAssertDirtyChanged(node);
+            var dirty = new AssertDirtyChanged(node);
             node.LeftmostPage = 8754;
             dirty.AssertTrue();
         }
@@ -127,7 +127,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void SavingClearsDirtyFlag()
         {
             IdxInterior node = new IdxInterior(null);
-            var dirty = new IndexTableAssertDirtyChanged(node);
+            var dirty = new AssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672));
             dirty.AssertTrue("Dirty before saving");
             node.Save();

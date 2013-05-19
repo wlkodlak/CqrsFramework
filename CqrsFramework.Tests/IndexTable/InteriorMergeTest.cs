@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqrsFramework.Tests.IndexTable
 {
-    public abstract class IndexTableInteriorMergeTestBase
+    public abstract class InteriorMergeTestBase
     {
         private IdxInterior _leftNode, _rightNode;
         private IdxCell _parentCell;
@@ -112,7 +112,7 @@ namespace CqrsFramework.Tests.IndexTable
     }
 
     [TestClass]
-    public class IndexTableInteriorMergeTestSameSize : IndexTableInteriorMergeTestBase
+    public class InteriorMergeTestSameSize : InteriorMergeTestBase
     {
         private void AddCells(IdxInterior node, params int[] keyBases)
         {
@@ -145,7 +145,7 @@ namespace CqrsFramework.Tests.IndexTable
     }
 
     [TestClass]
-    public class IndexTableInteriorMergeTestBorderLine : IndexTableInteriorMergeTestBase
+    public class InteriorMergeTestBorderLine : InteriorMergeTestBase
     {
         protected override IdxInterior CreateLeftNode()
         {
@@ -176,7 +176,7 @@ namespace CqrsFramework.Tests.IndexTable
     }
 
     [TestClass]
-    public class IndexTableInteriorMergeTestBigCell : IndexTableInteriorMergeTestBase
+    public class InteriorMergeTestBigCell : InteriorMergeTestBase
     {
         protected override IdxInterior CreateLeftNode()
         {
@@ -207,7 +207,7 @@ namespace CqrsFramework.Tests.IndexTable
     }
 
     [TestClass]
-    public class IndexTableInteriorMergeTestBigMiddleCell : IndexTableInteriorMergeTestBase
+    public class InteriorMergeTestBigMiddleCell : InteriorMergeTestBase
     {
         protected override IdxInterior CreateLeftNode()
         {

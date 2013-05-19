@@ -8,7 +8,7 @@ using CqrsFramework.IndexTable;
 namespace CqrsFramework.Tests.IndexTable
 {
     [TestClass]
-    public class IndexTablePagedFileTest
+    public class PagedFileTest
     {
         [TestMethod]
         public void CanGetFileSize()
