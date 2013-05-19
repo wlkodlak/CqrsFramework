@@ -7,13 +7,12 @@ using System.Threading.Tasks;
 
 namespace CqrsFramework.IndexTable
 {
-    public class IdxOverflow
+    public class IdxOverflow : IdxPageBase
     {
         private int _length = 0;
         private int _next = 0;
         private bool _needsNext = false;
         private byte[] _data = null;
-        private bool _dirty = false;
 
         public IdxOverflow(byte[] data)
         {
@@ -25,7 +24,6 @@ namespace CqrsFramework.IndexTable
                 _length = reader.ReadInt16();
                 byte flags = reader.ReadByte();
                 _needsNext = flags == 1;
-                _dirty = false;
                 reader.ReadByte();
                 _data = reader.ReadBytes(_length);
             }
@@ -42,7 +40,7 @@ namespace CqrsFramework.IndexTable
                 writer.Write((byte)0);
                 writer.Write(_data);
             }
-            _dirty = false;
+            SetDirty(false);
             return buffer;
         }
 
@@ -54,13 +52,12 @@ namespace CqrsFramework.IndexTable
             set
             {
                 _next = value;
-                _dirty = true;
+                SetDirty(true);
             }
         }
         public int LengthInPage { get { return _length; } }
         public bool HasNextPage { get { return _next != 0; } }
         public bool NeedsNextPage { get { return _needsNext; } }
-        public bool IsDirty { get { return _dirty; } }
 
         public int WriteData(byte[] buffer, int offset)
         {
@@ -77,7 +74,7 @@ namespace CqrsFramework.IndexTable
             }
             _data = new byte[_length];
             Array.Copy(buffer, offset, _data, 0, _length);
-            _dirty = true;
+            SetDirty(true);
             return _length;
         }
 

@@ -7,13 +7,12 @@ using System.Threading.Tasks;
 
 namespace CqrsFramework.IndexTable
 {
-    public class IdxFreeList
+    public class IdxFreeList : IdxPageBase
     {
         private const int Capacity = PagedFile.PageSize / 4 - 2;
         private int _next;
         private int _length;
         private int[] _freePages;
-        private bool _dirty;
 
         public IdxFreeList(byte[] data)
         {
@@ -22,7 +21,7 @@ namespace CqrsFramework.IndexTable
                 _next = 0;
                 _freePages = new int[Capacity];
                 _length = 0;
-                _dirty = false;
+                SetDirty(false);
             }
             else
             {
@@ -31,7 +30,7 @@ namespace CqrsFramework.IndexTable
                     _next = reader.ReadInt32();
                     _length = reader.ReadInt32();
                     _freePages = new int[Capacity];
-                    _dirty = false;
+                    SetDirty(false);
                     for (int i = 0; i < _length; i++)
                         _freePages[i] = reader.ReadInt32();
                 }
@@ -44,12 +43,11 @@ namespace CqrsFramework.IndexTable
             set
             {
                 _next = value;
-                _dirty = true;
+                SetDirty(true);
             }
         }
 
         public int Length { get { return _length; } }
-        public bool IsDirty { get { return _dirty; } }
         public bool IsFull { get { return _length == Capacity; } }
         public bool IsEmpty { get { return _length == 0; } }
         public bool IsLast { get { return _next == 0; } }
@@ -58,7 +56,7 @@ namespace CqrsFramework.IndexTable
         {
             _freePages[_length] = page;
             _length++;
-            _dirty = true;
+            SetDirty(true);
         }
 
         public byte[] Save()
@@ -71,7 +69,7 @@ namespace CqrsFramework.IndexTable
                 foreach (int page in _freePages)
                     writer.Write(page);
             }
-            _dirty = false;
+            SetDirty(false);
             return data;
         }
 
@@ -82,7 +80,7 @@ namespace CqrsFramework.IndexTable
             _length--;
             int allocated = _freePages[_length];
             _freePages[_length] = 0;
-            _dirty = true;
+            SetDirty(true);
             return allocated;
         }
     }

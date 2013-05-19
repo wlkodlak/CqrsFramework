@@ -8,6 +8,7 @@ using CqrsFramework.InMemory;
 
 namespace CqrsFramework.Tests.Infrastructure
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
     [TestClass]
     public class TableProviderMemoryTest
     {
@@ -34,6 +35,12 @@ namespace CqrsFramework.Tests.Infrastructure
             InsertDataRow(2, "agg-1", 2, null, 1.2m, new DateTime(2012, 10, 9), "Hi");
             InsertDataRow(3, "agg-1", 3, Guid.NewGuid(), null, new DateTime(2012, 11, 8), "See ya");
             InsertDataRow(4, "agg-2", 1, Guid.NewGuid(), 2m, new DateTime(2013, 1, 1), "Thanks");
+        }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            _dataTable.Dispose();
         }
 
         private void InsertDataRow(int id, string name, int version, Guid? guid, decimal? price, DateTime? created, byte[] data)

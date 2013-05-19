@@ -8,6 +8,7 @@ using SqlTableProvider = CqrsFramework.InSql.TableProvider;
 
 namespace CqrsFramework.Tests.Infrastructure
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
     [TestClass]
     public class TableProviderInSqlTest
     {
@@ -37,6 +38,12 @@ namespace CqrsFramework.Tests.Infrastructure
             InsertDataRow(4, "agg-2", 1, Guid.NewGuid(), 2m, new DateTime(2013, 1, 1), "Thanks");
 
             _db = new DatabaseMock();
+        }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            _dataTable.Dispose();
         }
 
         private void InsertDataRow(int id, string name, int version, Guid? guid, decimal? price, DateTime? created, byte[] data)

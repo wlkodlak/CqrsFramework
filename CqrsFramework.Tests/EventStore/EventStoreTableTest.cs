@@ -90,6 +90,16 @@ namespace CqrsFramework.Tests.EventStore
                 _dataTableSnapshots.AcceptChanges();
                 _dataTableEvents.AcceptChanges();
             }
+
+            public void Dispose()
+            {
+                _dataTableEvents.Dispose();
+                _dataTableSnapshots.Dispose();
+                _dataTableStreams.Dispose();
+                _tableEvents.Dispose();
+                _tableSnapshots.Dispose();
+                _tableStreams.Dispose();
+            }
         }
     }
 }

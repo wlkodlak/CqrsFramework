@@ -25,6 +25,11 @@ namespace CqrsFramework.Tests.EventStore
             {
                 _store.SetupStream(name, snapshot, events);
             }
+
+            public void Dispose()
+            {
+                _store.Dispose();
+            }
         }
     }
 }

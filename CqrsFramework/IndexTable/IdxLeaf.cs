@@ -7,11 +7,10 @@ using System.IO;
 
 namespace CqrsFramework.IndexTable
 {
-    public class IdxLeaf
+    public class IdxLeaf : IdxPageBase, IIdxNode
     {
         private int _cellsCount = 0;
         private List<IdxCell> _cells = new List<IdxCell>();
-        private bool _dirty = false;
         private int _next = 0;
         private int _size = 16;
 
@@ -38,18 +37,17 @@ namespace CqrsFramework.IndexTable
             }
         }
 
-        public int PageNumber { get; set; }
+        public bool IsLeaf { get { return true; } }
         public int CellsCount { get { return _cellsCount; } }
         public bool IsSmall { get { return _size < SmallSize; } }
         public bool IsFull { get { return _size > FullSize; } }
-        public bool IsDirty { get { return _dirty; } }
 
         public int NextLeaf
         {
             get { return _next; }
             set
             {
-                _dirty = true;
+                SetDirty(true);
                 _next = value;
             }
         }
@@ -68,7 +66,7 @@ namespace CqrsFramework.IndexTable
             _cells.Insert(positionToAdd, cell);
             _cellsCount++;
             _size += cell.CellSize;
-            _dirty = true;
+            SetDirty(true);
             for (int i = 0; i < _cellsCount; i++)
                 _cells[i].Ordinal = i;
         }
@@ -80,7 +78,7 @@ namespace CqrsFramework.IndexTable
 
         public byte[] Save()
         {
-            _dirty = false;
+            SetDirty(false);
             var buffer = new byte[PagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
@@ -102,7 +100,7 @@ namespace CqrsFramework.IndexTable
             _cellsCount--;
             _size -= cell.CellSize;
             _cells.RemoveAt(index);
-            _dirty = true;
+            SetDirty(true);
         }
 
         public IdxKey Split(IdxLeaf rightNode, IdxCell cell)
@@ -150,7 +148,7 @@ namespace CqrsFramework.IndexTable
         {
             _next = rightLeaf._next;
             _cells.AddRange(rightLeaf._cells);
-            _dirty = true;
+            SetDirty(true);
             CompleteFix();
             return null;
         }
@@ -188,8 +186,8 @@ namespace CqrsFramework.IndexTable
         {
             _cells.AddRange(rightLeaf._cells.Take(cellsToMove));
             rightLeaf._cells.RemoveRange(0, cellsToMove);
-            _dirty = true;
-            rightLeaf._dirty = true;
+            SetDirty(true);
+            rightLeaf.SetDirty(true);
             CompleteFix();
             rightLeaf.CompleteFix();
             return rightLeaf._cells[0].Key;
@@ -203,8 +201,8 @@ namespace CqrsFramework.IndexTable
             rightCells.AddRange(rightLeaf._cells);
             rightLeaf._cells = rightCells;
             _cells.RemoveRange(leftStartIndex, cellsToMove);
-            _dirty = true;
-            rightLeaf._dirty = true;
+            SetDirty(true);
+            rightLeaf.SetDirty(true);
             CompleteFix();
             rightLeaf.CompleteFix();
             return rightLeaf._cells[0].Key;

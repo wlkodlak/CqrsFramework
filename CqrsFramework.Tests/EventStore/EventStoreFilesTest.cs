@@ -63,6 +63,12 @@ namespace CqrsFramework.Tests.EventStore
                 };
             }
 
+
+            public void Dispose()
+            {
+                _dataFile.Dispose();
+                _dataFileStream.Dispose();
+            }
         }
 
         protected override IEventStoreTestBuilder CreateBuilder()

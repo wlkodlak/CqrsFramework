@@ -32,6 +32,10 @@ namespace CqrsFramework.Tests.IndexTable
         public void EmptyNodeHasNoCells()
         {
             IdxLeaf node = new IdxLeaf((byte[])null);
+            node.PageNumber = 999;
+            Assert.AreEqual(999, node.PageNumber, "Page number");
+            Assert.IsInstanceOfType(node, typeof(IIdxNode), "Implements IIdxNode");
+            Assert.IsTrue((node as IIdxNode).IsLeaf, "Leaf");
             Assert.AreEqual(0, node.CellsCount);
             Assert.IsTrue(node.IsSmall, "Small");
             Assert.IsFalse(node.IsFull, "Full");
@@ -96,40 +100,45 @@ namespace CqrsFramework.Tests.IndexTable
         public void DirtyFlagSetByAdding()
         {
             IdxLeaf node = new IdxLeaf(null);
+            var dirty = new IndexTableAssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(44), null));
-            Assert.IsTrue(node.IsDirty);
+            dirty.AssertTrue();
         }
 
         [TestMethod]
         public void DirtyFlagSetByRemoving()
         {
             IdxLeaf node = new IdxLeaf(null);
+            var dirty = new IndexTableAssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(44), null));
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(48), null));
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(52), null));
             node.Save();
+            dirty.AssertFalse("Not dirty before removing");
             node.RemoveCell(1);
-            Assert.IsTrue(node.IsDirty);
+            dirty.AssertTrue("Dirty after removing");
         }
 
         [TestMethod]
         public void DirtyFlagSetByChangingNextPage()
         {
             IdxLeaf node = new IdxLeaf(null);
+            var dirty = new IndexTableAssertDirtyChanged(node);
             node.NextLeaf = 8475;
-            Assert.IsTrue(node.IsDirty);
+            dirty.AssertTrue();
         }
 
         [TestMethod]
         public void SavingClearsDirtyFlag()
         {
             IdxLeaf node = new IdxLeaf(null);
+            var dirty = new IndexTableAssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(44), null));
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(48), null));
             node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(52), null));
-            Assert.IsTrue(node.IsDirty);
+            dirty.AssertTrue("Dirty before save");
             node.Save();
-            Assert.IsFalse(node.IsDirty);
+            dirty.AssertFalse("Not dirty after save");
         }
 
         [TestMethod]

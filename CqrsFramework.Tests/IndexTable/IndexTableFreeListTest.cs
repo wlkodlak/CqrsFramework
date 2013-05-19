@@ -14,6 +14,8 @@ namespace CqrsFramework.Tests.IndexTable
         public void LoadEmptyList()
         {
             IdxFreeList list = new IdxFreeList((byte[])null);
+            list.PageNumber = 443;
+            Assert.AreEqual(443, list.PageNumber);
             Assert.AreEqual(0, list.Next);
             Assert.AreEqual(0, list.Length);
             Assert.IsFalse(list.IsDirty);
@@ -55,12 +57,13 @@ namespace CqrsFramework.Tests.IndexTable
             var contents = GeneratePagesList(442);
             var data = CreateCorrectData(222, contents);
             IdxFreeList list = new IdxFreeList(data);
+            var dirty = new IndexTableAssertDirtyChanged(list);
             list.Add(2933);
             contents.Add(2933);
             byte[] serialized = list.Save();
             CollectionAssert.AreEqual(CreateCorrectData(222, contents), serialized);
             Assert.AreEqual(222, list.Next);
-            Assert.IsFalse(list.IsDirty);
+            dirty.AssertFalse();
             Assert.IsFalse(list.IsFull);
             Assert.IsFalse(list.IsEmpty);
             Assert.IsFalse(list.IsLast);
@@ -72,6 +75,7 @@ namespace CqrsFramework.Tests.IndexTable
             var contents = GeneratePagesList(1021);
             var data = CreateCorrectData(0, contents);
             IdxFreeList list = new IdxFreeList(data);
+            var dirtyChanged = new IndexTableAssertDirtyChanged(list);
             list.Add(2200);
             contents.Add(2200);
             Assert.AreEqual(0, list.Next);
@@ -79,6 +83,7 @@ namespace CqrsFramework.Tests.IndexTable
             Assert.IsTrue(list.IsFull);
             Assert.IsFalse(list.IsEmpty);
             Assert.IsTrue(list.IsLast);
+            dirtyChanged.AssertTrue();
         }
 
         [TestMethod]
@@ -86,10 +91,11 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var data = CreateCorrectData(4, new int[] { 2930 });
             var list = new IdxFreeList(data);
+            var dirty = new IndexTableAssertDirtyChanged(list);
             int allocated = list.Alloc();
             Assert.AreEqual(2930, allocated);
             Assert.AreEqual(4, list.Next);
-            Assert.IsTrue(list.IsDirty);
+            dirty.AssertTrue();
             Assert.IsFalse(list.IsFull);
             Assert.IsTrue(list.IsEmpty);
             Assert.IsFalse(list.IsLast);

@@ -7,12 +7,11 @@ using System.Threading.Tasks;
 
 namespace CqrsFramework.IndexTable
 {
-    public class IdxInterior
+    public class IdxInterior : IdxPageBase, IIdxNode
     {
         private List<IdxCell> _cells = new List<IdxCell>();
         private int _cellsCount = 0;
         private int _size = 16;
-        private bool _dirty;
         private int _leftMost = 0;
 
         public IdxInterior(byte[] bytes)
@@ -46,24 +45,23 @@ namespace CqrsFramework.IndexTable
             set
             {
                 _leftMost = value;
-                _dirty = true;
+                SetDirty(true);
             }
         }
 
         private const int SmallSize = PagedFile.PageSize / 4;
         private const int FullSize = PagedFile.PageSize - 128;
 
-        public int PageNumber { get; set; }
+        public bool IsLeaf { get { return false; } }
         public int CellsCount { get { return _cellsCount; } }
         public bool IsSmall { get { return _size < SmallSize; } }
         public bool IsFull { get { return _size > FullSize; } }
-        public bool IsDirty { get { return _dirty; } }
 
         public void AddCell(IdxCell cell)
         {
             int position = InsertPosition(cell);
             _cells.Insert(position, cell);
-            _dirty = true;
+            SetDirty(true);
             CompleteFix();
         }
 
@@ -95,7 +93,7 @@ namespace CqrsFramework.IndexTable
 
         public byte[] Save()
         {
-            _dirty = false;
+            SetDirty(false);
             var buffer = new byte[PagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
@@ -113,7 +111,7 @@ namespace CqrsFramework.IndexTable
 
         public void RemoveCell(int index)
         {
-            _dirty = true;
+            SetDirty(true);
             _cells.RemoveAt(index);
             CompleteFix();
         }
@@ -129,8 +127,8 @@ namespace CqrsFramework.IndexTable
 
         public IdxKey Split(IdxInterior target, IdxCell addedCell)
         {
-            _dirty = true;
-            target._dirty = true;
+            SetDirty(true);
+            target.SetDirty(true);
 
             _cells.Insert(InsertPosition(addedCell), addedCell);
             var parentCell = IdxCell.CreateInteriorCell(_cells[_cellsCount].Key, target.PageNumber);

@@ -44,12 +44,16 @@
     <Compile Include="EventSerializer.cs" />
     <Compile Include="EventStore.cs" />
     <Compile Include="IndexTable\IdxCell.cs" />
+    <Compile Include="IndexTable\IdxContainer.cs" />
+    <Compile Include="IndexTable\IdxFile.cs" />
     <Compile Include="IndexTable\IdxFreeList.cs" />
     <Compile Include="IndexTable\IdxHeader.cs" />
     <Compile Include="IndexTable\IdxInterior.cs" />
     <Compile Include="IndexTable\IdxKey.cs" />
     <Compile Include="IndexTable\IdxLeaf.cs" />
     <Compile Include="IndexTable\IdxOverflow.cs" />
+    <Compile Include="IndexTable\IdxPage.cs" />
+    <Compile Include="IndexTable\IdxTree.cs" />
     <Compile Include="InFile\FileEventStoreEntry.cs" />
     <Compile Include="InFile\FileEventStoreDataFile.cs" />
     <Compile Include="InFile\FileEventStore.cs" />

@@ -17,10 +17,14 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             var data = CreateData(49083, 582);
 
             IdxOverflow page = new IdxOverflow(null);
+            var dirty = new IndexTableAssertDirtyChanged(page);
+            page.PageNumber = 426;
             int written = page.WriteData(data, 48);
 
+            Assert.IsInstanceOfType(page, typeof(IIdxPage));
+            Assert.AreEqual(426, page.PageNumber);
             Assert.AreEqual(534, written);
-            Assert.IsTrue(page.IsDirty);
+            dirty.AssertTrue();
             Assert.AreEqual(534, page.LengthInPage);
             Assert.AreEqual(0, page.Next);
             Assert.IsFalse(page.HasNextPage);
@@ -65,11 +69,12 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             var data = CreateData(39924, 8231);
 
             IdxOverflow page = new IdxOverflow(null);
+            var dirty = new IndexTableAssertDirtyChanged(page);
             page.WriteData(data, 120);
             page.Next = 37;
             byte[] serialized = page.Save();
 
-            Assert.IsFalse(page.IsDirty);
+            dirty.AssertFalse();
             Assert.IsTrue(page.HasNextPage);
             Assert.AreEqual(37, page.Next);
             var expected = CreateCorrectBytes(37, 120, data);
@@ -142,11 +147,12 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             var changed = CreateData(3843, 4200);
 
             IdxOverflow page = new IdxOverflow(bytes);
+            var dirty = new IndexTableAssertDirtyChanged(page);
             int written = page.WriteData(changed, 0);
 
             Assert.IsTrue(page.NeedsNextPage);
             Assert.IsTrue(page.HasNextPage);
-            Assert.IsTrue(page.IsDirty);
+            dirty.AssertTrue();
             Assert.AreEqual(IdxOverflow.Capacity, page.LengthInPage);
             Assert.AreEqual(388, page.Next);
 
@@ -164,10 +170,11 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             var changed = CreateData(3843, 400);
 
             IdxOverflow page = new IdxOverflow(bytes);
+            var dirty = new IndexTableAssertDirtyChanged(page);
             page.WriteData(changed, 0);
             byte[] serialized = page.Save();
 
-            Assert.IsFalse(page.IsDirty);
+            dirty.AssertFalse();
             var expected = CreateCorrectBytes(388, 0, changed);
             CollectionAssert.AreEqual(expected, serialized);
         }

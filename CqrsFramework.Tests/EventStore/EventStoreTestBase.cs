@@ -6,7 +6,7 @@ using System.Text;
 
 namespace CqrsFramework.Tests.EventStore
 {
-    public interface IEventStoreTestBuilder
+    public interface IEventStoreTestBuilder : IDisposable
     {
         IEventStore Build();
         void WithStream(string name, EventStoreSnapshot snapshot, EventStoreEvent[] events);

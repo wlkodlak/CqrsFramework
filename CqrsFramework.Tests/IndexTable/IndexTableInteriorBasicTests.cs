@@ -12,6 +12,10 @@ namespace CqrsFramework.Tests.IndexTable
         public void CreateEmptyNode()
         {
             IdxInterior node = new IdxInterior(null);
+            node.PageNumber = 394;
+            Assert.IsInstanceOfType(node, typeof(IIdxNode), "Implements IIdxNode");
+            Assert.IsFalse((node as IIdxNode).IsLeaf, "Interior node");
+            Assert.AreEqual(394, node.PageNumber);
             Assert.AreEqual(0, node.CellsCount, "Cells count");
             Assert.AreEqual(0, node.LeftmostPage, "Leftmost page");
             Assert.IsTrue(node.IsSmall, "Small");
@@ -93,37 +97,41 @@ namespace CqrsFramework.Tests.IndexTable
         public void DirtyFlagIsSetByAddingCells()
         {
             IdxInterior node = new IdxInterior(null);
+            var dirty = new IndexTableAssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672));
-            Assert.IsTrue(node.IsDirty);
+            dirty.AssertTrue();
         }
 
         [TestMethod]
         public void DirtyFlagIsSetByRemovingCells()
         {
             IdxInterior node = new IdxInterior(null);
+            var dirty = new IndexTableAssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672));
             node.Save();
-            Assert.IsFalse(node.IsDirty, "Not dirty before removing");
+            dirty.AssertFalse("Not dirty before removing");
             node.RemoveCell(0);
-            Assert.IsTrue(node.IsDirty, "Dirty after removing");
+            dirty.AssertTrue("Dirty after removing");
         }
 
         [TestMethod]
         public void DirtyFlagIsSetBySettingLeftmostPage()
         {
             IdxInterior node = new IdxInterior(null);
+            var dirty = new IndexTableAssertDirtyChanged(node);
             node.LeftmostPage = 8754;
-            Assert.IsTrue(node.IsDirty);
+            dirty.AssertTrue();
         }
 
         [TestMethod]
         public void SavingClearsDirtyFlag()
         {
             IdxInterior node = new IdxInterior(null);
+            var dirty = new IndexTableAssertDirtyChanged(node);
             node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672));
-            Assert.IsTrue(node.IsDirty, "Dirty before saving");
+            dirty.AssertTrue("Dirty before saving");
             node.Save();
-            Assert.IsFalse(node.IsDirty, "Not dirty after saving");
+            dirty.AssertFalse("Not dirty after saving");
         }
 
         [TestMethod]
