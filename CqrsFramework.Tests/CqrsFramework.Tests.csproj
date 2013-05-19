@@ -63,6 +63,7 @@
     <Compile Include="IndexTable\CellTest.cs" />
     <Compile Include="IndexTable\ContainerReadTest.cs" />
     <Compile Include="IndexTable\ContainerTestUtilities.cs" />
+    <Compile Include="IndexTable\ContainerWriteTest.cs" />
     <Compile Include="IndexTable\FreeListTest.cs" />
     <Compile Include="IndexTable\HeaderTest.cs" />
     <Compile Include="IndexTable\InteriorBasicTests.cs" />

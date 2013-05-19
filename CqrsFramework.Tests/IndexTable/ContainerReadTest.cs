@@ -35,7 +35,7 @@ namespace CqrsFramework.Tests.IndexTable
             IdxLeaf tableNode = new IdxLeaf(null);
 
             var file = new MemoryPagedFile(4);
-            file.Pages[0] = ContainerTestUtilities.CreateHeader(1, 2);
+            file.Pages[0] = ContainerTestUtilities.CreateHeader(1, 4, 2);
             file.Pages[1] = ContainerTestUtilities.CreateFreeList(0, 3);
             file.Pages[2] = NodeBuilder.Leaf(0).ToBytes();
 
@@ -64,7 +64,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void ReadNonExistentTable()
         {
             var file = new MemoryPagedFile(4);
-            file.Pages[0] = ContainerTestUtilities.CreateHeader(1);
+            file.Pages[0] = ContainerTestUtilities.CreateHeader(1, 4);
             file.Pages[1] = ContainerTestUtilities.CreateFreeList(0, 2, 3);
             using (var container = new IdxContainer(file))
             {
@@ -97,7 +97,7 @@ namespace CqrsFramework.Tests.IndexTable
             longCell1.OverflowPage = 7;
 
             var file = new MemoryPagedFile(16);
-            file.Pages[0] = ContainerTestUtilities.CreateHeader(1, 0, 4, 6);
+            file.Pages[0] = ContainerTestUtilities.CreateHeader(1, 16, 0, 4, 6);
             file.Pages[1] = ContainerTestUtilities.CreateFreeList(0, Enumerable.Range(9, 7).ToArray());
             file.Pages[2] = NodeBuilder.Leaf(3)
                 .AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(8), new byte[48]))

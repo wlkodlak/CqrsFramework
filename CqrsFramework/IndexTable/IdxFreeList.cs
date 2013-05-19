@@ -9,7 +9,7 @@ namespace CqrsFramework.IndexTable
 {
     public class IdxFreeList : IdxPageBase
     {
-        private const int Capacity = PagedFile.PageSize / 4 - 2;
+        public const int Capacity = PagedFile.PageSize / 4 - 2;
         private int _next;
         private int _length;
         private int[] _freePages;
@@ -59,7 +59,7 @@ namespace CqrsFramework.IndexTable
             SetDirty(true);
         }
 
-        public byte[] Save()
+        public override byte[] Save()
         {
             var data = new byte[PagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(data), Encoding.ASCII, false))

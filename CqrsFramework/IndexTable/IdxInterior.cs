@@ -91,7 +91,7 @@ namespace CqrsFramework.IndexTable
             return _cells[index];
         }
 
-        public byte[] Save()
+        public override byte[] Save()
         {
             SetDirty(false);
             var buffer = new byte[PagedFile.PageSize];

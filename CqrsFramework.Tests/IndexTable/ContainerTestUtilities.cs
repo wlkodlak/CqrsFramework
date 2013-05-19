@@ -64,12 +64,17 @@ namespace CqrsFramework.Tests.IndexTable
         public byte[] GetPage(int page)
         {
             ReadPages.Add(page);
-            return Pages[page];
+            var bytes = Pages[page];
+            if (bytes == null)
+                Pages[page] = bytes = new byte[PagedFile.PageSize];
+            return bytes;
         }
 
         public void SetPage(int page, byte[] data)
         {
             WrittenPages.Add(page);
+            if (Pages[page] == null)
+                Pages[page] = new byte[PagedFile.PageSize];
             Array.Copy(data, Pages[page], PagedFile.PageSize);
         }
 
@@ -126,10 +131,11 @@ namespace CqrsFramework.Tests.IndexTable
 
     public class ContainerTestUtilities
     {
-        public static byte[] CreateHeader(int freeList, params int[] roots)
+        public static byte[] CreateHeader(int freeList, int totalPages, params int[] roots)
         {
             var header = new IdxHeader(null);
             header.FreePagesList = freeList;
+            header.TotalPagesCount = totalPages;
             for (int i = 0; i < roots.Length; i++)
                 header.SetTreeRoot(i, roots[i]);
             return header.Save();

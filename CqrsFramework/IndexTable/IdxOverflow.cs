@@ -29,7 +29,7 @@ namespace CqrsFramework.IndexTable
             }
         }
 
-        public byte[] Save()
+        public override byte[] Save()
         {
             var buffer = new byte[PagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer), Encoding.ASCII, false))

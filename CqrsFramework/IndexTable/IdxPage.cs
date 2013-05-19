@@ -10,6 +10,7 @@ namespace CqrsFramework.IndexTable
     {
         int PageNumber { get; set; }
         bool IsDirty { get; }
+        byte[] Save();
         event EventHandler IsDirtyChanged;
     }
 
@@ -45,5 +46,6 @@ namespace CqrsFramework.IndexTable
         }
 
         public event EventHandler IsDirtyChanged;
+        public abstract byte[] Save();
     }
 }
