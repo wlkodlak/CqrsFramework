@@ -128,7 +128,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void ExtremelySmallCellSize()
         {
-            var minSize = PagedFile.PageSize / 256;
+            var minSize = IdxPagedFile.PageSize / 256;
             var actual = IdxCell.CreateLeafCell(IdxKey.FromString("Hi"), null).CellSize;
             Assert.AreEqual(minSize, actual);
         }
@@ -214,5 +214,27 @@ namespace CqrsFramework.Tests.IndexTable
             CollectionAssert.AreEqual(expected.ToArray(), buffer);
         }
 
+
+        [TestMethod]
+        public void ChangeValue()
+        {
+            var random = new Random();
+            var originalBytes = new byte[8425];
+            random.NextBytes(originalBytes);
+            var newBytes = new byte[971];
+            random.NextBytes(newBytes);
+            var cell = IdxCell.CreateLeafCell(IdxKey.FromInteger(374), originalBytes);
+            cell.OverflowPage = 845;
+            bool isDirty = false;
+            cell.ValueChanged += (o, e) => { isDirty = true; };
+            
+            cell.ChangeValue(newBytes);
+            cell.OverflowPage = 845;
+
+            CollectionAssert.AreEqual(cell.ValueBytes, newBytes.Take(116).ToArray(), "Cell value");
+            Assert.AreEqual(845, cell.OverflowPage, "Cell overflow page");
+            Assert.AreEqual(1, cell.OverflowLength, "Overflow count");
+            Assert.IsTrue(isDirty, "Informed about change");
+        }
     }
 }

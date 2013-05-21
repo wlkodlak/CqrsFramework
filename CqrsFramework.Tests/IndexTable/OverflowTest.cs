@@ -189,9 +189,9 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
 
         private byte[] CreateCorrectBytes(int next, int skip, byte[] data)
         {
-            var bytes = new byte[PagedFile.PageSize];
+            var bytes = new byte[IdxPagedFile.PageSize];
             int remaining = data.Length - skip;
-            int capacity = PagedFile.PageSize - 8;
+            int capacity = IdxPagedFile.PageSize - 8;
             short localSize = (short)Math.Min(remaining, capacity);
             byte flags = remaining > capacity ? (byte)1 : (byte)0;
             using (var writer = new BinaryWriter(new MemoryStream(bytes), Encoding.ASCII, false))

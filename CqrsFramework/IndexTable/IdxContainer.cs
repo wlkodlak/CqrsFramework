@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace CqrsFramework.IndexTable
 {
@@ -24,22 +25,65 @@ namespace CqrsFramework.IndexTable
 
     public class IdxContainer : IIdxContainer
     {
-        private IPagedFile _file;
+        private object _lock = new object();
+        private bool _disposed = false;
+        private IIdxPagedFile _file;
         private IdxHeader _header;
         private List<IdxFreeList> _freelists;
         private int[] _growPages;
         private TransactionInfo[] _transactions;
+        private Dictionary<int, CachedPage> _cache;
+        private Timer _timer;
 
         private class TransactionInfo
         {
+            public int ReadersCount = 0;
+            public bool HasWriter;
             public List<int> AllocatedPages = new List<int>(128);
             public List<int> FreedPages = new List<int>(32);
             public bool RootChanged;
             public int TreeRoot;
             public Dictionary<int, IIdxPage> UsedPages = new Dictionary<int, IIdxPage>(1024);
+            public Thread WriterThread;
+            public List<Thread> ReaderThreads = new List<Thread>();
         }
 
-        public IdxContainer(IPagedFile file)
+        private class CachedPage
+        {
+            public int Number;
+            public int Timeout;
+            public IIdxPage Contents;
+
+            public CachedPage(IIdxPage contents)
+            {
+                this.Contents = contents;
+                this.Timeout = 2;
+                this.Number = contents.PageNumber;
+            }
+
+            public T UseAs<T>()
+            {
+                MarkUsed();
+                return (T)Contents;
+            }
+
+            public bool ShouldEject()
+            {
+                return Timeout == 0;
+            }
+
+            public void MarkUsed()
+            {
+                Timeout = Math.Min(4, Timeout + 2);
+            }
+
+            public void EjectionCycle()
+            {
+                Timeout--;
+            }
+        }
+
+        public IdxContainer(IIdxPagedFile file)
         {
             _file = file;
             _freelists = new List<IdxFreeList>();
@@ -52,6 +96,24 @@ namespace CqrsFramework.IndexTable
             }
             _growPages = new int[] { 16, 4, 64, 8, 256, 16, 1024, 64, 8 * 1024, 256, 32 * 1024, 1024, 256 * 1024, 4096 };
             _transactions = new TransactionInfo[16];
+            for (int i = 0; i < 16; i++)
+                _transactions[i] = new TransactionInfo() { TreeRoot = i };
+            _cache = new Dictionary<int, CachedPage>();
+            _timer = new Timer(CacheCleanupTimerCallback, null, 15000, 15000);
+        }
+
+        private void CacheCleanupTimerCallback(object state)
+        {
+            lock (_lock)
+            {
+                if (_disposed || _cache.Count == 0)
+                    return;
+                foreach (var item in _cache.Values)
+                    item.EjectionCycle();
+                var pagesForRemoval = _cache.Where(i => i.Value.ShouldEject()).Select(i => i.Key).ToList();
+                foreach (var page in pagesForRemoval)
+                    _cache.Remove(page);
+            }
         }
 
         private void InitializeFile()
@@ -102,6 +164,20 @@ namespace CqrsFramework.IndexTable
                 ReplaceFreeLists(freePages);
                 FillFreeLists(freePages);
                 return _freelists[0].Alloc();
+            }
+        }
+
+        private void FreePage(int page)
+        {
+            if (!_freelists[0].IsFull)
+                _freelists[0].Add(page);
+            else
+            {
+                var freelist = new IdxFreeList(null);
+                freelist.PageNumber = page;
+                freelist.Next = _freelists[0].PageNumber;
+                _freelists.Insert(0, freelist);
+                _header.FreePagesList = page;
             }
         }
 
@@ -169,16 +245,37 @@ namespace CqrsFramework.IndexTable
 
         public IIdxNode ReadTree(int tree)
         {
-            if (_header == null)
-                return null;
-            int page = _header.GetTreeRoot(tree);
-            if (page == 0)
-                return null;
-            return ReadNode(page);
+            lock (_lock)
+            {
+                ThrowIfDisposed();
+                if (_header == null)
+                    return null;
+                var tran = _transactions[tree];
+                if (tran.HasWriter)
+                {
+                    if (tran.WriterThread == Thread.CurrentThread)
+                        throw new IdxLockException();
+                    while (tran.HasWriter)
+                    {
+                        ThrowIfDisposed();
+                        Monitor.Wait(_lock);
+                    }
+                }
+                tran.ReadersCount++;
+                tran.ReaderThreads.Add(Thread.CurrentThread);
+                int page = _header.GetTreeRoot(tree);
+                if (page == 0)
+                    return null;
+                return ReadNode(page);
+            }
         }
 
         private IIdxNode ReadNode(int page)
         {
+            CachedPage cached;
+            if (_cache.TryGetValue(page, out cached))
+                return cached.UseAs<IIdxNode>();
+
             var bytes = _file.GetPage(page);
             IIdxNode node;
             if (DetectLeaf(bytes))
@@ -186,6 +283,8 @@ namespace CqrsFramework.IndexTable
             else
                 node = new IdxInterior(bytes);
             node.PageNumber = page;
+
+            _cache[page] = new CachedPage(node);
             return node;
         }
 
@@ -196,82 +295,222 @@ namespace CqrsFramework.IndexTable
 
         public IIdxNode WriteTree(int tree)
         {
-            if (_header == null)
-                InitializeFile();
-            _transactions[tree] = new TransactionInfo();
-            _transactions[tree].TreeRoot = _header.GetTreeRoot(tree);
-            return null;
+            lock (_lock)
+            {
+                ThrowIfDisposed();
+                if (_header == null)
+                    InitializeFile();
+                var tran = _transactions[tree];
+                var currentThread = Thread.CurrentThread;
+                if (tran.HasWriter || tran.ReadersCount > 0)
+                {
+                    if (tran.WriterThread == currentThread)
+                        throw new IdxLockException();
+                    foreach (var reader in tran.ReaderThreads)
+                        if (reader == currentThread)
+                            throw new IdxLockException();
+                    while (tran.HasWriter || tran.ReadersCount > 0)
+                    {
+                        ThrowIfDisposed();
+                        Monitor.Wait(_lock);
+                    }
+                }
+                tran.HasWriter = true;
+                tran.WriterThread = currentThread;
+                var rootPage = _header.GetTreeRoot(tree);
+                if (rootPage == 0)
+                    return null;
+                return GetNode(tree, rootPage);
+            }
         }
 
         public void UnlockRead(int tree)
         {
+            lock (_lock)
+            {
+                ThrowIfDisposed();
+                var tran = _transactions[tree];
+                tran.ReadersCount--;
+                tran.ReaderThreads.Remove(Thread.CurrentThread);
+                Monitor.PulseAll(_lock);
+            }
         }
 
         public void CommitWrite(int tree)
         {
-            var tran = _transactions[tree];
-            if (tran.RootChanged)
-                _header.SetTreeRoot(tree, tran.TreeRoot);
-            CommitHeader();
-            foreach (var page in tran.UsedPages.Values)
+            lock (_lock)
             {
-                if (!page.IsDirty)
-                    continue;
-                _file.SetPage(page.PageNumber, page.Save());
+                ThrowIfDisposed();
+                var tran = _transactions[tree];
+                if (tran.RootChanged)
+                    _header.SetTreeRoot(tree, tran.TreeRoot);
+                foreach (var page in tran.FreedPages)
+                    FreePage(page);
+                CommitHeader();
+                foreach (var page in tran.UsedPages.Values)
+                {
+                    if (page == null || !page.IsDirty)
+                        continue;
+                    _file.SetPage(page.PageNumber, page.Save());
+                }
+                tran.HasWriter = false;
+                tran.WriterThread = null;
+                Monitor.PulseAll(_lock);
             }
         }
 
         public void RollbackWrite(int tree)
         {
+            lock (_lock)
+            {
+                var tran = _transactions[tree];
+                foreach (var page in tran.UsedPages.Keys)
+                    _cache.Remove(page);
+                foreach (var page in tran.AllocatedPages)
+                    FreePage(page);
+                CommitHeader();
+                tran.HasWriter = false;
+                tran.WriterThread = null;
+                Monitor.PulseAll(_lock);
+            }
         }
 
         public IdxOverflow GetOverflow(int tree, int page)
         {
+            lock (_lock)
+            {
+                ThrowIfDisposed();
+                IIdxPage loadedPage;
+                var tran = _transactions[tree];
+                if (!tran.HasWriter)
+                {
+                    return ReadOverflow(page);
+                }
+                else if (tran.UsedPages.TryGetValue(page, out loadedPage))
+                    return loadedPage as IdxOverflow;
+                else
+                {
+                    var overflow = ReadOverflow(page);
+                    tran.UsedPages[page] = overflow;
+                    return overflow;
+                }
+            }
+        }
+
+        private IdxOverflow ReadOverflow(int page)
+        {
+            CachedPage cachedPage;
+            if (_cache.TryGetValue(page, out cachedPage))
+                return cachedPage.UseAs<IdxOverflow>();
             var overflow = new IdxOverflow(_file.GetPage(page));
             overflow.PageNumber = page;
+            _cache[page] = new CachedPage(overflow);
             return overflow;
         }
 
         public IdxOverflow CreateOverflow(int tree)
         {
-            var overflow = new IdxOverflow(null);
-            overflow.PageNumber = AllocPage();
-            _transactions[tree].UsedPages[overflow.PageNumber] = overflow;
-            return overflow;
+            lock (_lock)
+            {
+                ThrowIfDisposed();
+                var tran = _transactions[tree];
+                var overflow = new IdxOverflow(null);
+                var page = AllocPage();
+                tran.AllocatedPages.Add(page);
+                overflow.PageNumber = page;
+                tran.UsedPages[overflow.PageNumber] = overflow;
+                return overflow;
+            }
         }
 
         public IIdxNode GetNode(int tree, int page)
         {
-            return ReadNode(page);
+            lock (_lock)
+            {
+                ThrowIfDisposed();
+                var tran = _transactions[tree];
+                IIdxPage usedPage;
+                if (!tran.HasWriter)
+                    return ReadNode(page);
+                else if (tran.UsedPages.TryGetValue(page, out usedPage))
+                    return usedPage as IIdxNode;
+                else
+                {
+                    var node = ReadNode(page);
+                    tran.UsedPages[page] = node;
+                    return node;
+                }
+            }
         }
 
         public IdxLeaf CreateLeaf(int tree)
         {
-            int page = AllocPage();
-            var leaf = new IdxLeaf(null);
-            leaf.PageNumber = page;
-            _transactions[tree].UsedPages[leaf.PageNumber] = leaf;
-            return leaf;
+            lock (_lock)
+            {
+                ThrowIfDisposed();
+                var tran = _transactions[tree];
+                int page = AllocPage();
+                tran.AllocatedPages.Add(page);
+                var leaf = new IdxLeaf(null);
+                leaf.PageNumber = page;
+                tran.UsedPages[leaf.PageNumber] = leaf;
+                return leaf;
+            }
         }
 
         public IdxInterior CreateInterior(int tree)
         {
-            throw new NotImplementedException();
+            lock (_lock)
+            {
+                ThrowIfDisposed();
+                var tran = _transactions[tree];
+                int page = AllocPage();
+                tran.AllocatedPages.Add(page);
+                var node = new IdxInterior(null);
+                node.PageNumber = page;
+                tran.UsedPages[node.PageNumber] = node;
+                return node;
+            }
         }
 
         public void Delete(int tree, int page)
         {
+            lock (_lock)
+            {
+                ThrowIfDisposed();
+                var tran = _transactions[tree];
+                tran.FreedPages.Add(page);
+                tran.UsedPages[page] = null;
+                _cache.Remove(page);
+            }
         }
 
         public void SetTreeRoot(int tree, IIdxNode root)
         {
-            _transactions[tree].TreeRoot = root.PageNumber;
-            _transactions[tree].RootChanged = true;
+            lock (_lock)
+            {
+                ThrowIfDisposed();
+                var tran = _transactions[tree];
+                tran.TreeRoot = root.PageNumber;
+                tran.RootChanged = true;
+            }
         }
 
         public void Dispose()
         {
-            _file.Dispose();
+            lock (_lock)
+            {
+                _timer.Dispose();
+                _file.Dispose();
+                _disposed = true;
+                Monitor.PulseAll(_lock);
+            }
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (_disposed)
+                throw new ObjectDisposedException("IdxContainer");
         }
     }
 }

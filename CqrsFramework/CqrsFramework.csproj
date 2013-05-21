@@ -51,6 +51,7 @@
     <Compile Include="IndexTable\IdxInterior.cs" />
     <Compile Include="IndexTable\IdxKey.cs" />
     <Compile Include="IndexTable\IdxLeaf.cs" />
+    <Compile Include="IndexTable\IdxLockException.cs" />
     <Compile Include="IndexTable\IdxOverflow.cs" />
     <Compile Include="IndexTable\IdxPage.cs" />
     <Compile Include="IndexTable\IdxTree.cs" />
@@ -62,7 +63,7 @@
     <Compile Include="InMemory\MemoryEventStore.cs" />
     <Compile Include="InTable\TableEventStore.cs" />
     <Compile Include="InTable\TableEventStream.cs" />
-    <Compile Include="IndexTable\PagedFile.cs" />
+    <Compile Include="IndexTable\IdxPagedFile.cs" />
     <Compile Include="InSql\TableProvider.cs" />
     <Compile Include="Messages.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

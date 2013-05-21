@@ -31,7 +31,7 @@ namespace CqrsFramework.IndexTable
 
         public override byte[] Save()
         {
-            var buffer = new byte[PagedFile.PageSize];
+            var buffer = new byte[IdxPagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer), Encoding.ASCII, false))
             {
                 writer.Write(_next);
@@ -44,7 +44,7 @@ namespace CqrsFramework.IndexTable
             return buffer;
         }
 
-        public static int Capacity { get { return PagedFile.PageSize - 8; } }
+        public static int Capacity { get { return IdxPagedFile.PageSize - 8; } }
 
         public int Next
         {

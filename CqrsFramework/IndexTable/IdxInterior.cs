@@ -49,8 +49,8 @@ namespace CqrsFramework.IndexTable
             }
         }
 
-        private const int SmallSize = PagedFile.PageSize / 4;
-        private const int FullSize = PagedFile.PageSize - 128;
+        private const int SmallSize = IdxPagedFile.PageSize / 4;
+        private const int FullSize = IdxPagedFile.PageSize - 128;
 
         public bool IsLeaf { get { return false; } }
         public int CellsCount { get { return _cellsCount; } }
@@ -94,7 +94,7 @@ namespace CqrsFramework.IndexTable
         public override byte[] Save()
         {
             SetDirty(false);
-            var buffer = new byte[PagedFile.PageSize];
+            var buffer = new byte[IdxPagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write((byte)2);

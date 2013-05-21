@@ -7,7 +7,7 @@ using CqrsFramework.IndexTable;
 
 namespace CqrsFramework.Tests.IndexTable
 {
-    public class MemoryPagedFile : IPagedFile
+    public class MemoryPagedFile : IIdxPagedFile
     {
         public bool Disposed = false;
         public HashSet<int> ReadPages = new HashSet<int>();
@@ -36,7 +36,7 @@ namespace CqrsFramework.Tests.IndexTable
             Disposed = false;
             for (int i = 0; i < Pages.Count; i++)
                 if (Pages[i] == null)
-                    Pages[i] = new byte[PagedFile.PageSize];
+                    Pages[i] = new byte[IdxPagedFile.PageSize];
         }
 
         public int GetSize()
@@ -52,7 +52,7 @@ namespace CqrsFramework.Tests.IndexTable
             {
                 IncreasedSize = true;
                 for (int i = Pages.Count; i < finalCount; i++)
-                    Pages.Add(new byte[PagedFile.PageSize]);
+                    Pages.Add(new byte[IdxPagedFile.PageSize]);
             }
             else
             {
@@ -66,7 +66,7 @@ namespace CqrsFramework.Tests.IndexTable
             ReadPages.Add(page);
             var bytes = Pages[page];
             if (bytes == null)
-                Pages[page] = bytes = new byte[PagedFile.PageSize];
+                Pages[page] = bytes = new byte[IdxPagedFile.PageSize];
             return bytes;
         }
 
@@ -74,8 +74,8 @@ namespace CqrsFramework.Tests.IndexTable
         {
             WrittenPages.Add(page);
             if (Pages[page] == null)
-                Pages[page] = new byte[PagedFile.PageSize];
-            Array.Copy(data, Pages[page], PagedFile.PageSize);
+                Pages[page] = new byte[IdxPagedFile.PageSize];
+            Array.Copy(data, Pages[page], IdxPagedFile.PageSize);
         }
 
         public void Dispose()
@@ -148,6 +148,21 @@ namespace CqrsFramework.Tests.IndexTable
             foreach (var page in pages)
                 freelist.Add(page);
             return freelist.Save();
+        }
+
+        public static byte[] CreateBytes(Random random, int length)
+        {
+            var bytes = new byte[length];
+            random.NextBytes(bytes);
+            return bytes;
+        }
+
+        public static byte[] CreateOverflow(int next, int offset, byte[] bytes)
+        {
+            var overflow = new IdxOverflow(null);
+            overflow.Next = next;
+            overflow.WriteData(bytes, offset);
+            return overflow.Save();
         }
     }
 }

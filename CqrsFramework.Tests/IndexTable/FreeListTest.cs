@@ -135,7 +135,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         private byte[] CreateCorrectData(int next, IList<int> freePages)
         {
-            var buffer = new byte[PagedFile.PageSize];
+            var buffer = new byte[IdxPagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer), Encoding.ASCII, false))
             {
                 writer.Write(next);

@@ -14,8 +14,8 @@ namespace CqrsFramework.IndexTable
         private int _next = 0;
         private int _size = 16;
 
-        private const int SmallSize = PagedFile.PageSize / 4;
-        private const int FullSize = PagedFile.PageSize - 128;
+        private const int SmallSize = IdxPagedFile.PageSize / 4;
+        private const int FullSize = IdxPagedFile.PageSize - 128;
 
         public IdxLeaf(byte[] bytesToLoad)
         {
@@ -33,8 +33,19 @@ namespace CqrsFramework.IndexTable
                 _next = reader.ReadInt32();
                 reader.ReadBytes(8);
                 for (int i = 0; i < _cellsCount; i++)
-                    _cells.Add(IdxCell.LoadLeafCell(reader));
+                {
+                    var cell = IdxCell.LoadLeafCell(reader);
+                    cell.Ordinal = i;
+                    _cells.Add(cell);
+                    _size += cell.CellSize;
+                    cell.ValueChanged += CellValueChanged;
+                }
             }
+        }
+
+        private void CellValueChanged(object sender, EventArgs e)
+        {
+            SetDirty(true);
         }
 
         public bool IsLeaf { get { return true; } }
@@ -79,7 +90,7 @@ namespace CqrsFramework.IndexTable
         public override byte[] Save()
         {
             SetDirty(false);
-            var buffer = new byte[PagedFile.PageSize];
+            var buffer = new byte[IdxPagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write((byte)1);

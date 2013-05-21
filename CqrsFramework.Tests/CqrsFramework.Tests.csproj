@@ -62,6 +62,7 @@
     <Compile Include="IndexTable\AssertDirtyChanged.cs" />
     <Compile Include="IndexTable\CellTest.cs" />
     <Compile Include="IndexTable\ContainerReadTest.cs" />
+    <Compile Include="IndexTable\ContainerRollbackTest.cs" />
     <Compile Include="IndexTable\ContainerTestUtilities.cs" />
     <Compile Include="IndexTable\ContainerWriteTest.cs" />
     <Compile Include="IndexTable\FreeListTest.cs" />

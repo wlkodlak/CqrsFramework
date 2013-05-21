@@ -85,7 +85,7 @@ namespace CqrsFramework.IndexTable
         public byte[] Save()
         {
             _dirty = false;
-            var buffer = new byte[PagedFile.PageSize];
+            var buffer = new byte[IdxPagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write(MagicHeader);

@@ -186,7 +186,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void LoadingLeafWith11Cells()
         {
-            var buffer = new byte[PagedFile.PageSize];
+            var buffer = new byte[IdxPagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write(new byte[8] { 1, 11, 0, 0, 48, 2, 0, 0 });
@@ -211,12 +211,15 @@ namespace CqrsFramework.Tests.IndexTable
             AssertEqualCells(IdxCell.CreateLeafCell(IdxKey.FromInteger(1047), RandomBytes(846, 16)), node.GetCell(2), "Cell 2");
             AssertEqualCells(IdxCell.CreateLeafCell(IdxKey.FromInteger(2074), RandomBytes(966, 2)), node.GetCell(3), "Cell 3");
             AssertEqualCells(IdxCell.CreateLeafCell(IdxKey.FromInteger(2099), RandomBytes(2471, 20)), node.GetCell(4), "Cell 4");
+            Assert.AreEqual(4, node.GetCell(4).Ordinal, "Cell 4 ordinal");
+            Assert.IsFalse(node.IsFull, "Full");
+            Assert.IsFalse(node.IsSmall, "Small");
         }
 
         [TestMethod]
         public void SavingLeafWith3Cells()
         {
-            var buffer = new byte[PagedFile.PageSize];
+            var buffer = new byte[IdxPagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write(new byte[8] { 1, 3, 0, 0, 22, 0, 0, 0 });
@@ -265,6 +268,20 @@ namespace CqrsFramework.Tests.IndexTable
             Assert.AreEqual(orig.CellsCount, load.CellsCount);
             for (int i = 0; i < orig.CellsCount; i++)
                 AssertEqualCells(orig.GetCell(i), load.GetCell(i), string.Format("Cell {0}", i));
+        }
+
+        [TestMethod]
+        public void DetectsValueChange()
+        {
+            IdxLeaf originalLeaf = new IdxLeaf(null);
+            originalLeaf.AddCell(IdxCell.CreateLeafCell(IdxKey.FromString("Hello world"), RandomBytes(748, 97)));
+            IdxLeaf changedLeaf = new IdxLeaf(originalLeaf.Save());
+            var dirty = new AssertDirtyChanged(changedLeaf);
+            var cell = changedLeaf.GetCell(0);
+
+            cell.ChangeValue(RandomBytes(742, 57));
+
+            dirty.AssertTrue();
         }
     }
 }

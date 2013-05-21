@@ -208,7 +208,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void LoadingNode()
         {
-            var buffer = new byte[PagedFile.PageSize];
+            var buffer = new byte[IdxPagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write(new byte[8] { 2, 3, 0, 0, 87, 100, 0, 0 });
@@ -237,7 +237,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void SavingNode()
         {
-            var buffer = new byte[PagedFile.PageSize];
+            var buffer = new byte[IdxPagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write(new byte[8] { 2, 3, 0, 0, 87, 100, 0, 0 });

@@ -7,7 +7,7 @@ using System.IO;
 
 namespace CqrsFramework.IndexTable
 {
-    public interface IPagedFile : IDisposable
+    public interface IIdxPagedFile : IDisposable
     {
         int GetSize();
         void SetSize(int pages);
@@ -15,13 +15,13 @@ namespace CqrsFramework.IndexTable
         void SetPage(int page, byte[] data);
     }
 
-    public class PagedFile : IPagedFile
+    public class IdxPagedFile : IIdxPagedFile
     {
         public const int PageSize = 4096;
         private Stream _stream;
         private int _size = 0;
 
-        public PagedFile(Stream stream)
+        public IdxPagedFile(Stream stream)
         {
             _stream = stream;
             _size = (int)(stream.Length / PageSize);

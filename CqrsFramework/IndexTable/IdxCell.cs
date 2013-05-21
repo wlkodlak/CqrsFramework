@@ -19,7 +19,7 @@ namespace CqrsFramework.IndexTable
         private int _childPage;
         private bool _isLeaf;
 
-        private const int MinSize = PagedFile.PageSize / 256;
+        private const int MinSize = IdxPagedFile.PageSize / 256;
 
         private IdxCell()
         {
@@ -135,5 +135,26 @@ namespace CqrsFramework.IndexTable
             if (_keyLength < 8)
                 writer.Write(new byte[8 - _keyLength]);
         }
+
+        public void ChangeValue(byte[] cellData)
+        {
+            int spaceForValue = 120 - _keyLength;
+            if (cellData == null)
+            {
+                _valueLength = 0;
+                _value = null;
+                _overflowLength = 0;
+            }
+            else
+            {
+                _valueLength = Math.Min(spaceForValue, cellData.Length);
+                _value = cellData.Take(_valueLength).ToArray();
+                _overflowLength = (cellData.Length - _valueLength + IdxOverflow.Capacity - 1) / IdxOverflow.Capacity;
+            }
+            if (ValueChanged != null)
+                ValueChanged(this, EventArgs.Empty);
+        }
+
+        public event EventHandler ValueChanged;
     }
 }

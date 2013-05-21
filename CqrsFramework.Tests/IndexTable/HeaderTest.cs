@@ -101,7 +101,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         private byte[] GetCorrectContents(int freePagesList, int totalPagesCount, int[] treeRoots)
         {
-            var buffer = new byte[PagedFile.PageSize];
+            var buffer = new byte[IdxPagedFile.PageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer), Encoding.ASCII, false))
             {
                 writer.Write(new byte[4] { 0x49, 0x58, 0x54, 0x4c });   // magic
