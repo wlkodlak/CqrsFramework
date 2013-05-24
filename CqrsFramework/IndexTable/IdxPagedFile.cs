@@ -13,37 +13,41 @@ namespace CqrsFramework.IndexTable
         void SetSize(int pages);
         byte[] GetPage(int page);
         void SetPage(int page, byte[] data);
+        int PageSize { get; }
     }
 
     public class IdxPagedFile : IIdxPagedFile
     {
-        public const int PageSize = 4096;
+        private int _pageSize;
         private Stream _stream;
         private int _size = 0;
 
-        public IdxPagedFile(Stream stream)
+        public IdxPagedFile(Stream stream, int pageSize)
         {
             _stream = stream;
-            _size = (int)(stream.Length / PageSize);
+            _pageSize = pageSize;
+            _size = (int)(stream.Length / _pageSize);
         }
         public int GetSize()
         {
             return _size;
         }
 
+        public int PageSize { get { return _pageSize; } }
+
         public void SetSize(int pages)
         {
             _size = pages;
-            _stream.SetLength(PageSize * pages);
+            _stream.SetLength(_pageSize * pages);
         }
 
         public byte[] GetPage(int page)
         {
             if (page > _size)
                 throw new ArgumentOutOfRangeException();
-            var buffer = new byte[PageSize];
-            _stream.Seek(page * PageSize, SeekOrigin.Begin);
-            _stream.Read(buffer, 0, PageSize);
+            var buffer = new byte[_pageSize];
+            _stream.Seek(page * _pageSize, SeekOrigin.Begin);
+            _stream.Read(buffer, 0, _pageSize);
             return buffer;
         }
 
@@ -51,13 +55,13 @@ namespace CqrsFramework.IndexTable
         {
             if (page > _size)
                 throw new ArgumentOutOfRangeException();
-            if (data.Length > PageSize)
+            if (data.Length > _pageSize)
                 throw new ArgumentOutOfRangeException();
 
-            var buffer = new byte[PageSize];
-            Array.Copy(data, buffer, Math.Min(PageSize, data.Length));
-            _stream.Seek(page * PageSize, SeekOrigin.Begin);
-            _stream.Write(buffer, 0, PageSize);
+            var buffer = new byte[_pageSize];
+            Array.Copy(data, buffer, Math.Min(_pageSize, data.Length));
+            _stream.Seek(page * _pageSize, SeekOrigin.Begin);
+            _stream.Write(buffer, 0, _pageSize);
         }
 
         public void Dispose()

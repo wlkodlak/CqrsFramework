@@ -26,13 +26,13 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void LoadFileWithHeaderAndEmptyTable()
         {
-            IdxHeader header = new IdxHeader(null);
+            IdxHeader header = new IdxHeader(null, 4096);
             header.FreePagesList = 1;
             header.TotalPagesCount = 4;
             header.SetTreeRoot(0, 2);
-            IdxFreeList freeList = new IdxFreeList(null);
+            IdxFreeList freeList = new IdxFreeList(null, 4096);
             freeList.Add(3);
-            IdxLeaf tableNode = new IdxLeaf(null);
+            IdxLeaf tableNode = new IdxLeaf(null, 4096);
 
             var file = new MemoryPagedFile(4);
             file.Pages[0] = ContainerTestUtilities.CreateHeader(1, 4, 2);
@@ -83,16 +83,16 @@ namespace CqrsFramework.Tests.IndexTable
             _longCellValue = new byte[3022];
             new Random(4920).NextBytes(_longCellValue);
 
-            var longCell0 = IdxCell.CreateLeafCell(IdxKey.FromInteger(14), _longCellValue);
+            var longCell0 = IdxCell.CreateLeafCell(IdxKey.FromInteger(14), _longCellValue, 4096);
             _longCellOffset = longCell0.ValueLength;
 
-            var overflow0 = new IdxOverflow(null);
+            var overflow0 = new IdxOverflow(null, 4096);
             overflow0.WriteData(_longCellValue, longCell0.ValueLength);
             longCell0.OverflowPage = 5;
 
-            var longCell1 = IdxCell.CreateLeafCell(IdxKey.FromInteger(140), _longCellValue);
+            var longCell1 = IdxCell.CreateLeafCell(IdxKey.FromInteger(140), _longCellValue, 4096);
 
-            var overflow1 = new IdxOverflow(null);
+            var overflow1 = new IdxOverflow(null, 4096);
             overflow1.WriteData(_longCellValue, longCell1.ValueLength);
             longCell1.OverflowPage = 7;
 
@@ -100,21 +100,21 @@ namespace CqrsFramework.Tests.IndexTable
             file.Pages[0] = ContainerTestUtilities.CreateHeader(1, 16, 0, 4, 6);
             file.Pages[1] = ContainerTestUtilities.CreateFreeList(0, Enumerable.Range(9, 7).ToArray());
             file.Pages[2] = NodeBuilder.Leaf(3)
-                .AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(8), new byte[48]))
+                .AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(8), new byte[48], 4096))
                 .AddCell(longCell0).ToBytes();
             file.Pages[3] = NodeBuilder.Leaf(0)
-                .AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(180), new byte[100]))
-                .AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(392), new byte[100]))
+                .AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(180), new byte[100], 4096))
+                .AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(392), new byte[100], 4096))
                 .ToBytes();
             file.Pages[4] = NodeBuilder.Interior(2)
-                .AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(100), 8))
+                .AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(100), 8, 4096))
                 .ToBytes();
             file.Pages[5] = overflow0.Save();
             file.Pages[6] = NodeBuilder.Leaf(38)
                 .AddCell(longCell1).ToBytes();
             file.Pages[7] = overflow1.Save();
             file.Pages[8] = NodeBuilder.Interior(11)
-                .AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(199), 3)).ToBytes();
+                .AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(199), 3, 4096)).ToBytes();
 
             return file;
         }

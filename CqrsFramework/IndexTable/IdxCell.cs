@@ -18,16 +18,18 @@ namespace CqrsFramework.IndexTable
         private int _ordinal;
         private int _childPage;
         private bool _isLeaf;
+        private int _minSize;
+        private int _pageSize;
 
-        private const int MinSize = IdxPagedFile.PageSize / 256;
-
-        private IdxCell()
+        private IdxCell(int pageSize)
         {
+            _pageSize = pageSize;
+            _minSize = pageSize / 256;
         }
 
-        public static IdxCell CreateLeafCell(IdxKey key, byte[] cellData)
+        public static IdxCell CreateLeafCell(IdxKey key, byte[] cellData, int pageSize)
         {
-            var cell = new IdxCell();
+            var cell = new IdxCell(pageSize);
             cell._isLeaf = true;
             cell._key = key;
             cell._keyLength = key.ToBytes().Length;
@@ -44,7 +46,8 @@ namespace CqrsFramework.IndexTable
             {
                 cell._valueLength = Math.Min(spaceForValue, cellData.Length);
                 cell._value = cellData.Take(cell._valueLength).ToArray();
-                cell._overflowLength = (cellData.Length - cell._valueLength + IdxOverflow.Capacity - 1) / IdxOverflow.Capacity;
+                int overflowCapacity = IdxOverflow.Capacity(pageSize);
+                cell._overflowLength = (cellData.Length - cell._valueLength + overflowCapacity - 1) / overflowCapacity;
             }
             return cell;
         }
@@ -65,11 +68,11 @@ namespace CqrsFramework.IndexTable
             set { _childPage = value; }
         }
         public byte[] ValueBytes { get { return _value; } }
-        public int CellSize { get { return Math.Max(MinSize, 8 + _keyLength + _valueLength); } }
+        public int CellSize { get { return Math.Max(_minSize, 8 + _keyLength + _valueLength); } }
 
-        public static IdxCell LoadLeafCell(BinaryReader reader)
+        public static IdxCell LoadLeafCell(BinaryReader reader, int pageSize)
         {
-            var cell = new IdxCell();
+            var cell = new IdxCell(pageSize);
             cell._isLeaf = true;
             cell._keyLength = reader.ReadByte();
             cell._valueLength = reader.ReadByte();
@@ -103,9 +106,9 @@ namespace CqrsFramework.IndexTable
             set { _ordinal = value; }
         }
 
-        public static IdxCell CreateInteriorCell(IdxKey idxKey, int page)
+        public static IdxCell CreateInteriorCell(IdxKey idxKey, int page, int pageSize)
         {
-            var cell = new IdxCell();
+            var cell = new IdxCell(pageSize);
             cell._key = idxKey;
             cell._keyLength = idxKey.ToBytes().Length;
             cell._childPage = page;
@@ -113,9 +116,9 @@ namespace CqrsFramework.IndexTable
             return cell;
         }
 
-        public static IdxCell LoadInteriorCell(BinaryReader reader)
+        public static IdxCell LoadInteriorCell(BinaryReader reader, int pageSize)
         {
-            var cell = new IdxCell();
+            var cell = new IdxCell(pageSize);
             cell._isLeaf = false;
             cell._keyLength = reader.ReadByte();
             reader.ReadBytes(3);
@@ -149,7 +152,8 @@ namespace CqrsFramework.IndexTable
             {
                 _valueLength = Math.Min(spaceForValue, cellData.Length);
                 _value = cellData.Take(_valueLength).ToArray();
-                _overflowLength = (cellData.Length - _valueLength + IdxOverflow.Capacity - 1) / IdxOverflow.Capacity;
+                var overflowCapacity = IdxOverflow.Capacity(_pageSize);
+                _overflowLength = (cellData.Length - _valueLength + overflowCapacity - 1) / overflowCapacity;
             }
             if (ValueChanged != null)
                 ValueChanged(this, EventArgs.Empty);

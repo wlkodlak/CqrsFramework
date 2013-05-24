@@ -22,7 +22,7 @@ namespace CqrsFramework.Tests.IndexTable
             using (var container = new IdxContainer(file))
             {
                 container.WriteTree(0);
-                var cell = IdxCell.CreateLeafCell(IdxKey.FromInteger(8547), savedData);
+                var cell = IdxCell.CreateLeafCell(IdxKey.FromInteger(8547), savedData, 4096);
                 int offset = cell.ValueLength;
                 IdxOverflow previousOverflow = null;
                 while (offset < savedData.Length)
@@ -43,10 +43,10 @@ namespace CqrsFramework.Tests.IndexTable
             }
             {
                 CollectionAssert.AreEquivalent(new int[] { 0, 2 }, file.WrittenPages.ToList(), "Written pages");
-                var freelist = new IdxFreeList(file.Pages[2]);
+                var freelist = new IdxFreeList(file.Pages[2], 4096);
                 var freePages = Enumerable.Range(0, freelist.Length).Select(i => freelist.Alloc()).ToList();
                 CollectionAssert.AreEquivalent(new int[] { 1, 3, 4, 5, 6, 7 }, freePages, "Free pages");
-                var header = new IdxHeader(file.Pages[0]);
+                var header = new IdxHeader(file.Pages[0], 4096);
                 Assert.AreEqual(0, header.GetTreeRoot(0), "Tree 0 root");
             }
         }

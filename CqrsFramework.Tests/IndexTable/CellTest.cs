@@ -18,7 +18,7 @@ namespace CqrsFramework.Tests.IndexTable
             for (int i = 0; i < 482; i++)
                 cellData[i] = (byte)(i % 256);
 
-            IdxCell cell = IdxCell.CreateLeafCell(IdxKey.FromInteger(3829), cellData);
+            IdxCell cell = IdxCell.CreateLeafCell(IdxKey.FromInteger(3829), cellData, 4096);
 
             Assert.IsTrue(cell.IsLeaf);
             Assert.AreEqual(4, cell.KeyLength);
@@ -37,7 +37,7 @@ namespace CqrsFramework.Tests.IndexTable
             for (int i = 0; i < 48; i++)
                 cellData[i] = (byte)i;
 
-            IdxCell cell = IdxCell.CreateLeafCell(IdxKey.FromString("Hello World"), cellData);
+            IdxCell cell = IdxCell.CreateLeafCell(IdxKey.FromString("Hello World"), cellData, 4096);
 
             Assert.IsTrue(cell.IsLeaf);
             Assert.AreEqual(11, cell.KeyLength);
@@ -52,7 +52,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void OverflowPageCanBeUpdatedAlways()
         {
-            IdxCell cell = IdxCell.CreateLeafCell(IdxKey.FromString("Hello World"), null);
+            IdxCell cell = IdxCell.CreateLeafCell(IdxKey.FromString("Hello World"), null, 4096);
             cell.OverflowPage = 492;
             Assert.AreEqual(492, cell.OverflowPage);
         }
@@ -62,7 +62,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             try
             {
-                IdxCell.CreateLeafCell(IdxKey.FromBytes(new byte[130]), new byte[100]);
+                IdxCell.CreateLeafCell(IdxKey.FromBytes(new byte[130]), new byte[100], 4096);
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -82,7 +82,7 @@ namespace CqrsFramework.Tests.IndexTable
 
             IdxCell cell;
             using (var reader = new BinaryReader(new MemoryStream(encodedCell.ToArray())))
-                cell = IdxCell.LoadLeafCell(reader);
+                cell = IdxCell.LoadLeafCell(reader, 4096);
 
             Assert.IsTrue(cell.IsLeaf);
             Assert.AreEqual(11, cell.KeyLength);
@@ -110,7 +110,7 @@ namespace CqrsFramework.Tests.IndexTable
             int endPosition;
             using (var reader = new BinaryReader(new MemoryStream(encodedCell.ToArray())))
             {
-                cell = IdxCell.LoadLeafCell(reader);
+                cell = IdxCell.LoadLeafCell(reader, 4096);
                 endPosition = (int)reader.BaseStream.Position;
             }
 
@@ -128,8 +128,8 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void ExtremelySmallCellSize()
         {
-            var minSize = IdxPagedFile.PageSize / 256;
-            var actual = IdxCell.CreateLeafCell(IdxKey.FromString("Hi"), null).CellSize;
+            var minSize = 16;
+            var actual = IdxCell.CreateLeafCell(IdxKey.FromString("Hi"), null, 4096).CellSize;
             Assert.AreEqual(minSize, actual);
         }
 
@@ -140,7 +140,7 @@ namespace CqrsFramework.Tests.IndexTable
             var valueBytes = new byte[48];
             new Random(493).NextBytes(valueBytes);
 
-            var cell = IdxCell.CreateLeafCell(IdxKey.FromBytes(keyBytes), valueBytes);
+            var cell = IdxCell.CreateLeafCell(IdxKey.FromBytes(keyBytes), valueBytes, 4096);
             cell.OverflowPage = 276;
 
             var stream = new MemoryStream();
@@ -158,7 +158,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void SaveTinyCellSaves16Bytes()
         {
-            var cell = IdxCell.CreateLeafCell(IdxKey.FromString("A"), null);
+            var cell = IdxCell.CreateLeafCell(IdxKey.FromString("A"), null, 4096);
             var stream = new MemoryStream();
             using (var writer = new BinaryWriter(stream))
                 cell.SaveLeafCell(writer);
@@ -168,7 +168,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void CreateInteriorCell()
         {
-            IdxCell cell = IdxCell.CreateInteriorCell(IdxKey.FromInteger(53), 314);
+            IdxCell cell = IdxCell.CreateInteriorCell(IdxKey.FromInteger(53), 314, 4096);
             Assert.IsFalse(cell.IsLeaf);
             Assert.AreEqual(IdxKey.FromInteger(53), cell.Key);
             Assert.AreEqual(4, cell.KeyLength);
@@ -189,7 +189,7 @@ namespace CqrsFramework.Tests.IndexTable
             int endPosition;
             using (var reader = new BinaryReader(new MemoryStream(encodedCell.ToArray())))
             {
-                cell = IdxCell.LoadInteriorCell(reader);
+                cell = IdxCell.LoadInteriorCell(reader, 4096);
                 endPosition = (int)reader.BaseStream.Position;
             }
 
@@ -205,7 +205,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void SaveInteriorCell()
         {
             var buffer = new byte[24];
-            var cell = IdxCell.CreateInteriorCell(IdxKey.FromString("Help me, please!"), 514);
+            var cell = IdxCell.CreateInteriorCell(IdxKey.FromString("Help me, please!"), 514, 4096);
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
                 cell.SaveInteriorCell(writer);
             var expected = new List<byte>();
@@ -223,7 +223,7 @@ namespace CqrsFramework.Tests.IndexTable
             random.NextBytes(originalBytes);
             var newBytes = new byte[971];
             random.NextBytes(newBytes);
-            var cell = IdxCell.CreateLeafCell(IdxKey.FromInteger(374), originalBytes);
+            var cell = IdxCell.CreateLeafCell(IdxKey.FromInteger(374), originalBytes, 4096);
             cell.OverflowPage = 845;
             bool isDirty = false;
             cell.ValueChanged += (o, e) => { isDirty = true; };

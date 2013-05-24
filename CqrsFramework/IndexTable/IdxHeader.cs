@@ -15,9 +15,11 @@ namespace CqrsFramework.IndexTable
         private int _totalPages = 0;
         private int[] _trees = new int[16];
         private bool _dirty = false;
+        private int _pageSize;
 
-        public IdxHeader(byte[] data)
+        public IdxHeader(byte[] data, int pageSize)
         {
+            _pageSize = pageSize;
             LoadFromBytes(data);
         }
 
@@ -85,7 +87,7 @@ namespace CqrsFramework.IndexTable
         public byte[] Save()
         {
             _dirty = false;
-            var buffer = new byte[IdxPagedFile.PageSize];
+            var buffer = new byte[_pageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write(MagicHeader);

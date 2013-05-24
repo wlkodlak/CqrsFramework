@@ -34,6 +34,7 @@ namespace CqrsFramework.IndexTable
         private TransactionInfo[] _transactions;
         private Dictionary<int, CachedPage> _cache;
         private Timer _timer;
+        private int _pageSize;
 
         private class TransactionInfo
         {
@@ -86,11 +87,12 @@ namespace CqrsFramework.IndexTable
         public IdxContainer(IIdxPagedFile file)
         {
             _file = file;
+            _pageSize = file.PageSize;
             _freelists = new List<IdxFreeList>();
             if (_file.GetSize() > 0)
             {
-                _header = new IdxHeader(_file.GetPage(0));
-                var firstFreeList = new IdxFreeList(_file.GetPage(_header.FreePagesList));
+                _header = new IdxHeader(_file.GetPage(0), _pageSize);
+                var firstFreeList = new IdxFreeList(_file.GetPage(_header.FreePagesList), _pageSize);
                 firstFreeList.PageNumber = _header.FreePagesList;
                 _freelists.Add(firstFreeList);
             }
@@ -119,10 +121,10 @@ namespace CqrsFramework.IndexTable
         private void InitializeFile()
         {
             _file.SetSize(4);
-            _header = new IdxHeader(null);
+            _header = new IdxHeader(null, _pageSize);
             _header.FreePagesList = 1;
             _header.TotalPagesCount = 4;
-            var freeList = new IdxFreeList(null);
+            var freeList = new IdxFreeList(null, _pageSize);
             freeList.PageNumber = 1;
             freeList.Add(4);
             freeList.Add(3);
@@ -152,7 +154,7 @@ namespace CqrsFramework.IndexTable
                 _freelists.RemoveAt(0);
                 if (_freelists.Count == 0)
                 {
-                    freeList = new IdxFreeList(_file.GetPage(_header.FreePagesList));
+                    freeList = new IdxFreeList(_file.GetPage(_header.FreePagesList), _pageSize);
                     freeList.PageNumber = _header.FreePagesList;
                     _freelists.Add(freeList);
                 }
@@ -173,7 +175,7 @@ namespace CqrsFramework.IndexTable
                 _freelists[0].Add(page);
             else
             {
-                var freelist = new IdxFreeList(null);
+                var freelist = new IdxFreeList(null, _pageSize);
                 freelist.PageNumber = page;
                 freelist.Next = _freelists[0].PageNumber;
                 _freelists.Insert(0, freelist);
@@ -207,11 +209,12 @@ namespace CqrsFramework.IndexTable
 
         private void ReplaceFreeLists(List<int> freePages)
         {
-            int newFreeListsCount = (freePages.Count + IdxFreeList.Capacity - 1) / IdxFreeList.Capacity;
+            var freelistCapacity = IdxFreeList.Capacity(_pageSize);
+            int newFreeListsCount = (freePages.Count + freelistCapacity - 1) / freelistCapacity;
             _freelists.Clear();
             for (int i = 0; i < newFreeListsCount; i++)
             {
-                var newFreeList = new IdxFreeList(null);
+                var newFreeList = new IdxFreeList(null, _pageSize);
                 int index = freePages.Count - 1;
                 newFreeList.PageNumber = freePages[index];
                 freePages.RemoveAt(index);
@@ -223,9 +226,10 @@ namespace CqrsFramework.IndexTable
 
         private void FillFreeLists(List<int> freePages)
         {
-            int pagesInList = freePages.Count % IdxFreeList.Capacity;
+            var freelistCapacity = IdxFreeList.Capacity(_pageSize);
+            int pagesInList = freePages.Count % freelistCapacity;
             if (pagesInList == 0)
-                pagesInList = IdxFreeList.Capacity;
+                pagesInList = freelistCapacity;
             int listIndex = 0;
             for (int i = 0; i < freePages.Count; i++)
             {
@@ -237,7 +241,7 @@ namespace CqrsFramework.IndexTable
                 else
                 {
                     listIndex++;
-                    pagesInList = IdxFreeList.Capacity - 1;
+                    pagesInList = freelistCapacity - 1;
                     _freelists[listIndex].Add(freePages[i]);
                 }
             }
@@ -279,9 +283,9 @@ namespace CqrsFramework.IndexTable
             var bytes = _file.GetPage(page);
             IIdxNode node;
             if (DetectLeaf(bytes))
-                node = new IdxLeaf(bytes);
+                node = new IdxLeaf(bytes, _pageSize);
             else
-                node = new IdxInterior(bytes);
+                node = new IdxInterior(bytes, _pageSize);
             node.PageNumber = page;
 
             _cache[page] = new CachedPage(node);
@@ -402,7 +406,7 @@ namespace CqrsFramework.IndexTable
             CachedPage cachedPage;
             if (_cache.TryGetValue(page, out cachedPage))
                 return cachedPage.UseAs<IdxOverflow>();
-            var overflow = new IdxOverflow(_file.GetPage(page));
+            var overflow = new IdxOverflow(_file.GetPage(page), _pageSize);
             overflow.PageNumber = page;
             _cache[page] = new CachedPage(overflow);
             return overflow;
@@ -414,7 +418,7 @@ namespace CqrsFramework.IndexTable
             {
                 ThrowIfDisposed();
                 var tran = _transactions[tree];
-                var overflow = new IdxOverflow(null);
+                var overflow = new IdxOverflow(null, _pageSize);
                 var page = AllocPage();
                 tran.AllocatedPages.Add(page);
                 overflow.PageNumber = page;
@@ -451,7 +455,7 @@ namespace CqrsFramework.IndexTable
                 var tran = _transactions[tree];
                 int page = AllocPage();
                 tran.AllocatedPages.Add(page);
-                var leaf = new IdxLeaf(null);
+                var leaf = new IdxLeaf(null, _pageSize);
                 leaf.PageNumber = page;
                 tran.UsedPages[leaf.PageNumber] = leaf;
                 return leaf;
@@ -466,7 +470,7 @@ namespace CqrsFramework.IndexTable
                 var tran = _transactions[tree];
                 int page = AllocPage();
                 tran.AllocatedPages.Add(page);
-                var node = new IdxInterior(null);
+                var node = new IdxInterior(null, _pageSize);
                 node.PageNumber = page;
                 tran.UsedPages[node.PageNumber] = node;
                 return node;

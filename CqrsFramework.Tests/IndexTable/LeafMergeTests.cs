@@ -96,7 +96,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var key = IdxKey.FromInteger(keyBase);
             var cellData = new byte[cellLength - 12];
-            var cell = IdxCell.CreateLeafCell(key, cellData);
+            var cell = IdxCell.CreateLeafCell(key, cellData, 4096);
             node.AddCell(cell);
         }
     }
@@ -106,7 +106,7 @@ namespace CqrsFramework.Tests.IndexTable
     {
         protected override IdxLeaf CreateLeftNode()
         {
-            IdxLeaf node = new IdxLeaf(null);
+            IdxLeaf node = new IdxLeaf(null, 4096);
             for (int i = 1; i <= 8; i++)
                 AddNodeCell(node, i * 10, 128);
             node.NextLeaf = 5647;
@@ -115,7 +115,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         protected override IdxLeaf CreateRightNode()
         {
-            IdxLeaf node = new IdxLeaf(null);
+            IdxLeaf node = new IdxLeaf(null, 4096);
             for (int i = 11; i <= 17; i++)
                 AddNodeCell(node, i * 10, 128);
             node.NextLeaf = 1234;
@@ -128,7 +128,7 @@ namespace CqrsFramework.Tests.IndexTable
     {
         protected override IdxLeaf CreateLeftNode()
         {
-            IdxLeaf node = new IdxLeaf(null);
+            IdxLeaf node = new IdxLeaf(null, 4096);
             for (int i = 1; i <= 7; i++)
                 AddNodeCell(node, i * 10, 128);
             node.NextLeaf = 5647;
@@ -137,7 +137,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         protected override IdxLeaf CreateRightNode()
         {
-            IdxLeaf node = new IdxLeaf(null);
+            IdxLeaf node = new IdxLeaf(null, 4096);
             for (int i = 1; i <= 69; i++)
                 AddNodeCell(node, 100 + i * 10, 16);
             node.NextLeaf = 234;
@@ -150,7 +150,7 @@ namespace CqrsFramework.Tests.IndexTable
     {
         protected override IdxLeaf CreateLeftNode()
         {
-            IdxLeaf node = new IdxLeaf(null);
+            IdxLeaf node = new IdxLeaf(null, 4096);
             for (int i = 1; i <= 4; i++)
                 AddNodeCell(node, i * 10, 16);
             for (int i = 9; i <= 16; i++)
@@ -161,7 +161,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         protected override IdxLeaf CreateRightNode()
         {
-            IdxLeaf node = new IdxLeaf(null);
+            IdxLeaf node = new IdxLeaf(null, 4096);
             for (int i = 101; i <= 160; i++)
                 AddNodeCell(node, i * 10, 16);
             node.NextLeaf = 633;

@@ -11,7 +11,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void CreateEmptyNode()
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             node.PageNumber = 394;
             Assert.IsInstanceOfType(node, typeof(IIdxNode), "Implements IIdxNode");
             Assert.IsFalse((node as IIdxNode).IsLeaf, "Interior node");
@@ -26,9 +26,9 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void InteriorCellCanBeAdded()
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             node.LeftmostPage = 744;
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(547), 995));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(547), 995, 4096));
             Assert.AreEqual(1, node.CellsCount, "Cells count");
             Assert.AreEqual(744, node.LeftmostPage, "Leftmost page");
             Assert.IsNotNull(node.GetCell(0), "Cell 0");
@@ -39,14 +39,14 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void PageNumber()
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             node.PageNumber = 847;
             Assert.AreEqual(847, node.PageNumber);
         }
 
         private void EmptyPageChangesToAfterAdding(Func<IdxInterior, bool> predicate, int number, int keyLength)
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             node.LeftmostPage = 223;
             int reallyAdded = 0;
             for (int i = 0; i < 1024; i++)
@@ -62,7 +62,7 @@ namespace CqrsFramework.Tests.IndexTable
                     bytes[0] = (byte)(i / 256);
                     bytes[1] = (byte)(i % 256);
                     var page = i * 12;
-                    node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromBytes(bytes), page));
+                    node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromBytes(bytes), page, 4096));
                 }
             }
             Assert.AreEqual(number, reallyAdded, "Number of added cells");
@@ -96,18 +96,18 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void DirtyFlagIsSetByAddingCells()
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             var dirty = new AssertDirtyChanged(node);
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672, 4096));
             dirty.AssertTrue();
         }
 
         [TestMethod]
         public void DirtyFlagIsSetByRemovingCells()
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             var dirty = new AssertDirtyChanged(node);
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672, 4096));
             node.Save();
             dirty.AssertFalse("Not dirty before removing");
             node.RemoveCell(0);
@@ -117,7 +117,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void DirtyFlagIsSetBySettingLeftmostPage()
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             var dirty = new AssertDirtyChanged(node);
             node.LeftmostPage = 8754;
             dirty.AssertTrue();
@@ -126,9 +126,9 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void SavingClearsDirtyFlag()
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             var dirty = new AssertDirtyChanged(node);
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5428), 96672, 4096));
             dirty.AssertTrue("Dirty before saving");
             node.Save();
             dirty.AssertFalse("Not dirty after saving");
@@ -137,12 +137,12 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void AddingCellsKeepsKeysOrdered()
         {
-            IdxInterior node = new IdxInterior(null);
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(847), 111));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(-24), 222));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(952), 333));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(-84112), 444));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(9572), 333));
+            IdxInterior node = new IdxInterior(null, 4096);
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(847), 111, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(-24), 222, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(952), 333, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(-84112), 444, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(9572), 333, 4096));
             Assert.AreEqual(IdxKey.FromInteger(-84112), node.GetCell(0).Key, "Cell 0 key");
             Assert.AreEqual(IdxKey.FromInteger(-24), node.GetCell(1).Key, "Cell 1 key");
             Assert.AreEqual(IdxKey.FromInteger(847), node.GetCell(2).Key, "Cell 2 key");
@@ -153,12 +153,12 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void CellsHaveOrdinalValue()
         {
-            IdxInterior node = new IdxInterior(null);
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(847), 111));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(-24), 222));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(952), 333));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(-84112), 444));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(9572), 333));
+            IdxInterior node = new IdxInterior(null, 4096);
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(847), 111, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(-24), 222, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(952), 333, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(-84112), 444, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(9572), 333, 4096));
             for (int i = 0; i < 5; i++)
                 Assert.AreEqual(i, node.GetCell(i).Ordinal, "Cell {0} ordinal", i);
         }
@@ -166,10 +166,10 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void RemovingCell()
         {
-            IdxInterior node = new IdxInterior(null);
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(2), 2));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5), 5));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(8), 8));
+            IdxInterior node = new IdxInterior(null, 4096);
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(2), 2, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(5), 5, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(8), 8, 4096));
             Assert.AreEqual(3, node.CellsCount, "There should be 3 cells before removing");
             Assert.AreEqual(2, node.GetCell(2).Ordinal, "Cells should have ordinal values before removing");
             node.RemoveCell(1);
@@ -182,11 +182,11 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void Removing25CellsFromFullNodeOf128ByteCellsMakesItSmall()
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             for (int i = 0; i < 1024; i++)
             {
                 if (!node.IsFull)
-                    node.AddCell(IdxCell.CreateInteriorCell(MakeLongKey(120, i), i));
+                    node.AddCell(IdxCell.CreateInteriorCell(MakeLongKey(120, i), i, 4096));
             }
             Assert.IsTrue(node.IsFull, "Node should be full before removing");
             Assert.AreEqual(31, node.CellsCount, "Cells count before removing");
@@ -208,16 +208,16 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void LoadingNode()
         {
-            var buffer = new byte[IdxPagedFile.PageSize];
+            var buffer = new byte[4096];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write(new byte[8] { 2, 3, 0, 0, 87, 100, 0, 0 });
                 writer.Write(new byte[8]);
-                IdxCell.CreateInteriorCell(IdxKey.FromString("Hello"), 8571).SaveInteriorCell(writer);
-                IdxCell.CreateInteriorCell(IdxKey.FromString("Hi"), 741).SaveInteriorCell(writer);
-                IdxCell.CreateInteriorCell(IdxKey.FromString("I was there"), 26837).SaveInteriorCell(writer);
+                IdxCell.CreateInteriorCell(IdxKey.FromString("Hello"), 8571, 4096).SaveInteriorCell(writer);
+                IdxCell.CreateInteriorCell(IdxKey.FromString("Hi"), 741, 4096).SaveInteriorCell(writer);
+                IdxCell.CreateInteriorCell(IdxKey.FromString("I was there"), 26837, 4096).SaveInteriorCell(writer);
             }
-            IdxInterior node = new IdxInterior(buffer);
+            IdxInterior node = new IdxInterior(buffer, 4096);
             Assert.AreEqual(3, node.CellsCount, "Cells count");
             Assert.AreEqual(25687, node.LeftmostPage, "Leftmost page");
             
@@ -237,21 +237,21 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void SavingNode()
         {
-            var buffer = new byte[IdxPagedFile.PageSize];
+            var buffer = new byte[4096];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write(new byte[8] { 2, 3, 0, 0, 87, 100, 0, 0 });
                 writer.Write(new byte[8]);
-                IdxCell.CreateInteriorCell(IdxKey.FromString("Hello"), 8571).SaveInteriorCell(writer);
-                IdxCell.CreateInteriorCell(IdxKey.FromString("Hi"), 741).SaveInteriorCell(writer);
-                IdxCell.CreateInteriorCell(IdxKey.FromString("I was there"), 26837).SaveInteriorCell(writer);
+                IdxCell.CreateInteriorCell(IdxKey.FromString("Hello"), 8571, 4096).SaveInteriorCell(writer);
+                IdxCell.CreateInteriorCell(IdxKey.FromString("Hi"), 741, 4096).SaveInteriorCell(writer);
+                IdxCell.CreateInteriorCell(IdxKey.FromString("I was there"), 26837, 4096).SaveInteriorCell(writer);
             }
 
-            var node = new IdxInterior(null);
+            var node = new IdxInterior(null, 4096);
             node.LeftmostPage = 25687;
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromString("Hello"), 8571));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromString("Hi"), 741));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromString("I was there"), 26837));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromString("Hello"), 8571, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromString("Hi"), 741, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromString("I was there"), 26837, 4096));
 
             var saved = node.Save();
 
@@ -261,7 +261,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void SavingFullNodeOf128LongCellsDoesNotCrash()
         {
-            var node = new IdxInterior(null);
+            var node = new IdxInterior(null, 4096);
             var random = new Random(84752);
             for (int i = 0; i < 1024; i++)
             {
@@ -269,7 +269,7 @@ namespace CqrsFramework.Tests.IndexTable
                 {
                     var keyBytes = new byte[120];
                     random.NextBytes(keyBytes);
-                    var cell = IdxCell.CreateInteriorCell(IdxKey.FromBytes(keyBytes), random.Next());
+                    var cell = IdxCell.CreateInteriorCell(IdxKey.FromBytes(keyBytes), random.Next(), 4096);
                     node.AddCell(cell);
                 }
             }
@@ -280,7 +280,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void LoadingPreviouslySavedNodeEqualsOriginal()
         {
-            var original = new IdxInterior(null);
+            var original = new IdxInterior(null, 4096);
             var random = new Random(84752);
             for (int i = 0; i < 1024; i++)
             {
@@ -288,11 +288,11 @@ namespace CqrsFramework.Tests.IndexTable
                 {
                     var keyBytes = new byte[120];
                     random.NextBytes(keyBytes);
-                    var cell = IdxCell.CreateInteriorCell(IdxKey.FromBytes(keyBytes), random.Next());
+                    var cell = IdxCell.CreateInteriorCell(IdxKey.FromBytes(keyBytes), random.Next(), 4096);
                     original.AddCell(cell);
                 }
             }
-            var loaded = new IdxInterior(original.Save());
+            var loaded = new IdxInterior(original.Save(), 4096);
             Assert.AreEqual(original.CellsCount, loaded.CellsCount, "Cells count");
             Assert.AreEqual(original.LeftmostPage, loaded.LeftmostPage, "Leftmost page");
             Assert.AreEqual(original.IsSmall, loaded.IsSmall, "Small");
@@ -310,13 +310,13 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void FindingChildPagesByKeyLeftmost()
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             node.LeftmostPage = 87;
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(2), 102));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(8), 88));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(20), 17));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(21), 192));
-            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(30), 332));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(2), 102, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(8), 88, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(20), 17, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(21), 192, 4096));
+            node.AddCell(IdxCell.CreateInteriorCell(IdxKey.FromInteger(30), 332, 4096));
 
             Assert.AreEqual(87, node.FindPage(IdxKey.FromInteger(0)), "Key 0");
             Assert.AreEqual(332, node.FindPage(IdxKey.FromInteger(32)), "Key 32");

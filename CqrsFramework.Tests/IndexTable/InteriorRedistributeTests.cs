@@ -168,7 +168,7 @@ namespace CqrsFramework.Tests.IndexTable
             bytes[1] = (byte)((keyBase >> 16) & 0xff);
             bytes[2] = (byte)((keyBase >> 8) & 0xff);
             bytes[3] = (byte)(keyBase & 0xff);
-            return IdxCell.CreateInteriorCell(IdxKey.FromBytes(bytes), page);
+            return IdxCell.CreateInteriorCell(IdxKey.FromBytes(bytes), page, 4096);
         }
     }
 
@@ -177,7 +177,7 @@ namespace CqrsFramework.Tests.IndexTable
     {
         protected override IdxInterior CreateLeftNode()
         {
-            var node = new IdxInterior(null);
+            var node = new IdxInterior(null, 4096);
             node.PageNumber = 1;
             node.LeftmostPage = 2;
             for (int i = 0; i < 7; i++)
@@ -187,7 +187,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         protected override IdxInterior CreateRightNode()
         {
-            var node = new IdxInterior(null);
+            var node = new IdxInterior(null, 4096);
             node.PageNumber = 10;
             node.LeftmostPage = 20;
             for (int i = 0; i < 100; i++)
@@ -207,7 +207,7 @@ namespace CqrsFramework.Tests.IndexTable
     {
         protected override IdxInterior CreateLeftNode()
         {
-            var node = new IdxInterior(null);
+            var node = new IdxInterior(null, 4096);
             node.PageNumber = 1;
             node.LeftmostPage = 2;
             for (int i = 0; i < 63; i++)
@@ -224,7 +224,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         protected override IdxInterior CreateRightNode()
         {
-            var node = new IdxInterior(null);
+            var node = new IdxInterior(null, 4096);
             node.PageNumber = 10;
             node.LeftmostPage = 20;
             for (int i = 0; i < 60; i++)

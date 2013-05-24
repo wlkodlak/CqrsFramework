@@ -22,14 +22,14 @@ namespace CqrsFramework.Tests.IndexTable
         {
             _leftNode = CreateNodeForSplit();
             _leftNode.PageNumber = 1001;
-            _rightNode = new IdxInterior(null);
+            _rightNode = new IdxInterior(null, 4096);
             _rightNode.PageNumber = 1002;
             _addedCell = CreateAddedCell();
         }
 
         protected virtual IdxInterior CreateNodeForSplit()
         {
-            var node = new IdxInterior(null);
+            var node = new IdxInterior(null, 4096);
             node.LeftmostPage = 8175;
 
             for (int i = 0; i < 64; i++)
@@ -56,7 +56,7 @@ namespace CqrsFramework.Tests.IndexTable
             keyBytes[1] = (byte)((keyBase >> 16) & 0xFF);
             keyBytes[2] = (byte)((keyBase >>  8) & 0xFF);
             keyBytes[3] = (byte)(keyBase & 0xFF);
-            return IdxCell.CreateInteriorCell(IdxKey.FromBytes(keyBytes), page);
+            return IdxCell.CreateInteriorCell(IdxKey.FromBytes(keyBytes), page, 4096);
         }
 
         [TestMethod]
@@ -202,7 +202,7 @@ namespace CqrsFramework.Tests.IndexTable
                 _random.NextBytes(bytes);
                 var key = IdxKey.FromBytes(bytes);
                 if (_usedKeys.Add(key))
-                    return IdxCell.CreateInteriorCell(key, _random.Next());
+                    return IdxCell.CreateInteriorCell(key, _random.Next(), 4096);
             }
         }
 
@@ -213,7 +213,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         protected override IdxInterior CreateNodeForSplit()
         {
-            IdxInterior node = new IdxInterior(null);
+            IdxInterior node = new IdxInterior(null, 4096);
             for (int i = 0; i < 1024 && !node.IsFull; i++)
                 node.AddCell(TotallyRandomCell());
             return node;

@@ -16,7 +16,7 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
         {
             var data = CreateData(49083, 582);
 
-            IdxOverflow page = new IdxOverflow(null);
+            IdxOverflow page = new IdxOverflow(null, 4096);
             var dirty = new AssertDirtyChanged(page);
             page.PageNumber = 426;
             int written = page.WriteData(data, 48);
@@ -45,22 +45,24 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             for (int i = 0; i < readBuffer.Length; i++)
                 readBuffer[i] = 14;
 
-            IdxOverflow page = new IdxOverflow(null);
+            IdxOverflow page = new IdxOverflow(null, 4096);
             int written = page.WriteData(data, 120);
 
-            Assert.AreEqual(4088, IdxOverflow.Capacity);
-            Assert.AreEqual(IdxOverflow.Capacity, written);
-            Assert.AreEqual(IdxOverflow.Capacity, page.LengthInPage);
+            Assert.AreEqual(4088, IdxOverflow.Capacity(4096));
+            Assert.AreEqual(IdxOverflow.Capacity(4096), written);
+            Assert.AreEqual(IdxOverflow.Capacity(4096), page.LengthInPage);
             Assert.IsTrue(page.IsDirty);
             Assert.IsFalse(page.HasNextPage);
             Assert.IsTrue(page.NeedsNextPage);
 
             int readCount = page.ReadData(readBuffer, 120);
 
-            Assert.AreEqual(IdxOverflow.Capacity, readCount);
+            Assert.AreEqual(IdxOverflow.Capacity(4096), readCount);
             Assert.IsTrue(readBuffer.Take(120).All(b => b == 14));
-            CollectionAssert.AreEqual(data.Skip(120).Take(IdxOverflow.Capacity).ToArray(), readBuffer.Skip(120).Take(IdxOverflow.Capacity).ToArray());
-            Assert.IsTrue(readBuffer.Skip(120 + IdxOverflow.Capacity).All(b => b == 14));
+            CollectionAssert.AreEqual(
+                data.Skip(120).Take(IdxOverflow.Capacity(4096)).ToArray(), 
+                readBuffer.Skip(120).Take(IdxOverflow.Capacity(4096)).ToArray());
+            Assert.IsTrue(readBuffer.Skip(120 + IdxOverflow.Capacity(4096)).All(b => b == 14));
         }
 
         [TestMethod]
@@ -68,7 +70,7 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
         {
             var data = CreateData(39924, 8231);
 
-            IdxOverflow page = new IdxOverflow(null);
+            IdxOverflow page = new IdxOverflow(null, 4096);
             var dirty = new AssertDirtyChanged(page);
             page.WriteData(data, 120);
             page.Next = 37;
@@ -86,8 +88,8 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
         {
             var data = CreateData(94423, 1042);
             var bytes = CreateCorrectBytes(0, 0, data);
-            
-            IdxOverflow page = new IdxOverflow(bytes);
+
+            IdxOverflow page = new IdxOverflow(bytes, 4096);
 
             Assert.AreEqual(1042, page.LengthInPage);
             Assert.IsFalse(page.HasNextPage);
@@ -106,17 +108,17 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             var data = CreateData(94423, 9999);
             var bytes = CreateCorrectBytes(388, 0, data);
 
-            IdxOverflow page = new IdxOverflow(bytes);
+            IdxOverflow page = new IdxOverflow(bytes, 4096);
 
-            Assert.AreEqual(IdxOverflow.Capacity, page.LengthInPage);
+            Assert.AreEqual(IdxOverflow.Capacity(4096), page.LengthInPage);
             Assert.IsTrue(page.HasNextPage);
             Assert.IsFalse(page.IsDirty);
             Assert.IsTrue(page.NeedsNextPage);
             Assert.AreEqual(388, page.Next);
 
-            var read = new byte[IdxOverflow.Capacity];
+            var read = new byte[IdxOverflow.Capacity(4096)];
             page.ReadData(read, 0);
-            CollectionAssert.AreEqual(data.Take(IdxOverflow.Capacity).ToArray(), read);
+            CollectionAssert.AreEqual(data.Take(IdxOverflow.Capacity(4096)).ToArray(), read);
         }
 
         [TestMethod]
@@ -125,7 +127,7 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
             var data = CreateData(94423, 1042);
             var bytes = CreateCorrectBytes(223, 0, data);
 
-            IdxOverflow page = new IdxOverflow(bytes);
+            IdxOverflow page = new IdxOverflow(bytes, 4096);
 
             Assert.AreEqual(1042, page.LengthInPage);
             Assert.IsTrue(page.HasNextPage);
@@ -146,19 +148,19 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
 
             var changed = CreateData(3843, 4200);
 
-            IdxOverflow page = new IdxOverflow(bytes);
+            IdxOverflow page = new IdxOverflow(bytes, 4096);
             var dirty = new AssertDirtyChanged(page);
             int written = page.WriteData(changed, 0);
 
             Assert.IsTrue(page.NeedsNextPage);
             Assert.IsTrue(page.HasNextPage);
             dirty.AssertTrue();
-            Assert.AreEqual(IdxOverflow.Capacity, page.LengthInPage);
+            Assert.AreEqual(IdxOverflow.Capacity(4096), page.LengthInPage);
             Assert.AreEqual(388, page.Next);
 
-            var readBuffer = new byte[IdxOverflow.Capacity];
+            var readBuffer = new byte[IdxOverflow.Capacity(4096)];
             page.ReadData(readBuffer, 0);
-            CollectionAssert.AreEqual(changed.Take(IdxOverflow.Capacity).ToArray(), readBuffer);
+            CollectionAssert.AreEqual(changed.Take(IdxOverflow.Capacity(4096)).ToArray(), readBuffer);
         }
 
         [TestMethod]
@@ -169,7 +171,7 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
 
             var changed = CreateData(3843, 400);
 
-            IdxOverflow page = new IdxOverflow(bytes);
+            IdxOverflow page = new IdxOverflow(bytes, 4096);
             var dirty = new AssertDirtyChanged(page);
             page.WriteData(changed, 0);
             byte[] serialized = page.Save();
@@ -189,9 +191,9 @@ namespace CqrsFramework.Tests.IndexTable.OverflowPage
 
         private byte[] CreateCorrectBytes(int next, int skip, byte[] data)
         {
-            var bytes = new byte[IdxPagedFile.PageSize];
+            var bytes = new byte[4096];
             int remaining = data.Length - skip;
-            int capacity = IdxPagedFile.PageSize - 8;
+            int capacity = 4096 - 8;
             short localSize = (short)Math.Min(remaining, capacity);
             byte flags = remaining > capacity ? (byte)1 : (byte)0;
             using (var writer = new BinaryWriter(new MemoryStream(bytes), Encoding.ASCII, false))

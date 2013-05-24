@@ -136,7 +136,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var key = IdxKey.FromInteger(keyBase);
             var cellData = new byte[cellLength - 12];
-            var cell = IdxCell.CreateLeafCell(key, cellData);
+            var cell = IdxCell.CreateLeafCell(key, cellData, 4096);
             node.AddCell(cell);
         }
     }
@@ -146,7 +146,7 @@ namespace CqrsFramework.Tests.IndexTable
     {
         protected override IdxLeaf CreateLeftNode()
         {
-            var node = new IdxLeaf(null);
+            var node = new IdxLeaf(null, 4096);
             node.PageNumber = 1931;
             node.NextLeaf = 1932;
             for (int i = 0; i < 55; i++)
@@ -156,7 +156,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         protected override IdxLeaf CreateRightNode()
         {
-            var node = new IdxLeaf(null);
+            var node = new IdxLeaf(null, 4096);
             node.PageNumber = 1932;
             node.NextLeaf = 1933;
             for (int i = 300; i < 1024; i++)
@@ -172,7 +172,7 @@ namespace CqrsFramework.Tests.IndexTable
     {
         protected override IdxLeaf CreateLeftNode()
         {
-            var node = new IdxLeaf(null);
+            var node = new IdxLeaf(null, 4096);
             node.PageNumber = 1931;
             node.NextLeaf = 1932;
             for (int i = 0; i < 59; i++)
@@ -182,7 +182,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         protected override IdxLeaf CreateRightNode()
         {
-            var node = new IdxLeaf(null);
+            var node = new IdxLeaf(null, 4096);
             node.PageNumber = 1932;
             node.NextLeaf = 1933;
             for (int i = 300; i < 367; i++)
@@ -196,7 +196,7 @@ namespace CqrsFramework.Tests.IndexTable
     {
         protected override IdxLeaf CreateLeftNode()
         {
-            var node = new IdxLeaf(null);
+            var node = new IdxLeaf(null, 4096);
             node.PageNumber = 1931;
             node.NextLeaf = 1932;
             for (int i = 0; i < 63; i++)
@@ -207,7 +207,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         protected override IdxLeaf CreateRightNode()
         {
-            var node = new IdxLeaf(null);
+            var node = new IdxLeaf(null, 4096);
             node.PageNumber = 1932;
             node.NextLeaf = 1933;
             for (int i = 300; i < 355; i++)

@@ -9,17 +9,25 @@ namespace CqrsFramework.IndexTable
 {
     public class IdxFreeList : IdxPageBase
     {
-        public const int Capacity = IdxPagedFile.PageSize / 4 - 2;
+        public static int Capacity(int pageSize)
+        {
+            return pageSize / 4 - 2;
+        }
+
         private int _next;
         private int _length;
         private int[] _freePages;
+        private int _pageSize;
+        private int _capacity;
 
-        public IdxFreeList(byte[] data)
+        public IdxFreeList(byte[] data, int pageSize)
         {
+            _pageSize = pageSize;
+            _capacity = Capacity(_pageSize);
             if (data == null)
             {
                 _next = 0;
-                _freePages = new int[Capacity];
+                _freePages = new int[_capacity];
                 _length = 0;
                 SetDirty(false);
             }
@@ -29,7 +37,7 @@ namespace CqrsFramework.IndexTable
                 {
                     _next = reader.ReadInt32();
                     _length = reader.ReadInt32();
-                    _freePages = new int[Capacity];
+                    _freePages = new int[_capacity];
                     SetDirty(false);
                     for (int i = 0; i < _length; i++)
                         _freePages[i] = reader.ReadInt32();
@@ -48,7 +56,7 @@ namespace CqrsFramework.IndexTable
         }
 
         public int Length { get { return _length; } }
-        public bool IsFull { get { return _length == Capacity; } }
+        public bool IsFull { get { return _length == _capacity; } }
         public bool IsEmpty { get { return _length == 0; } }
         public bool IsLast { get { return _next == 0; } }
 
@@ -61,7 +69,7 @@ namespace CqrsFramework.IndexTable
 
         public override byte[] Save()
         {
-            var data = new byte[IdxPagedFile.PageSize];
+            var data = new byte[_pageSize];
             using (var writer = new BinaryWriter(new MemoryStream(data), Encoding.ASCII, false))
             {
                 writer.Write(_next);

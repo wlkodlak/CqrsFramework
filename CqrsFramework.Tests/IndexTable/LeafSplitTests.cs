@@ -22,7 +22,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             _leftNode = CreateForSplit();
             _leftNode.PageNumber = 1222;
-            _rightNode = new IdxLeaf(null);
+            _rightNode = new IdxLeaf(null, 4096);
             _rightNode.PageNumber = 2344;
             _addedCell = CreateCell(10 * _position + 5, 16);
         }
@@ -31,12 +31,12 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var valueBytes = new byte[size - 12];
             new Random(index * 548).NextBytes(valueBytes);
-            return IdxCell.CreateLeafCell(IdxKey.FromInteger(index), valueBytes);
+            return IdxCell.CreateLeafCell(IdxKey.FromInteger(index), valueBytes, 4096);
         }
 
         public static IdxLeaf CreateForSplit()
         {
-            var node = new IdxLeaf(null);
+            var node = new IdxLeaf(null, 4096);
             node.NextLeaf = 8432;
             for (int i = 0; i < 64; i++)
                 node.AddCell(CreateCell(i * 10, 16));
@@ -168,7 +168,7 @@ namespace CqrsFramework.Tests.IndexTable
             {
                 var leftNode = LeafSplitTestBase.CreateForSplit();
                 leftNode.PageNumber = 1222;
-                var rightNode = new IdxLeaf(null);
+                var rightNode = new IdxLeaf(null, 4096);
                 rightNode.PageNumber = 2344;
                 var addedCell = LeafSplitTestBase.CreateCell(10 * position + 5, 64);
                 var key = leftNode.Split(rightNode, addedCell);

@@ -9,16 +9,19 @@ namespace CqrsFramework.IndexTable
 {
     public class IdxLeaf : IdxPageBase, IIdxNode
     {
+        private int _pageSize;
         private int _cellsCount = 0;
         private List<IdxCell> _cells = new List<IdxCell>();
         private int _next = 0;
         private int _size = 16;
+        private int _smallSize;
+        private int _fullSize;
 
-        private const int SmallSize = IdxPagedFile.PageSize / 4;
-        private const int FullSize = IdxPagedFile.PageSize - 128;
-
-        public IdxLeaf(byte[] bytesToLoad)
+        public IdxLeaf(byte[] bytesToLoad, int pageSize)
         {
+            _pageSize = pageSize;
+            _smallSize = pageSize / 4;
+            _fullSize = pageSize - 128;
             if (bytesToLoad != null)
                 LoadFromBytes(bytesToLoad);
         }
@@ -34,7 +37,7 @@ namespace CqrsFramework.IndexTable
                 reader.ReadBytes(8);
                 for (int i = 0; i < _cellsCount; i++)
                 {
-                    var cell = IdxCell.LoadLeafCell(reader);
+                    var cell = IdxCell.LoadLeafCell(reader, _pageSize);
                     cell.Ordinal = i;
                     _cells.Add(cell);
                     _size += cell.CellSize;
@@ -50,8 +53,8 @@ namespace CqrsFramework.IndexTable
 
         public bool IsLeaf { get { return true; } }
         public int CellsCount { get { return _cellsCount; } }
-        public bool IsSmall { get { return _size < SmallSize; } }
-        public bool IsFull { get { return _size > FullSize; } }
+        public bool IsSmall { get { return _size < _smallSize; } }
+        public bool IsFull { get { return _size > _fullSize; } }
 
         public int NextLeaf
         {
@@ -90,7 +93,7 @@ namespace CqrsFramework.IndexTable
         public override byte[] Save()
         {
             SetDirty(false);
-            var buffer = new byte[IdxPagedFile.PageSize];
+            var buffer = new byte[_pageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write((byte)1);
@@ -164,11 +167,11 @@ namespace CqrsFramework.IndexTable
             return null;
         }
 
-        private static int CellsToMove(IdxLeaf fromLeaf, IdxLeaf toLeaf, bool takeFromEnd)
+        private int CellsToMove(IdxLeaf fromLeaf, IdxLeaf toLeaf, bool takeFromEnd)
         {
             var remainingSize = fromLeaf._size;
-            var idealSize = Math.Max((toLeaf._size + fromLeaf._size) / 2, SmallSize);
-            var missingSize = SmallSize - toLeaf._size;
+            var idealSize = Math.Max((toLeaf._size + fromLeaf._size) / 2, _smallSize);
+            var missingSize = _smallSize - toLeaf._size;
             var cellsToMove = 0;
             var fromPosition = takeFromEnd ? fromLeaf._cellsCount - 1 : 0;
             while (missingSize > 0)
@@ -176,7 +179,7 @@ namespace CqrsFramework.IndexTable
                 var cell = fromLeaf._cells[fromPosition];
                 missingSize -= cell.CellSize;
                 remainingSize -= cell.CellSize;
-                if (remainingSize < SmallSize)
+                if (remainingSize < _smallSize)
                     return 0;
                 fromPosition += takeFromEnd ? -1 : 1;
                 cellsToMove++;
@@ -186,7 +189,7 @@ namespace CqrsFramework.IndexTable
                 var cell = fromLeaf._cells[fromPosition];
                 missingSize -= cell.CellSize;
                 remainingSize -= cell.CellSize;
-                if (remainingSize >= SmallSize)
+                if (remainingSize >= _smallSize)
                     cellsToMove++;
                 fromPosition += takeFromEnd ? -1 : 1;
             }

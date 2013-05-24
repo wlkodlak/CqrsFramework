@@ -25,7 +25,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void EmptyTree()
         {
-            var leaf = new IdxLeaf(null);
+            var leaf = new IdxLeaf(null, 4096);
             leaf.PageNumber = 47;
             leaf.Save();
 
@@ -43,13 +43,13 @@ namespace CqrsFramework.Tests.IndexTable
         public void SingleLeafWithShortValuesButNoResult()
         {
             var random = new Random(84324);
-            var root = new IdxLeaf(null);
+            var root = new IdxLeaf(null, 4096);
             root.PageNumber = 47;
             root.NextLeaf = 0;
-            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(2), ContainerTestUtilities.CreateBytes(random, 84)));
-            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(4), ContainerTestUtilities.CreateBytes(random, 84)));
-            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(9), ContainerTestUtilities.CreateBytes(random, 84)));
-            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(17), ContainerTestUtilities.CreateBytes(random, 84)));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(2), ContainerTestUtilities.CreateBytes(random, 84), 4096));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(4), ContainerTestUtilities.CreateBytes(random, 84), 4096));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(9), ContainerTestUtilities.CreateBytes(random, 84), 4096));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(17), ContainerTestUtilities.CreateBytes(random, 84), 4096));
             root.Save();
 
             var mock = new Mock<IIdxContainer>();
@@ -66,13 +66,13 @@ namespace CqrsFramework.Tests.IndexTable
         public void SingleLeafWithShortValuesWithResults()
         {
             var random = new Random(84324);
-            var root = new IdxLeaf(null);
+            var root = new IdxLeaf(null, 4096);
             root.PageNumber = 47;
             root.NextLeaf = 0;
-            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(2), ContainerTestUtilities.CreateBytes(random, 84)));
-            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(5), ContainerTestUtilities.CreateBytes(random, 84)));
-            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(7), ContainerTestUtilities.CreateBytes(random, 84)));
-            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(9), ContainerTestUtilities.CreateBytes(random, 84)));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(2), ContainerTestUtilities.CreateBytes(random, 84), 4096));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(5), ContainerTestUtilities.CreateBytes(random, 84), 4096));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(7), ContainerTestUtilities.CreateBytes(random, 84), 4096));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(9), ContainerTestUtilities.CreateBytes(random, 84), 4096));
             root.Save();
 
             var mock = new Mock<IIdxContainer>();
@@ -88,18 +88,6 @@ namespace CqrsFramework.Tests.IndexTable
                 .ToList();
             CollectionAssert.AreEqual(expectedResult, selected, "Result items");
             mock.Verify();
-        }
-
-        [TestMethod]
-        public void MultilevelSearchAcrossLeaves()
-        {
-            var generator = new TestTreeGenerator(2, 5);
-            generator.WithCellGenerator(TestTreeGenerator.RandomCellGenerator(4, 4, 128, 128));
-
-            IdxTree tree = new IdxTree(generator.BuildContainer(), 0);
-            var selected = tree.Select(IdxKey.FromInteger(84), IdxKey.FromInteger(98)).ToList();
-            var expected = generator.GetLeafCells(IdxKey.FromInteger(84), IdxKey.FromInteger(98)).ToList();
-            CollectionAssert.AreEqual(expected, selected);
         }
     }
 }

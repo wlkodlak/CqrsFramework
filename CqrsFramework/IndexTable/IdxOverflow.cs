@@ -13,9 +13,18 @@ namespace CqrsFramework.IndexTable
         private int _next = 0;
         private bool _needsNext = false;
         private byte[] _data = null;
+        private int _pageSize;
+        private int _capacity;
 
-        public IdxOverflow(byte[] data)
+        public static int Capacity(int pageSize)
         {
+            return pageSize - 8;
+        }
+
+        public IdxOverflow(byte[] data, int pageSize)
+        {
+            _pageSize = pageSize;
+            _capacity = Capacity(_pageSize);
             if (data == null)
                 return;
             using (var reader = new BinaryReader(new MemoryStream(data), Encoding.ASCII, false))
@@ -31,7 +40,7 @@ namespace CqrsFramework.IndexTable
 
         public override byte[] Save()
         {
-            var buffer = new byte[IdxPagedFile.PageSize];
+            var buffer = new byte[_pageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer), Encoding.ASCII, false))
             {
                 writer.Write(_next);
@@ -43,8 +52,6 @@ namespace CqrsFramework.IndexTable
             SetDirty(false);
             return buffer;
         }
-
-        public static int Capacity { get { return IdxPagedFile.PageSize - 8; } }
 
         public int Next
         {
@@ -62,14 +69,14 @@ namespace CqrsFramework.IndexTable
         public int WriteData(byte[] buffer, int offset)
         {
             int remainingLength = buffer.Length - offset;
-            if (remainingLength <= Capacity)
+            if (remainingLength <= _capacity)
             {
                 _length = remainingLength;
                 _needsNext = false;
             }
             else
             {
-                _length = Capacity;
+                _length = _capacity;
                 _needsNext = true;
             }
             _data = new byte[_length];

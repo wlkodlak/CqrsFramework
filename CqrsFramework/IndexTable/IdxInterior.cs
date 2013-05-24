@@ -13,9 +13,15 @@ namespace CqrsFramework.IndexTable
         private int _cellsCount = 0;
         private int _size = 16;
         private int _leftMost = 0;
+        private int _pageSize;
+        private int _smallSize;
+        private int _fullSize;
 
-        public IdxInterior(byte[] bytes)
+        public IdxInterior(byte[] bytes, int pageSize)
         {
+            _pageSize = pageSize;
+            _smallSize = _pageSize / 4;
+            _fullSize = _pageSize - 128;
             if (bytes != null)
                 LoadBytes(bytes);
         }
@@ -31,7 +37,7 @@ namespace CqrsFramework.IndexTable
                 reader.ReadBytes(8);
                 for (int i = 0; i < _cellsCount; i++)
                 {
-                    var cell = IdxCell.LoadInteriorCell(reader);
+                    var cell = IdxCell.LoadInteriorCell(reader, _pageSize);
                     cell.Ordinal = i;
                     _cells.Add(cell);
                     _size += cell.CellSize;
@@ -49,13 +55,11 @@ namespace CqrsFramework.IndexTable
             }
         }
 
-        private const int SmallSize = IdxPagedFile.PageSize / 4;
-        private const int FullSize = IdxPagedFile.PageSize - 128;
 
         public bool IsLeaf { get { return false; } }
         public int CellsCount { get { return _cellsCount; } }
-        public bool IsSmall { get { return _size < SmallSize; } }
-        public bool IsFull { get { return _size > FullSize; } }
+        public bool IsSmall { get { return _size < _smallSize; } }
+        public bool IsFull { get { return _size > _fullSize; } }
 
         public void AddCell(IdxCell cell)
         {
@@ -94,7 +98,7 @@ namespace CqrsFramework.IndexTable
         public override byte[] Save()
         {
             SetDirty(false);
-            var buffer = new byte[IdxPagedFile.PageSize];
+            var buffer = new byte[_pageSize];
             using (var writer = new BinaryWriter(new MemoryStream(buffer)))
             {
                 writer.Write((byte)2);
@@ -131,7 +135,7 @@ namespace CqrsFramework.IndexTable
             target.SetDirty(true);
 
             _cells.Insert(InsertPosition(addedCell), addedCell);
-            var parentCell = IdxCell.CreateInteriorCell(_cells[_cellsCount].Key, target.PageNumber);
+            var parentCell = IdxCell.CreateInteriorCell(_cells[_cellsCount].Key, target.PageNumber, _pageSize);
             target._leftMost = _cells[_cellsCount].ChildPage;
             _cells.RemoveAt(_cellsCount);
 
@@ -161,8 +165,8 @@ namespace CqrsFramework.IndexTable
 
         private int CellsToMove(IdxInterior fromNode, IdxInterior toNode, IdxCell parent, bool pickLast)
         {
-            var missingSize = SmallSize - toNode._size;
-            var idealSize = Math.Max((fromNode._size + toNode._size) / 2, SmallSize);
+            var missingSize = _smallSize - toNode._size;
+            var idealSize = Math.Max((fromNode._size + toNode._size) / 2, _smallSize);
             var remainingSize = fromNode._size;
             var count = 0;
             var parentSize = parent.CellSize;
@@ -173,7 +177,7 @@ namespace CqrsFramework.IndexTable
                 missingSize -= parentSize;
                 parentSize = fromNode._cells[fromPosition].CellSize;
                 remainingSize -= parentSize;
-                if (remainingSize < SmallSize)
+                if (remainingSize < _smallSize)
                     return 0;
                 fromPosition += plusPosition;
                 count++;
@@ -196,7 +200,7 @@ namespace CqrsFramework.IndexTable
         {
             var cells = new List<IdxCell>(_cellsCount + 1 + node._cellsCount);
             cells.AddRange(_cells);
-            cells.Add(IdxCell.CreateInteriorCell(parent.Key, node.LeftmostPage));
+            cells.Add(IdxCell.CreateInteriorCell(parent.Key, node.LeftmostPage, _pageSize));
             cells.AddRange(node._cells);
             _cells = cells;
             CompleteFix();
@@ -206,7 +210,7 @@ namespace CqrsFramework.IndexTable
         private IdxKey MoveToLeft(IdxInterior rightNode, IdxCell parent, int count)
         {
             var movedCells = new List<IdxCell>(count + 1);
-            movedCells.Add(IdxCell.CreateInteriorCell(parent.Key, rightNode.LeftmostPage));
+            movedCells.Add(IdxCell.CreateInteriorCell(parent.Key, rightNode.LeftmostPage, _pageSize));
             movedCells.AddRange(rightNode._cells.Take(count));
             _cells.AddRange(movedCells.Take(count));
             rightNode._cells.RemoveRange(0, count);
@@ -221,7 +225,7 @@ namespace CqrsFramework.IndexTable
             var startIndex = _cellsCount - count;
             var movedCells = new List<IdxCell>(count + 1);
             movedCells.AddRange(_cells.Skip(startIndex));
-            movedCells.Add(IdxCell.CreateInteriorCell(parent.Key, rightNode.LeftmostPage));
+            movedCells.Add(IdxCell.CreateInteriorCell(parent.Key, rightNode.LeftmostPage, _pageSize));
             movedCells.AddRange(rightNode._cells);
             _cells.RemoveRange(startIndex, count);
             rightNode._cells = movedCells.Skip(1).ToList();

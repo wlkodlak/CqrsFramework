@@ -12,7 +12,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void CanLoadEmptyHeader()
         {
-            IdxHeader header = new IdxHeader((byte[])null);
+            IdxHeader header = new IdxHeader((byte[])null, 4096);
             Assert.AreEqual(0, header.FreePagesList);
             Assert.AreEqual(0, header.TotalPagesCount);
             for (int i = 0; i < 16; i++)
@@ -24,7 +24,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void LoadHeaderWithTwoTrees()
         {
             var data = GetCorrectContents(1, 64, new[] { 4, 15 });
-            IdxHeader header = new IdxHeader(data);
+            IdxHeader header = new IdxHeader(data, 4096);
             Assert.AreEqual(1, header.FreePagesList);
             Assert.AreEqual(64, header.TotalPagesCount);
             Assert.AreEqual(4, header.GetTreeRoot(0));
@@ -37,7 +37,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void CreateHeaderWithOneTree()
         {
-            IdxHeader header = new IdxHeader(null);
+            IdxHeader header = new IdxHeader(null, 4096);
             header.FreePagesList = 2;
             header.TotalPagesCount = 128;
             header.SetTreeRoot(0, 5);
@@ -52,7 +52,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void SaveCreatedHeaderWithOneTree()
         {
-            IdxHeader header = new IdxHeader(null);
+            IdxHeader header = new IdxHeader(null, 4096);
             header.FreePagesList = 2;
             header.TotalPagesCount = 128;
             header.SetTreeRoot(0, 5);
@@ -66,8 +66,8 @@ namespace CqrsFramework.Tests.IndexTable
         public void SaveUpdatedHeaderWithAddedTree()
         {
             var data = GetCorrectContents(3, 32, new[] { 2, 3 });
-            
-            IdxHeader header = new IdxHeader(data);
+
+            IdxHeader header = new IdxHeader(data, 4096);
             header.FreePagesList = 22;
             header.TotalPagesCount = 48;
             header.SetTreeRoot(1, 4);
@@ -86,7 +86,7 @@ namespace CqrsFramework.Tests.IndexTable
             {
                 var data = GetCorrectContents(2, 4, new[] { 4, 2 });
                 data[1] = 0x22;
-                new IdxHeader(data);
+                new IdxHeader(data, 4096);
                 Assert.Fail("Expected InvalidDataException");
             }
             catch (InvalidDataException)
@@ -101,7 +101,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         private byte[] GetCorrectContents(int freePagesList, int totalPagesCount, int[] treeRoots)
         {
-            var buffer = new byte[IdxPagedFile.PageSize];
+            var buffer = new byte[4096];
             using (var writer = new BinaryWriter(new MemoryStream(buffer), Encoding.ASCII, false))
             {
                 writer.Write(new byte[4] { 0x49, 0x58, 0x54, 0x4c });   // magic

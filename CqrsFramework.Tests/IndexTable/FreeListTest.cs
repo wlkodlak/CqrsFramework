@@ -13,7 +13,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void LoadEmptyList()
         {
-            IdxFreeList list = new IdxFreeList((byte[])null);
+            IdxFreeList list = new IdxFreeList((byte[])null, 4096);
             list.PageNumber = 443;
             Assert.AreEqual(443, list.PageNumber);
             Assert.AreEqual(0, list.Next);
@@ -28,7 +28,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void LoadFullList()
         {
             var data = CreateCorrectData(0, GeneratePagesList(1022));
-            IdxFreeList list = new IdxFreeList(data);
+            IdxFreeList list = new IdxFreeList(data, 4096);
             Assert.AreEqual(0, list.Next);
             Assert.AreEqual(1022, list.Length);
             Assert.IsFalse(list.IsDirty);
@@ -42,7 +42,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var contents = GeneratePagesList(520);
             var data = CreateCorrectData(4, contents);
-            IdxFreeList list = new IdxFreeList(data);
+            IdxFreeList list = new IdxFreeList(data, 4096);
             Assert.AreEqual(4, list.Next);
             Assert.AreEqual(520, list.Length);
             Assert.IsFalse(list.IsDirty);
@@ -56,7 +56,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var contents = GeneratePagesList(442);
             var data = CreateCorrectData(222, contents);
-            IdxFreeList list = new IdxFreeList(data);
+            IdxFreeList list = new IdxFreeList(data, 4096);
             var dirty = new AssertDirtyChanged(list);
             list.Add(2933);
             contents.Add(2933);
@@ -74,7 +74,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var contents = GeneratePagesList(1021);
             var data = CreateCorrectData(0, contents);
-            IdxFreeList list = new IdxFreeList(data);
+            IdxFreeList list = new IdxFreeList(data, 4096);
             var dirtyChanged = new AssertDirtyChanged(list);
             list.Add(2200);
             contents.Add(2200);
@@ -90,7 +90,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void AllocFromAlmostEmpty()
         {
             var data = CreateCorrectData(4, new int[] { 2930 });
-            var list = new IdxFreeList(data);
+            var list = new IdxFreeList(data, 4096);
             var dirty = new AssertDirtyChanged(list);
             int allocated = list.Alloc();
             Assert.AreEqual(2930, allocated);
@@ -107,7 +107,7 @@ namespace CqrsFramework.Tests.IndexTable
             var contents = GeneratePagesList(322);
             var lastPage = contents[321];
             var data = CreateCorrectData(4, contents);
-            var list = new IdxFreeList(data);
+            var list = new IdxFreeList(data, 4096);
             int allocated = list.Alloc();
             contents.RemoveAt(contents.Count - 1);
             byte[] serialized = list.Save();
@@ -135,7 +135,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         private byte[] CreateCorrectData(int next, IList<int> freePages)
         {
-            var buffer = new byte[IdxPagedFile.PageSize];
+            var buffer = new byte[4096];
             using (var writer = new BinaryWriter(new MemoryStream(buffer), Encoding.ASCII, false))
             {
                 writer.Write(next);

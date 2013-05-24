@@ -15,7 +15,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var stream = new MemoryStream();
             stream.SetLength(4096 * 16);
-            using (IdxPagedFile file = new IdxPagedFile(stream))
+            using (IdxPagedFile file = new IdxPagedFile(stream, 4096))
             {
                 Assert.AreEqual(16, file.GetSize());
             }
@@ -26,7 +26,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var stream = new MemoryStream();
             stream.SetLength(4096 * 16);
-            using (IdxPagedFile file = new IdxPagedFile(stream))
+            using (IdxPagedFile file = new IdxPagedFile(stream, 4096))
             {
                 file.SetSize(24);
             }
@@ -42,7 +42,7 @@ namespace CqrsFramework.Tests.IndexTable
 
             var stream = new MemoryStream();
             stream.SetLength(4096 * 16);
-            using (IdxPagedFile file = new IdxPagedFile(stream))
+            using (IdxPagedFile file = new IdxPagedFile(stream, 4096))
             {
                 file.SetPage(4, newPageData.ToArray());
             }
@@ -67,7 +67,7 @@ namespace CqrsFramework.Tests.IndexTable
             stream.Write(newPageData, 0, 4096);
             stream.Seek(0, SeekOrigin.Begin);
 
-            using (IdxPagedFile file = new IdxPagedFile(stream))
+            using (IdxPagedFile file = new IdxPagedFile(stream, 4096))
             {
                 var page7 = file.GetPage(7);
                 for (int i = 0; i < 4096; i++)
@@ -89,7 +89,7 @@ namespace CqrsFramework.Tests.IndexTable
 
                 var stream = new MemoryStream();
                 stream.SetLength(16 * 4096);
-                using (IdxPagedFile file = new IdxPagedFile(stream))
+                using (IdxPagedFile file = new IdxPagedFile(stream, 4096))
                     file.SetPage(24, newPageData);
                 Assert.Fail("Expected ArgumentOutOfRangeException");
             }
@@ -105,7 +105,7 @@ namespace CqrsFramework.Tests.IndexTable
             {
                 var stream = new MemoryStream();
                 stream.SetLength(16 * 4096);
-                using (IdxPagedFile file = new IdxPagedFile(stream))
+                using (IdxPagedFile file = new IdxPagedFile(stream, 4096))
                     file.GetPage(24);
                 Assert.Fail("Expected ArgumentOutOfRangeException");
             }
@@ -125,7 +125,7 @@ namespace CqrsFramework.Tests.IndexTable
 
                 var stream = new MemoryStream();
                 stream.SetLength(16 * 4096);
-                using (IdxPagedFile file = new IdxPagedFile(stream))
+                using (IdxPagedFile file = new IdxPagedFile(stream, 4096))
                     file.SetPage(7, newPageData);
                 Assert.Fail("Expected ArgumentOutOfRangeException");
             }
