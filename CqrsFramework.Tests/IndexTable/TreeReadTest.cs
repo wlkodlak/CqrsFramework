@@ -95,7 +95,7 @@ namespace CqrsFramework.Tests.IndexTable
             var builder = new TestTreeBuilder();
             builder.PageSize = 1024;
             builder.MinKeySize = 120;
-            builder.SetNamedValue("key51.value", builder.CreateValue(2744));
+            builder.SetNamedValue("key51.value", builder.CreateValue(1744));
             var root = builder.Interior(2);
             var lvl1 = builder.Interior(3);
             var lvl2a = builder.Leaf(4);
@@ -163,7 +163,7 @@ namespace CqrsFramework.Tests.IndexTable
             var keyBases = new int[] { 56, 57, 58, 60, 62, 63, 68, 69, 70 };
             Assert.AreEqual(keyBases.Length, selected.Count, "Count");
             for (int i = 0; i < keyBases.Length; i++)
-                Assert.AreEqual(builder.BuildKey(keyBases[i]), selected[i], "Key {0}", keyBases[i]);
+                Assert.AreEqual(builder.BuildKey(keyBases[i]), selected[i].Key, "Key {0}", keyBases[i]);
             mock.Verify();
         }
 

@@ -37,18 +37,31 @@ namespace CqrsFramework.Tests.IndexTable
             foreach (var node in _nodeBuilders.ToList())
             {
                 if (node.IsLeaf)
-                    node.LeafPage.NextLeaf = node.NextNode == null ? 0 : node.NextNode.PageNumber;
+                    FinishLeafPage(node);
                 else
-                {
-                    foreach (var cell in node.Cells)
-                    {
-                        var page = cell.Node == null ? AllocPage() : cell.Node.PageNumber;
-                        cell.Cell = IdxCell.CreateInteriorCell(cell.Key, page, PageSize);
-                    }
-                }
+                    FinishInteriorPage(node);
             }
             foreach (var page in _pages)
                 _pagesIndex[page.PageNumber] = page;
+        }
+
+        private void FinishLeafPage(TestTreeNodeBuilder node)
+        {
+            node.LeafPage.NextLeaf = node.NextNode == null ? 0 : node.NextNode.PageNumber;
+            foreach (var cell in node.Cells)
+                node.LeafPage.AddCell(cell.Cell);
+        }
+
+        private void FinishInteriorPage(TestTreeNodeBuilder node)
+        {
+            if (node.Leftmost != null)
+                node.InteriorPage.LeftmostPage = node.Leftmost.PageNumber;
+            foreach (var cell in node.Cells)
+            {
+                var page = cell.Node == null ? AllocPage() : cell.Node.PageNumber;
+                cell.Cell = IdxCell.CreateInteriorCell(cell.Key, page, PageSize);
+                node.InteriorPage.AddCell(cell.Cell);
+            }
         }
 
         private void AllocPageNumbersForNode(TestTreeNodeBuilder node)
