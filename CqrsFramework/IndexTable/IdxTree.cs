@@ -113,7 +113,12 @@ namespace CqrsFramework.IndexTable
 
         public void Delete(IdxKey key)
         {
-            throw new NotImplementedException();
+            var root = _container.WriteTree(_tree);
+            var path = CreatePathToKey(key, root);
+            var leafElement = path.GetCurrent();
+            if (leafElement.ExactMatch)
+                leafElement.Leaf.RemoveCell(leafElement.CellIndex);
+            _container.CommitWrite(_tree);
         }
 
         public IEnumerable<KeyValuePair<IdxKey, byte[]>> Select(IdxKey min, IdxKey max)
