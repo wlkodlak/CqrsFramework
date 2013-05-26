@@ -78,6 +78,7 @@
     <Compile Include="IndexTable\LeafSplitTests.cs" />
     <Compile Include="IndexTable\OverflowTest.cs" />
     <Compile Include="IndexTable\TestTreeBuilder.cs" />
+    <Compile Include="IndexTable\TreeInsertTest.cs" />
     <Compile Include="IndexTable\TreeReadTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Domain\AggregateBaseTest.cs" />

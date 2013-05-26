@@ -21,6 +21,8 @@ namespace CqrsFramework.IndexTable
         IdxInterior CreateInterior(int tree);
         void Delete(int tree, int page);
         void SetTreeRoot(int tree, IIdxNode root);
+
+        int GetPageSize();
     }
 
     public class IdxContainer : IIdxContainer
@@ -245,6 +247,11 @@ namespace CqrsFramework.IndexTable
                     _freelists[listIndex].Add(freePages[i]);
                 }
             }
+        }
+
+        public int GetPageSize()
+        {
+            return _pageSize;
         }
 
         public IIdxNode ReadTree(int tree)

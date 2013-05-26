@@ -42,7 +42,10 @@ namespace CqrsFramework.Tests.IndexTable
                     FinishInteriorPage(node);
             }
             foreach (var page in _pages)
+            {
                 _pagesIndex[page.PageNumber] = page;
+                page.Save();
+            }
         }
 
         private void FinishLeafPage(TestTreeNodeBuilder node)
@@ -272,6 +275,27 @@ namespace CqrsFramework.Tests.IndexTable
             cell.Value = value;
             cell.OverflowPageNumbers = overflowPages;
             return cell;
+        }
+
+        public IdxLeaf CreateLeaf()
+        {
+            var leaf = new IdxLeaf(null, PageSize);
+            leaf.PageNumber = AllocPage();
+            return leaf;
+        }
+
+        public IdxOverflow CreateOverflow()
+        {
+            var overflow = new IdxOverflow(null, PageSize);
+            overflow.PageNumber = AllocPage();
+            return overflow;
+        }
+
+        public IdxInterior CreateInterior()
+        {
+            var node = new IdxInterior(null, PageSize);
+            node.PageNumber = AllocPage();
+            return node;
         }
     }
 

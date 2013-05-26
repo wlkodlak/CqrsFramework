@@ -17,6 +17,8 @@ namespace CqrsFramework.IndexTable
     public interface IIdxNode : IIdxPage
     {
         bool IsLeaf { get; }
+        int CellsCount { get; }
+        IdxCell GetCell(int index);
     }
 
     public abstract class IdxPageBase : IIdxPage

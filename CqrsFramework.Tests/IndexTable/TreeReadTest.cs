@@ -172,6 +172,7 @@ namespace CqrsFramework.Tests.IndexTable
         {
             var builder = CreateComplexTree();
             var mock = new Mock<IIdxContainer>();
+            mock.Setup(c => c.GetPageSize()).Returns(1024);
             mock.Setup(c => c.ReadTree(0)).Returns(builder.GetNode(2)).Verifiable();
             mock.Setup(c => c.GetNode(0, 3)).Returns(builder.GetNode(3)).Verifiable();
             mock.Setup(c => c.GetNode(0, 4)).Returns(builder.GetNode(4)).Verifiable();
