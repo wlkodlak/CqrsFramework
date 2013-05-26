@@ -46,7 +46,7 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
-        public void RedistributeLeaf()
+        public void RedistributeLeafWithRight()
         {
             var builder = new TestTreeBuilder();
             {
@@ -54,21 +54,16 @@ namespace CqrsFramework.Tests.IndexTable
                 builder.MinKeySize = 54;
                 var root = builder.Interior(2);
                 var lvl1 = builder.Interior(3);
-                var lvl2a = builder.Leaf(4);
                 var lvl2b = builder.Leaf(5);
                 var lvl2c = builder.Leaf(6);
                 root.AddContents(100, 200, lvl1, 300, 400);
-                lvl1.AddContents(220, lvl2a, 240, lvl2b, 260, lvl2c, 280, 290);
-                lvl2a.AddContents(
-                    new int[] { 220, 221, 222, 224, 226 }
-                    .SelectMany(i => new object[] { i, builder.CreateValue(64) })
-                    .ToArray());
+                lvl1.AddContents(220, 240, lvl2b, 260, lvl2c, 280, 290);
                 lvl2b.AddContents(
                     new int[] { 240, 245 }
                     .SelectMany(i => new object[] { i, builder.CreateValue(64) })
                     .ToArray());
                 lvl2c.AddContents(
-                    new int[] { 260, 265 }
+                    new int[] { 260, 262, 265 }
                     .SelectMany(i => new object[] { i, builder.CreateValue(64) })
                     .ToArray());
                 builder.Build();
@@ -79,7 +74,6 @@ namespace CqrsFramework.Tests.IndexTable
                 mock.Setup(c => c.GetPageSize()).Returns(1024);
                 mock.Setup(c => c.WriteTree(4)).Returns(builder.GetNode(2)).Verifiable();
                 mock.Setup(c => c.GetNode(4, 3)).Returns(builder.GetNode(3)).Verifiable();
-                mock.Setup(c => c.GetNode(4, 4)).Returns(builder.GetNode(4)).Verifiable();
                 mock.Setup(c => c.GetNode(4, 5)).Returns(builder.GetNode(5)).Verifiable();
                 mock.Setup(c => c.GetNode(4, 6)).Returns(builder.GetNode(6)).Verifiable();
                 mock.Setup(c => c.CommitWrite(4)).Verifiable();
@@ -90,22 +84,22 @@ namespace CqrsFramework.Tests.IndexTable
             mock.Verify();
 
             {
-                foreach (var page in new int[] { 2, 6 })
+                foreach (var page in new int[] { 2, 4 })
                     Assert.IsFalse(builder.GetNode(page).IsDirty, "Page {0} dirty", page);
-                var leftNode = (IdxLeaf)builder.GetNode(4);
-                var rightNode = (IdxLeaf)builder.GetNode(5);
-                Assert.AreEqual(3, leftNode.CellsCount, "Left count");
-                Assert.AreEqual(3, rightNode.CellsCount, "Right count");
+                var leftNode = (IdxLeaf)builder.GetNode(5);
+                var rightNode = (IdxLeaf)builder.GetNode(6);
+                Assert.AreEqual(2, leftNode.CellsCount, "Left count");
+                Assert.AreEqual(2, rightNode.CellsCount, "Right count");
 
-                var leftKeys = new int[] { 220, 221, 222 }.Select(i =>builder.BuildKey(i)).ToArray();
-                var rightKeys = new int[] { 224, 226, 245 }.Select(i =>builder.BuildKey(i)).ToArray();
-                for (int i = 0; i < 3; i++)
-                    Assert.AreEqual(leftKeys[i], leftNode.GetCell(i), "Left key {0}", i);
-                for (int i = 0; i < 3; i++)
-                    Assert.AreEqual(rightKeys[i], rightNode.GetCell(i), "Right key {0}", i);
+                var leftKeys = new int[] { 245, 260 }.Select(i => builder.BuildKey(i)).ToArray();
+                var rightKeys = new int[] { 262, 265 }.Select(i => builder.BuildKey(i)).ToArray();
+                for (int i = 0; i < 2; i++)
+                    Assert.AreEqual(leftKeys[i], leftNode.GetCell(i).Key, "Left key {0}", i);
+                for (int i = 0; i < 2; i++)
+                    Assert.AreEqual(rightKeys[i], rightNode.GetCell(i).Key, "Right key {0}", i);
 
-                var parentCell = builder.GetNode(3).GetCell(1);
-                Assert.AreEqual(builder.BuildKey(224), parentCell.Key, "Parent key");
+                var parentCell = builder.GetNode(3).GetCell(2);
+                Assert.AreEqual(builder.BuildKey(262), parentCell.Key, "Parent key");
             }
         }
     }

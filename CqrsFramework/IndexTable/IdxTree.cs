@@ -117,7 +117,18 @@ namespace CqrsFramework.IndexTable
             var path = CreatePathToKey(key, root);
             var leafElement = path.GetCurrent();
             if (leafElement.ExactMatch)
+            {
                 leafElement.Leaf.RemoveCell(leafElement.CellIndex);
+                var parentElement = path.GetParent();
+                if (leafElement.Leaf.IsSmall && parentElement != null)
+                {
+                    var rightNeighbourPage = path.GetNeighbourPage(1);
+                    var rightNeighbourNode = (IdxLeaf)_container.GetNode(_tree, rightNeighbourPage);
+                    parentElement.Interior.RemoveCell(parentElement.CellIndex + 1);
+                    var mergeKey = leafElement.Leaf.Merge(rightNeighbourNode);
+                    parentElement.Interior.AddCell(IdxCell.CreateInteriorCell(mergeKey, rightNeighbourPage, _pageSize));
+                }
+            }
             _container.CommitWrite(_tree);
         }
 
@@ -203,6 +214,23 @@ namespace CqrsFramework.IndexTable
             {
                 var parentElement = GetParent();
                 return parentElement == null ? null : parentElement.Interior;
+            }
+
+            public int GetNeighbourPage(int offset)
+            {
+                var parentElement = GetParent();
+                if (parentElement == null)
+                    return 0;
+                var parentCellsCount = parentElement.Interior.CellsCount;
+                var wantedCellIndex = parentElement.CellIndex + offset;
+                if (wantedCellIndex < -1)
+                    return 0;
+                else if (wantedCellIndex == -1)
+                    return parentElement.Interior.LeftmostPage;
+                else if (wantedCellIndex < parentCellsCount)
+                    return parentElement.Interior.GetCell(wantedCellIndex).ChildPage;
+                else
+                    return 0;
             }
 
             public void GoUp()
