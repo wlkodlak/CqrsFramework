@@ -48,14 +48,35 @@ namespace CqrsFramework.IndexTable
                 {
                     var leaf2 = _container.CreateLeaf(_tree);
                     var splitKey = leaf.Split(leaf2, cell);
-                    var parentNode = path.GetParentNode();
-                    if (parentNode == null)
+                    IIdxNode splitNodeLeft = leaf;
+                    IIdxNode splitNodeRight = leaf2;
+                    while (splitNodeRight != null)
                     {
-                        parentNode = _container.CreateInterior(_tree);
-                        parentNode.LeftmostPage = leaf.PageNumber;
-                        _container.SetTreeRoot(_tree, parentNode);
+                        var parentNode = path.GetParentNode();
+                        var interiorCell = IdxCell.CreateInteriorCell(splitKey, splitNodeRight.PageNumber, _pageSize);
+                        if (parentNode == null)
+                        {
+                            var rootNode = _container.CreateInterior(_tree);
+                            rootNode.LeftmostPage = splitNodeLeft.PageNumber;
+                            rootNode.AddCell(interiorCell);
+                            _container.SetTreeRoot(_tree, rootNode);
+                            splitNodeRight = null;
+                        }
+                        else
+                        {
+                            path.GoUp();
+                            splitNodeRight = null;
+                            if (!parentNode.IsFull)
+                                parentNode.AddCell(interiorCell);
+                            else
+                            {
+                                var sibling = _container.CreateInterior(_tree);
+                                splitKey = parentNode.Split(sibling, interiorCell);
+                                splitNodeLeft = parentNode;
+                                splitNodeRight = sibling;
+                            }
+                        }
                     }
-                    parentNode.AddCell(IdxCell.CreateInteriorCell(splitKey, leaf2.PageNumber, _pageSize));
                 }
             }
             _container.CommitWrite(_tree);
@@ -177,6 +198,13 @@ namespace CqrsFramework.IndexTable
             {
                 var parentElement = GetParent();
                 return parentElement == null ? null : parentElement.Interior;
+            }
+
+            public void GoUp()
+            {
+                if (_path.Count == 0)
+                    throw new InvalidOperationException("Already at the top");
+                _path.RemoveAt(_path.Count - 1);
             }
         }
 

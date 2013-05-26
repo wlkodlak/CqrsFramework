@@ -221,9 +221,9 @@ namespace CqrsFramework.Tests.IndexTable
                 var lvl1 = builder.Interior(3);
                 var leaf = builder.Leaf(4);
                 root.AddContents(lvl1);
-                root.AddContents(Enumerable.Range(3, 15).Select(i => i * 100).ToArray());
+                root.AddContents(Enumerable.Range(3, 15).Select(i => i * 100).Cast<object>().ToArray());
                 lvl1.AddContents(110, 120, leaf);
-                lvl1.AddContents(Enumerable.Range(13, 13).Select(i => i * 10).ToArray());
+                lvl1.AddContents(Enumerable.Range(13, 13).Select(i => i * 10).Cast<object>().ToArray());
                 leaf.AddContents(new int[] { 120, 121, 123, 124, 125, 126, 127 }.SelectMany(i => new object[] { i, builder.CreateValue(64) }).ToArray());
                 builder.Build();
             }
