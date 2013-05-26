@@ -48,10 +48,14 @@ namespace CqrsFramework.IndexTable
                 {
                     var leaf2 = _container.CreateLeaf(_tree);
                     var splitKey = leaf.Split(leaf2, cell);
-                    var newRoot = _container.CreateInterior(_tree);
-                    newRoot.LeftmostPage = leaf.PageNumber;
-                    newRoot.AddCell(IdxCell.CreateInteriorCell(splitKey, leaf2.PageNumber, _pageSize));
-                    _container.SetTreeRoot(_tree, newRoot);
+                    var parentNode = path.GetParentNode();
+                    if (parentNode == null)
+                    {
+                        parentNode = _container.CreateInterior(_tree);
+                        parentNode.LeftmostPage = leaf.PageNumber;
+                        _container.SetTreeRoot(_tree, parentNode);
+                    }
+                    parentNode.AddCell(IdxCell.CreateInteriorCell(splitKey, leaf2.PageNumber, _pageSize));
                 }
             }
             _container.CommitWrite(_tree);
@@ -162,6 +166,17 @@ namespace CqrsFramework.IndexTable
             public void AddLeaf(IdxLeaf leaf, int cellIndex, bool exact)
             {
                 _path.Add(new PathElement { Leaf = leaf, CellIndex = cellIndex, ExactMatch = exact });
+            }
+
+            public PathElement GetParent()
+            {
+                return (_path.Count < 2) ? null : _path[_path.Count - 2];
+            }
+
+            public IdxInterior GetParentNode()
+            {
+                var parentElement = GetParent();
+                return parentElement == null ? null : parentElement.Interior;
             }
         }
 
