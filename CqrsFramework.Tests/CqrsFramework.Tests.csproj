@@ -81,6 +81,7 @@
     <Compile Include="IndexTable\TreeDeleteTest.cs" />
     <Compile Include="IndexTable\TreeInsertTest.cs" />
     <Compile Include="IndexTable\TreeReadTest.cs" />
+    <Compile Include="IndexTable\TreeUpdateTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Domain\AggregateBaseTest.cs" />
     <Compile Include="EventStore\EventStoreMemoryTest.cs" />

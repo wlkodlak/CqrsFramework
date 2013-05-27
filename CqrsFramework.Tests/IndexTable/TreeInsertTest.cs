@@ -13,9 +13,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void InsertShortToNewTree()
         {
-            var builder = new TestTreeBuilder();
-            builder.PageSize = 1024;
-            builder.MinKeySize = 56;
+            var builder = new TestTreeBuilder(1024, 56);
             builder.SetNamedValue("key55.value", builder.CreateValue(24));
 
             IdxLeaf newRoot = builder.CreateLeaf();
@@ -38,13 +36,13 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void InsertLongToRootLeaf()
         {
-            var builder = new TestTreeBuilder();
-            builder.PageSize = 1024;
-            builder.MinKeySize = 56;
-            builder.SetNamedValue("key55.value", builder.CreateValue(1824));
-            var root = builder.Leaf(2);
-            root.AddContents(new int[] { 54, 56, 57, 58 }.SelectMany(i => new object[] { i, builder.CreateValue(64) }).ToArray());
-            builder.Build();
+            var builder = new TestTreeBuilder(1024, 56);
+            {
+                builder.SetNamedValue("key55.value", builder.CreateValue(1824));
+                var root = builder.Leaf(2);
+                root.AddContents(new int[] { 54, 56, 57, 58 }.SelectMany(i => new object[] { i, builder.CreateValue(64) }).ToArray());
+                builder.Build();
+            }
 
             var overflow1 = builder.CreateOverflow();
             var overflow2 = builder.CreateOverflow();
@@ -89,17 +87,17 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void InsertWithoutSplit()
         {
-            var builder = new TestTreeBuilder();
-            builder.PageSize = 1024;
-            builder.MinKeySize = 56;
-            builder.SetNamedValue("key55.value", builder.CreateValue(24));
-            var root = builder.Interior(2);
-            var lvl1 = builder.Interior(3);
-            var lvl2 = builder.Leaf(4);
-            root.AddContents(30, 50, lvl1, 80, 100);
-            lvl1.AddContents(52, 54, lvl2, 70, 72, 74, 76, 78);
-            lvl2.AddContents(new int[] { 54, 56, 57, 58 }.SelectMany(i => new object[] { i, builder.CreateValue(64) }).ToArray());
-            builder.Build();
+            var builder = new TestTreeBuilder(1024, 56);
+            {
+                builder.SetNamedValue("key55.value", builder.CreateValue(24));
+                var root = builder.Interior(2);
+                var lvl1 = builder.Interior(3);
+                var lvl2 = builder.Leaf(4);
+                root.AddContents(30, 50, lvl1, 80, 100);
+                lvl1.AddContents(52, 54, lvl2, 70, 72, 74, 76, 78);
+                lvl2.AddContents(new int[] { 54, 56, 57, 58 }.SelectMany(i => new object[] { i, builder.CreateValue(64) }).ToArray());
+                builder.Build();
+            }
 
             var leaf = (IdxLeaf)builder.GetNode(4);
 
@@ -126,9 +124,7 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void InsertWithRootLeafSplit()
         {
-            var builder = new TestTreeBuilder();
-            builder.PageSize = 1024;
-            builder.MinKeySize = 56;
+            var builder = new TestTreeBuilder(1024, 56);
             builder.SetNamedValue("key55.value", builder.CreateValue(24));
             var root = builder.Leaf(2);
             root.AddContents(new int[] { 12, 38, 40, 54, 56, 57, 58 }.SelectMany(i => new object[] { i, builder.CreateValue(64) }).ToArray());
@@ -160,10 +156,8 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void InsertWithLeafSplitToInterior()
         {
-            var builder = new TestTreeBuilder();
+            var builder = new TestTreeBuilder(1024, 56);
             {
-                builder.PageSize = 1024;
-                builder.MinKeySize = 56;
                 builder.SetNamedValue("key123.value", builder.CreateValue(590));
                 var root = builder.Interior(2);
                 var lvl1 = builder.Interior(3);
@@ -213,10 +207,8 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void InsertWithInteriorRootSplit()
         {
-            var builder = new TestTreeBuilder();
+            var builder = new TestTreeBuilder(1024, 56);
             {
-                builder.PageSize = 1024;
-                builder.MinKeySize = 54;
                 var root = builder.Interior(2);
                 var lvl1 = builder.Interior(3);
                 var leaf = builder.Leaf(4);

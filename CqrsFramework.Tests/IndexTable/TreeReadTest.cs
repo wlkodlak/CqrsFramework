@@ -92,9 +92,7 @@ namespace CqrsFramework.Tests.IndexTable
 
         private TestTreeBuilder CreateComplexTree()
         {
-            var builder = new TestTreeBuilder();
-            builder.PageSize = 1024;
-            builder.MinKeySize = 120;
+            var builder = new TestTreeBuilder(1024, 120);
             builder.SetNamedValue("key51.value", builder.CreateValue(1744));
             var root = builder.Interior(2);
             var lvl1 = builder.Interior(3);

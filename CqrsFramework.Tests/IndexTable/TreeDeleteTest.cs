@@ -21,10 +21,8 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void DeleteWithoutMerge()
         {
-            var builder = new TestTreeBuilder();
+            var builder = new TestTreeBuilder(1024, 56);
             {
-                builder.PageSize = 1024;
-                builder.MinKeySize = 56;
                 var root = builder.Interior(2);
                 var leaf = builder.Leaf(3);
                 root.AddContents(100, leaf, 200, 300);
@@ -48,18 +46,45 @@ namespace CqrsFramework.Tests.IndexTable
 
             var tree = new IdxTree(mock.Object, 0);
             tree.Delete(builder.BuildKey(113));
+            mock.Verify();
 
             Assert.AreEqual(4, leafPage.CellsCount);
             Assert.IsFalse(Enumerable.Range(0, leafPage.CellsCount).Any(i => builder.BuildKey(113) == leafPage.GetCell(i).Key), "Deleted key 113");
         }
 
         [TestMethod]
+        public void DeleteLongValue()
+        {
+            var builder = new TestTreeBuilder(1024, 56);
+            {
+                var root = builder.Leaf(2);
+                root.AddContents(50, builder.CreateValue(56), builder.LongCell(88, builder.CreateValue(2547), 3, 4, 5));
+                builder.Build();
+            }
+
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            {
+                mock.Setup(c => c.GetPageSize()).Returns(1024);
+                mock.Setup(c => c.WriteTree(0)).Returns(builder.GetNode(2)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 3)).Returns(builder.GetOverflow(3)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 4)).Returns(builder.GetOverflow(4)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 5)).Returns(builder.GetOverflow(5)).Verifiable();
+                mock.Setup(c => c.Delete(0, 3)).Verifiable();
+                mock.Setup(c => c.Delete(0, 4)).Verifiable();
+                mock.Setup(c => c.Delete(0, 5)).Verifiable();
+                mock.Setup(c => c.CommitWrite(0)).Verifiable();
+            }
+
+            var tree = new IdxTree(mock.Object, 0);
+            tree.Delete(builder.BuildKey(88));
+            mock.Verify();
+        }
+
+        [TestMethod]
         public void RedistributeLeafWithRight()
         {
-            var builder = new TestTreeBuilder();
+            var builder = new TestTreeBuilder(1024, 56);
             {
-                builder.PageSize = 1024;
-                builder.MinKeySize = 54;
                 var root = builder.Interior(2);
                 var lvl1 = builder.Interior(3);
                 var lvl2b = builder.Leaf(5);
@@ -108,10 +133,8 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void MergeLeaves()
         {
-            var builder = new TestTreeBuilder();
+            var builder = new TestTreeBuilder(1024, 56);
             {
-                builder.PageSize = 1024;
-                builder.MinKeySize = 54;
                 var root = builder.Interior(2);
                 var lvl1 = builder.Interior(3);
                 var leaf1 = builder.Leaf(4);
@@ -153,10 +176,8 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void RedistributeInterior()
         {
-            var builder = new TestTreeBuilder();
+            var builder = new TestTreeBuilder(1024, 56);
             {
-                builder.PageSize = 1024;
-                builder.MinKeySize = 56;
                 var root = builder.Interior(2);
                 var int1 = builder.Interior(3);
                 var int2 = builder.Interior(4);
@@ -211,10 +232,8 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void DropRoot()
         {
-            var builder = new TestTreeBuilder();
+            var builder = new TestTreeBuilder(1024, 56);
             {
-                builder.PageSize = 1024;
-                builder.MinKeySize = 56;
                 var root = builder.Interior(2);
                 var int1 = builder.Interior(3);
                 var int2 = builder.Interior(4);
@@ -248,7 +267,7 @@ namespace CqrsFramework.Tests.IndexTable
             var tree = new IdxTree(mock.Object, 0);
             tree.Delete(builder.BuildKey(94));
             mock.Verify();
-            
+
             {
                 var int1 = (IdxInterior)builder.GetNode(3);
                 var lf1 = (IdxLeaf)builder.GetNode(5);

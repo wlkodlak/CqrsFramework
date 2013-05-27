@@ -111,7 +111,15 @@ namespace CqrsFramework.IndexTable
 
         public void Update(IdxKey key, byte[] value)
         {
-            throw new NotImplementedException();
+            var root = _container.WriteTree(_tree);
+            var path = CreatePathToKey(key, root);
+            var leafElement = path.GetCurrent();
+            if (leafElement.ExactMatch)
+            {
+                var cell = leafElement.Leaf.GetCell(leafElement.CellIndex);
+                cell.ChangeValue(value);
+            }
+            _container.CommitWrite(_tree);
         }
 
         public void Delete(IdxKey key)
@@ -121,10 +129,23 @@ namespace CqrsFramework.IndexTable
             var leafElement = path.GetCurrent();
             if (leafElement.ExactMatch)
             {
-                leafElement.Leaf.RemoveCell(leafElement.CellIndex);
+                DeleteCell(leafElement.Leaf, leafElement.CellIndex);
                 MergeLeaves(path);
             }
             _container.CommitWrite(_tree);
+        }
+
+        private void DeleteCell(IdxLeaf leaf, int cellIndex)
+        {
+            var cell = leaf.GetCell(cellIndex);
+            leaf.RemoveCell(cellIndex);
+            var overflowPage = cell.OverflowPage;
+            while (overflowPage != 0)
+            {
+                var overflow = _container.GetOverflow(_tree, overflowPage);
+                _container.Delete(_tree, overflowPage);
+                overflowPage = overflow.Next;
+            }
         }
 
         private void MergeLeaves(Path path)

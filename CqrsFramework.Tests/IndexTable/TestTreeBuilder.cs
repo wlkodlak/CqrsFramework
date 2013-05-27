@@ -9,6 +9,12 @@ namespace CqrsFramework.Tests.IndexTable
 {
     public class TestTreeBuilder
     {
+        public TestTreeBuilder(int pageSize, int minKeySize = 0)
+        {
+            this.PageSize = pageSize;
+            this.MinKeySize = minKeySize;
+        }
+
         private List<TestTreeNodeBuilder> _nodeBuilders = new List<TestTreeNodeBuilder>();
         private Random _random = new Random(48324);
         private Dictionary<string, byte[]> _namedValues = new Dictionary<string, byte[]>();
