@@ -48,38 +48,41 @@ namespace CqrsFramework.IndexTable
                 {
                     var leaf2 = _container.CreateLeaf(_tree);
                     var splitKey = leaf.Split(leaf2, cell);
-                    IIdxNode splitNodeLeft = leaf;
-                    IIdxNode splitNodeRight = leaf2;
-                    while (splitNodeRight != null)
-                    {
-                        var parentNode = path.GetParentNode();
-                        var interiorCell = IdxCell.CreateInteriorCell(splitKey, splitNodeRight.PageNumber, _pageSize);
-                        if (parentNode == null)
-                        {
-                            var rootNode = _container.CreateInterior(_tree);
-                            rootNode.LeftmostPage = splitNodeLeft.PageNumber;
-                            rootNode.AddCell(interiorCell);
-                            _container.SetTreeRoot(_tree, rootNode);
-                            splitNodeRight = null;
-                        }
-                        else
-                        {
-                            path.GoUp();
-                            splitNodeRight = null;
-                            if (!parentNode.IsFull)
-                                parentNode.AddCell(interiorCell);
-                            else
-                            {
-                                var sibling = _container.CreateInterior(_tree);
-                                splitKey = parentNode.Split(sibling, interiorCell);
-                                splitNodeLeft = parentNode;
-                                splitNodeRight = sibling;
-                            }
-                        }
-                    }
+                    SplitInteriors(path, splitKey, leaf, leaf2);
                 }
             }
             _container.CommitWrite(_tree);
+        }
+
+        private void SplitInteriors(Path path, IdxKey key, IIdxNode left, IIdxNode right)
+        {
+            while (right != null)
+            {
+                var parentNode = path.GetParentNode();
+                var interiorCell = IdxCell.CreateInteriorCell(key, right.PageNumber, _pageSize);
+                if (parentNode == null)
+                {
+                    var rootNode = _container.CreateInterior(_tree);
+                    rootNode.LeftmostPage = left.PageNumber;
+                    rootNode.AddCell(interiorCell);
+                    _container.SetTreeRoot(_tree, rootNode);
+                    right = null;
+                }
+                else
+                {
+                    path.GoUp();
+                    right = null;
+                    if (!parentNode.IsFull)
+                        parentNode.AddCell(interiorCell);
+                    else
+                    {
+                        var sibling = _container.CreateInterior(_tree);
+                        key = parentNode.Split(sibling, interiorCell);
+                        left = parentNode;
+                        right = sibling;
+                    }
+                }
+            }
         }
 
         private IdxCell CreateLeafCell(IdxKey key, byte[] value)
@@ -119,17 +122,97 @@ namespace CqrsFramework.IndexTable
             if (leafElement.ExactMatch)
             {
                 leafElement.Leaf.RemoveCell(leafElement.CellIndex);
-                var parentElement = path.GetParent();
-                if (leafElement.Leaf.IsSmall && parentElement != null)
-                {
-                    var rightNeighbourPage = path.GetNeighbourPage(1);
-                    var rightNeighbourNode = (IdxLeaf)_container.GetNode(_tree, rightNeighbourPage);
-                    parentElement.Interior.RemoveCell(parentElement.CellIndex + 1);
-                    var mergeKey = leafElement.Leaf.Merge(rightNeighbourNode);
-                    parentElement.Interior.AddCell(IdxCell.CreateInteriorCell(mergeKey, rightNeighbourPage, _pageSize));
-                }
+                MergeLeaves(path);
             }
             _container.CommitWrite(_tree);
+        }
+
+        private void MergeLeaves(Path path)
+        {
+            var leafElement = path.GetCurrent();
+            var parentElement = path.GetParent();
+            if (leafElement.Leaf.IsSmall && parentElement != null)
+            {
+                var leftNeighbourPage = path.GetNeighbourPage(-1);
+                var rightNeighbourPage = path.GetNeighbourPage(1);
+                if (rightNeighbourPage != 0)
+                {
+                    var rightNeighbourNode = (IdxLeaf)_container.GetNode(_tree, rightNeighbourPage);
+                    var mergeKey = leafElement.Leaf.Merge(rightNeighbourNode);
+                    parentElement.Interior.RemoveCell(parentElement.CellIndex + 1);
+                    if (mergeKey != null)
+                        parentElement.Interior.AddCell(IdxCell.CreateInteriorCell(mergeKey, rightNeighbourPage, _pageSize));
+                    else
+                    {
+                        _container.Delete(_tree, rightNeighbourPage);
+                        path.GoUp();
+                        MergeInteriors(path);
+                    }
+                }
+                else if (leftNeighbourPage != 0)
+                {
+                    var leftNeighbourNode = (IdxLeaf)_container.GetNode(_tree, leftNeighbourPage);
+                    var mergeKey = leftNeighbourNode.Merge(leafElement.Leaf);
+                    parentElement.Interior.RemoveCell(parentElement.CellIndex);
+                    var thisPage = leafElement.Leaf.PageNumber;
+                    if (mergeKey != null)
+                        parentElement.Interior.AddCell(IdxCell.CreateInteriorCell(mergeKey, thisPage, _pageSize));
+                    else
+                    {
+                        _container.Delete(_tree, thisPage);
+                        path.GoUp();
+                        MergeInteriors(path);
+                    }
+                }
+            }
+        }
+
+        private void MergeInteriors(Path path)
+        {
+            var thisNode = (IdxInterior)path.GetCurrentNode();
+            var parentElement = path.GetParent();
+            var parentNode = parentElement == null ? null : parentElement.Interior;
+            while (thisNode != null && thisNode.IsSmall && parentNode != null)
+            {
+                var leftPage = path.GetNeighbourPage(-1);
+                var rightPage = path.GetNeighbourPage(1);
+                if (rightPage != 0)
+                {
+                    var rightNode = (IdxInterior)_container.GetNode(_tree, rightPage);
+                    var parentCell = parentNode.GetCell(parentElement.CellIndex + 1);
+                    var mergeKey = thisNode.Merge(rightNode, parentCell);
+                    parentNode.RemoveCell(parentElement.CellIndex + 1);
+                    if (mergeKey != null)
+                        parentNode.AddCell(IdxCell.CreateInteriorCell(mergeKey, rightPage, _pageSize));
+                    else
+                        _container.Delete(_tree, rightPage);
+                }
+                else if (leftPage != 0)
+                {
+                    var leftNode = (IdxInterior)_container.GetNode(_tree, leftPage);
+                    var parentCell = parentNode.GetCell(parentElement.CellIndex);
+                    var mergeKey = leftNode.Merge(thisNode, parentCell);
+                    var thisPage = thisNode.PageNumber;
+                    parentNode.RemoveCell(parentElement.CellIndex);
+                    if (mergeKey != null)
+                        parentNode.AddCell(IdxCell.CreateInteriorCell(mergeKey, thisPage, _pageSize));
+                    else
+                        _container.Delete(_tree, thisPage);
+                }
+
+                if (path.ParentIsRoot() && parentNode.CellsCount == 0)
+                {
+                    _container.Delete(_tree, parentNode.PageNumber);
+                    _container.SetTreeRoot(_tree, thisNode);
+                }
+                else
+                {
+                    path.GoUp();
+                    thisNode = parentNode;
+                    parentElement = path.GetParent();
+                    parentNode = parentElement == null ? null : parentElement.Interior;
+                }
+            }
         }
 
         public IEnumerable<KeyValuePair<IdxKey, byte[]>> Select(IdxKey min, IdxKey max)
@@ -235,9 +318,12 @@ namespace CqrsFramework.IndexTable
 
             public void GoUp()
             {
-                if (_path.Count == 0)
-                    throw new InvalidOperationException("Already at the top");
                 _path.RemoveAt(_path.Count - 1);
+            }
+
+            public bool ParentIsRoot()
+            {
+                return _path.Count <= 2;
             }
         }
 
