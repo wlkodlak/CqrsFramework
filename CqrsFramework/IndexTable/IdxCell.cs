@@ -139,9 +139,9 @@ namespace CqrsFramework.IndexTable
                 writer.Write(new byte[8 - _keyLength]);
         }
 
-        public void ChangeValue(byte[] cellData)
+        public void ChangeValue(byte[] cellData, int sizeLimit = 128)
         {
-            int spaceForValue = 120 - _keyLength;
+            int spaceForValue = sizeLimit - 8 - _keyLength;
             if (cellData == null)
             {
                 _valueLength = 0;

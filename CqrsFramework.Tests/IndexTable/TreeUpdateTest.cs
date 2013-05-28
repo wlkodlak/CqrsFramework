@@ -93,7 +93,8 @@ namespace CqrsFramework.Tests.IndexTable
                 builder.Build();
             }
 
-            var overflows = Enumerable.Range(0, 1).Select(i => builder.CreateOverflow()).ToArray();
+            var overflows = new IdxOverflow[1];
+            overflows[0] = builder.GetOverflow(4);
 
             var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
             {
@@ -182,7 +183,6 @@ namespace CqrsFramework.Tests.IndexTable
                 mock.Setup(c => c.GetPageSize()).Returns(1024);
                 mock.Setup(c => c.WriteTree(0)).Returns(builder.GetNode(2)).Verifiable();
                 mock.Setup(c => c.GetNode(0, 3)).Returns(builder.GetNode(3)).Verifiable();
-                mock.Setup(c => c.GetOverflow(0, 4)).Returns(builder.GetOverflow(4)).Verifiable();
                 mock.Setup(c => c.CreateOverflow(0)).Returns(overflows[0]).Verifiable();
                 mock.Setup(c => c.CommitWrite(0)).Verifiable();
             }
@@ -195,7 +195,6 @@ namespace CqrsFramework.Tests.IndexTable
                 var leaf = builder.GetNode(3);
                 var cell = leaf.GetCell(1);
                 Assert.IsTrue(20 <= cell.ValueLength && cell.ValueLength <= 48, "Expected value length 20-48, was {0}", cell.ValueLength);
-                Assert.AreEqual(116, cell.ValueLength);
                 AssertLongValue(cell, 1024, builder.GetNamedValue("updated"), overflows);
                 leaf.Save();
             }

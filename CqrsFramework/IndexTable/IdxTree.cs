@@ -117,7 +117,35 @@ namespace CqrsFramework.IndexTable
             if (leafElement.ExactMatch)
             {
                 var cell = leafElement.Leaf.GetCell(leafElement.CellIndex);
-                cell.ChangeValue(value);
+                if (leafElement.Leaf.IsFull)
+                    cell.ChangeValue(value, cell.CellSize);
+                else
+                    cell.ChangeValue(value);
+                var offset = cell.ValueLength;
+                IdxOverflow previousOverflow = null;
+                var overflowPage = cell.OverflowPage;
+                while (offset < value.Length)
+                {
+                    var overflow = overflowPage == 0 ? _container.CreateOverflow(_tree) : _container.GetOverflow(_tree, overflowPage);
+                    int written = overflow.WriteData(value, offset);
+                    offset += written;
+                    if (previousOverflow == null)
+                        cell.OverflowPage = overflow.PageNumber;
+                    else
+                        previousOverflow.Next = overflow.PageNumber;
+                    previousOverflow = overflow;
+                    overflowPage = overflow.Next;
+                }
+                while (overflowPage != 0)
+                {
+                    var overflow = _container.GetOverflow(_tree, overflowPage);
+                    if (previousOverflow == null)
+                        cell.OverflowPage = 0;
+                    else
+                        previousOverflow.Next = 0;
+                    _container.Delete(_tree, overflowPage);
+                    overflowPage = overflow.Next;
+                }
             }
             _container.CommitWrite(_tree);
         }
