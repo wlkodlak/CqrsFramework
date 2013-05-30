@@ -25,6 +25,14 @@ namespace CqrsFramework
         int GetSnapshotVersion();
     }
 
+    public interface IEventStoreSerializer
+    {
+        Message DeserializeEvent(EventStoreEvent stored);
+        object DeserializeSnapshot(EventStoreSnapshot storedSnapshot);
+        EventStoreEvent SerializeEvent(Message @event);
+        EventStoreSnapshot SerializeSnapshot(object snapshot);
+    }
+
     public enum EventStreamOpenMode
     {
         Create,

@@ -43,6 +43,7 @@
     <Compile Include="Bus.cs" />
     <Compile Include="EventSerializer.cs" />
     <Compile Include="EventStore.cs" />
+    <Compile Include="MessageInbox.cs" />
     <Compile Include="IndexTable\IdxCell.cs" />
     <Compile Include="IndexTable\IdxContainer.cs" />
     <Compile Include="IndexTable\IdxFile.cs" />
@@ -59,6 +60,7 @@
     <Compile Include="InFile\FileEventStoreDataFile.cs" />
     <Compile Include="InFile\FileEventStore.cs" />
     <Compile Include="InFile\FileEventStream.cs" />
+    <Compile Include="InFile\FileStreamProvider.cs" />
     <Compile Include="InMemory\MemoryEventStream.cs" />
     <Compile Include="InMemory\MemoryEventStore.cs" />
     <Compile Include="InTable\TableEventStore.cs" />

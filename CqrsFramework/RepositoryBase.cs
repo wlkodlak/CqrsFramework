@@ -10,13 +10,15 @@ namespace CqrsFramework
         where TAgg : class, IAggregate, new()
     {
         private IEventStore _store;
-        private IEventPublisher _bus;
-        private IEventSerializer _serializer;
+        private IMessagePublisher _bus;
+        private IEventStoreSerializer _serializer;
+        private IEventMessageFactory _eventMessageFactory;
 
-        public RepositoryBase(IEventStore eventStore, IEventPublisher busWriter, IEventSerializer eventSerializer)
+        public RepositoryBase(IEventStore eventStore, IMessagePublisher busWriter, IEventMessageFactory eventMessageFactory, IEventStoreSerializer eventSerializer)
         {
             this._store = eventStore;
             this._bus = busWriter;
+            this._eventMessageFactory = eventMessageFactory;
             this._serializer = eventSerializer;
         }
 
@@ -28,22 +30,23 @@ namespace CqrsFramework
             var storedSnapshot = stream.GetSnapshot();
             var snapshot = storedSnapshot == null ? null : _serializer.DeserializeSnapshot(storedSnapshot);
             var minVersion = storedSnapshot == null ? 1 : storedSnapshot.Version + 1;
-            var events = stream.GetEvents(minVersion).Select(e => _serializer.DeserializeEvent(e));
+            var events = stream.GetEvents(minVersion).Select(e => (IEvent)_serializer.DeserializeEvent(e).Payload);
             var agg = new TAgg();
             agg.LoadFromHistory(snapshot, events);
             return agg;
         }
 
-        public void Save(TAgg aggregate, RepositorySaveFlags repositorySaveFlags)
+        public void Save(TAgg aggregate, object context, RepositorySaveFlags repositorySaveFlags)
         {
             IEventStream stream = OpenSaveStream(EventStreamName(AggreagateId(aggregate)), repositorySaveFlags);
             var events = aggregate.GetEvents().ToArray();
-            var storedEvents = events.Select(e => _serializer.SerializeEvent(e)).ToArray();
+            var eventMessages = events.Select(e => _eventMessageFactory.CreateMessage(e, context)).ToArray();
+            var storedEvents = eventMessages.Select(e => _serializer.SerializeEvent(e)).ToArray();
             var version = ExpectedVersion(repositorySaveFlags);
             stream.SaveEvents(version, storedEvents);
             for (int i = 0; i < events.Length; i++)
             {
-                _bus.Publish(events[i]);
+                _bus.Publish(eventMessages[i]);
                 _store.MarkAsPublished(storedEvents[i]);
             }
             var snapshotLimit = SnapshotLimit(repositorySaveFlags);
