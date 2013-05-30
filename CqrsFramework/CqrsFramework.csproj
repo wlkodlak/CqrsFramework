@@ -40,10 +40,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AggregateBase.cs" />
-    <Compile Include="Bus.cs" />
     <Compile Include="EventSerializer.cs" />
     <Compile Include="EventStore.cs" />
-    <Compile Include="MessageInbox.cs" />
+    <Compile Include="Messaging.cs" />
     <Compile Include="IndexTable\IdxCell.cs" />
     <Compile Include="IndexTable\IdxContainer.cs" />
     <Compile Include="IndexTable\IdxFile.cs" />
