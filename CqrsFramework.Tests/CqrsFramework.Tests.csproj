@@ -84,6 +84,7 @@
     <Compile Include="IndexTable\TreeUpdateTest.cs" />
     <Compile Include="Messaging\DelayedMessagesTest.cs" />
     <Compile Include="Messaging\DispatcherProcessTest.cs" />
+    <Compile Include="Messaging\MessageErrorPolicyTest.cs" />
     <Compile Include="Messaging\MessageHeadersTest.cs" />
     <Compile Include="Messaging\PriorityReceiverTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

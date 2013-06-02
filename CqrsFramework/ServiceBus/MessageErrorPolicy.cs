@@ -13,9 +13,9 @@ namespace CqrsFramework.ServiceBus
 
     public class MessageErrorPolicy : IMessageErrorPolicy
     {
-        public MessageErrorPolicySetup Default()
+        public MessageErrorPolicySetup Default
         {
-            return null;
+            get { return null; }
         }
 
         public MessageErrorPolicySetup For<T>() where T : Exception
