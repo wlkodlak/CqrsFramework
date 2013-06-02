@@ -2,20 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CqrsFramework
 {
-    public interface IMessageInboxWriter
+    public interface IMessageDispatcher
     {
-        void Put(Message message);
-    }
-
-    public interface IMessageInboxReader
-    {
-        void Ack(Message message);
-        void Nack(Message message);
-        Task<Message> ReceiveAsync();
+        void Dispatch(Message message);
     }
 
     public interface IMessagePublisher
@@ -23,14 +17,33 @@ namespace CqrsFramework
         void Publish(Message message);
     }
 
-    public interface IMessageRouter
+    public interface ITimeProvider
     {
-        void Publish(Message message);
-        void Subscribe(IMessageInboxWriter inbox, MessageSubscriptionFilter filter);
-        void Unsubscribe(IMessageInboxWriter inbox, MessageSubscriptionFilter filter);
+        DateTime Get();
+        Task WaitUntil(DateTime time, CancellationToken cancel);
     }
 
-    public class MessageSubscriptionFilter
+    public class RealTimeProvider : ITimeProvider
     {
+        public DateTime Get()
+        {
+            return DateTime.UtcNow;
+        }
+
+        public Task WaitUntil(DateTime time, CancellationToken cancel)
+        {
+            return Task.Delay(time - Get(), cancel);
+        }
+    }
+
+    public interface IMessageInboxWriter
+    {
+        void Put(Message message);
+    }
+
+    public interface IMessageInboxReader : IMessageInboxWriter
+    {
+        void Delete(Message message);
+        Task<Message> ReceiveAsync(CancellationToken token);
     }
 }

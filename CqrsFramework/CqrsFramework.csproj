@@ -70,6 +70,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RepositoryBase.cs" />
     <Compile Include="RepositorySaveFlags.cs" />
+    <Compile Include="ServiceBus\DelayedMessages.cs" />
+    <Compile Include="ServiceBus\DispatcherProcess.cs" />
+    <Compile Include="ServiceBus\MessageErrorPolicy.cs" />
+    <Compile Include="ServiceBus\PrioritizedInboxesReceiver.cs" />
     <Compile Include="StreamProvider.cs" />
     <Compile Include="InMemory\MemoryStreamProvider.cs" />
     <Compile Include="TableProvider.cs" />
