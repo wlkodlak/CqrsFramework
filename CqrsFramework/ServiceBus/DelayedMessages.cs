@@ -15,15 +15,21 @@ namespace CqrsFramework.ServiceBus
 
     public class DelayedMessages : IDelayedMessages
     {
+        private enum State { Nowait, EmptyWait, TimerWait };
+
         private object _lock = new object();
+        private State _state = State.Nowait;
         private ITimeProvider _time;
-        private TaskCompletionSource<Message> _taskSource;
-        private Queue<Message> _ready;
-        private List<ScheduledMessage> _messages;
+        private Queue<Message> _ready = new Queue<Message>();
+        private OrderedMessageList _future = new OrderedMessageList();
+
+        private TaskCompletionSource<Message> _receiveTask;
+        private CancellationToken _receiveToken;
+        private CancellationTokenRegistration _receiveCancelRegistration;
+        
         private Task _timerTask;
-        private DateTime _timerTime;
-        private CancellationTokenSource _cancel;
-        private CancellationToken _token;
+        private CancellationTokenSource _timerTaskCancel;
+        private DateTime _timerTaskTime;
 
         private class ScheduledMessage
         {
@@ -36,116 +42,192 @@ namespace CqrsFramework.ServiceBus
             }
         }
 
+        private class OrderedMessageList
+        {
+            private List<ScheduledMessage> _list = new List<ScheduledMessage>();
+
+            public void Add(ScheduledMessage message)
+            {
+                int position = _list.Count;
+                for (int i = 0; i < _list.Count; i++)
+                {
+                    if (_list[i].Time > message.Time)
+                    {
+                        position = i;
+                        break;
+                    }
+                }
+                _list.Insert(position, message);
+            }
+            public int Count { get { return _list.Count; } }
+            public void RemoveOlder(DateTime time)
+            {
+                _list.RemoveAll(m => m.Time <= time);
+            }
+            public List<ScheduledMessage> GetOlder(DateTime time)
+            {
+                return _list.FindAll(m => m.Time <= time);
+            }
+            public ScheduledMessage FirstOrDefault()
+            {
+                return _list.Count == 0 ? null : _list[0];
+            }
+            private int Comparison(ScheduledMessage a, ScheduledMessage b)
+            {
+                return a.Time.CompareTo(b.Time);
+            }
+        }
+
         public DelayedMessages(ITimeProvider time)
         {
             _time = time;
-            _ready = new Queue<Message>();
-            _messages = new List<ScheduledMessage>();
         }
 
         public Task<Message> ReceiveAsync(CancellationToken token)
         {
             lock (_lock)
             {
-                if (_ready.Count > 0)
-                    return Task.FromResult(_ready.Dequeue());
-                _taskSource = new TaskCompletionSource<Message>();
-                _token = token;
-                _token.Register(CancelHandler);
-                return _taskSource.Task;
-            }
-        }
-
-        private void CancelHandler()
-        {
-            TaskCompletionSource<Message> sourceToCancel = null;
-            CancellationTokenSource cancelToCancel = null;
-            lock (_lock)
-            {
-                sourceToCancel = _taskSource;
-                _taskSource = null;
-                cancelToCancel = _cancel;
-                _cancel = null;
-            }
-            if (sourceToCancel != null)
-                sourceToCancel.TrySetCanceled();
-            if (cancelToCancel != null)
-                cancelToCancel.Cancel();
-        }
-
-        public void Add(DateTime time, Message message)
-        {
-            TaskCompletionSource<Message> taskSource = null;
-            CancellationTokenSource cancelSource = null;
-            lock (_lock)
-            {
-                if (time <= _time.Get())
+                if (_state == State.Nowait)
                 {
-                    taskSource = _taskSource;
-                    if (_taskSource == null)
-                        _ready.Enqueue(message);
+                    if (_ready.Count > 0)
+                        return Task.FromResult(_ready.Dequeue());
+                    else if (_future.Count == 0)
+                    {
+                        _receiveToken = token;
+                        _receiveTask = new TaskCompletionSource<Message>();
+                        _receiveCancelRegistration = _receiveToken.Register(HandleCancel);
+                        _state = State.EmptyWait;
+                        return _receiveTask.Task;
+                    }
                     else
-                        _taskSource = null;
+                    {
+                        _state = State.TimerWait;
+                        _receiveToken = token;
+                        _receiveTask = new TaskCompletionSource<Message>();
+                        _receiveCancelRegistration = _receiveToken.Register(HandleCancel);
+                        _timerTaskCancel = new CancellationTokenSource();
+                        _timerTaskTime = _future.FirstOrDefault().Time;
+                        SetupTimerTask();
+                        return _receiveTask.Task;
+                    }
                 }
                 else
-                {
-                    var scheduledMessage = new ScheduledMessage(time, message);
-                    _messages.Add(scheduledMessage);
-                    if (_timerTask == null)
-                    {
-                        _timerTime = time;
-                        _cancel = new CancellationTokenSource();
-                        _timerTask = _time.WaitUntil(time, _cancel.Token);
-                        _timerTask.ContinueWith(TimerFinished, TaskContinuationOptions.ExecuteSynchronously);
-                    }
-                    else if (_timerTime > time)
-                    {
-                        cancelSource = _cancel;
-                        _timerTime = time;
-                        _cancel = new CancellationTokenSource();
-                        _timerTask = _time.WaitUntil(time, _cancel.Token);
-                        _timerTask.ContinueWith(TimerFinished, TaskContinuationOptions.ExecuteSynchronously);
-                    }
-                }
+                    throw new InvalidOperationException();
             }
-            if (cancelSource != null)
-                cancelSource.Cancel();
-            if (taskSource != null)
-                taskSource.SetResult(message);
+        }
+
+        private void HandleCancel()
+        {
+            TaskCompletionSource<Message> cancelReceiveTask = null;
+            lock (_lock)
+            {
+                if (_state == State.Nowait)
+                    return;
+                else if (_state == State.EmptyWait)
+                {
+                    cancelReceiveTask = _receiveTask;
+                    _receiveTask = null;
+                }
+                else if (_state == State.TimerWait)
+                {
+                    cancelReceiveTask = _receiveTask;
+                    _timerTaskCancel.Cancel();
+                    _receiveTask = null;
+                    _timerTask = null;
+                    _timerTaskCancel = null;
+                }
+                _state = State.Nowait;
+            }
+            if (cancelReceiveTask != null)
+                cancelReceiveTask.TrySetCanceled();
         }
 
         private void TimerFinished(Task task)
         {
             if (task.IsCanceled)
                 return;
-            TaskCompletionSource<Message> taskSource = null;
-            Message messageAsResult = null;
+            TaskCompletionSource<Message> resultTask;
+            Message resultMessage;
+
+            lock (_lock)
+            {
+                if (_state != State.TimerWait || task != _timerTask)
+                    return;
+                var now = _time.Get();
+                foreach (var message in _future.GetOlder(now))
+                    _ready.Enqueue(message.Message);
+                _future.RemoveOlder(now);
+                _timerTaskCancel.Dispose();
+                _receiveCancelRegistration.Dispose();
+                resultTask = _receiveTask;
+                resultMessage = _ready.Dequeue();
+                _state = State.Nowait;
+            }
+
+            resultTask.TrySetResult(resultMessage);
+        }
+
+        public void Add(DateTime time, Message message)
+        {
+            TaskCompletionSource<Message> taskForResult = null;
             lock (_lock)
             {
                 var now = _time.Get();
-                var toReady = _messages.Where(m => m.Time <= now).OrderBy(m => m.Time).Select(m => m.Message).ToList();
-                foreach (var message in toReady)
-                    _ready.Enqueue(message);
-                _messages.RemoveAll(m => m.Time <= now);
-                if (_taskSource != null && _ready.Count != 0)
+                bool isCurrent = time <= now;
+                if (_state == State.Nowait)
                 {
-                    messageAsResult = _ready.Dequeue();
-                    taskSource = _taskSource;
-                    _taskSource = null;
+                    if (isCurrent)
+                        _ready.Enqueue(message);
+                    else
+                        _future.Add(new ScheduledMessage(time, message));
                 }
-                var nextMessage = _messages.OrderBy(m => m.Time).FirstOrDefault();
-                if (nextMessage == null)
-                    _timerTask = null;
+                else if (_state == State.EmptyWait)
+                {
+                    if (isCurrent)
+                    {
+                        taskForResult = _receiveTask;
+                        _receiveCancelRegistration.Dispose();
+                        _state = State.Nowait;
+                    }
+                    else
+                    {
+                        _future.Add(new ScheduledMessage(time, message));
+                        _state = State.TimerWait;
+                        _timerTaskTime = time;
+                        _timerTaskCancel = new CancellationTokenSource();
+                        SetupTimerTask();
+                    }
+                }
                 else
                 {
-                    _timerTime = nextMessage.Time;
-                    _cancel = new CancellationTokenSource();
-                    _timerTask = _time.WaitUntil(nextMessage.Time, _cancel.Token);
-                    _timerTask.ContinueWith(TimerFinished, TaskContinuationOptions.ExecuteSynchronously);
+                    if (isCurrent)
+                    {
+                        _state = State.Nowait;
+                        _timerTaskCancel.Cancel();
+                        _receiveCancelRegistration.Dispose();
+                        taskForResult = _receiveTask;
+                    }
+                    else if (time < _timerTaskTime)
+                    {
+                        _future.Add(new ScheduledMessage(time, message));
+                        _timerTaskCancel.Cancel();
+                        _timerTaskCancel = new CancellationTokenSource();
+                        _timerTaskTime = time;
+                        SetupTimerTask();
+                    }
+                    else
+                        _future.Add(new ScheduledMessage(time, message));
                 }
             }
-            if (taskSource != null)
-                taskSource.SetResult(messageAsResult);
+            if (taskForResult != null)
+                taskForResult.TrySetResult(message);
+        }
+
+        private void SetupTimerTask()
+        {
+            var scheduler = TaskScheduler.Current;
+            _timerTask = _time.WaitUntil(_timerTaskTime, _timerTaskCancel.Token);
+            _timerTask.ContinueWith(TimerFinished, _timerTaskCancel.Token, TaskContinuationOptions.ExecuteSynchronously, scheduler);
         }
     }
 }

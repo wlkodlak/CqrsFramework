@@ -82,17 +82,25 @@ namespace CqrsFramework.Tests.Messaging
             var delayed = new DelayedMessages(_time);
             ScheduleMessage(delayed, messages[1], true, null);
             var task1 = delayed.ReceiveAsync(_cancel.Token);
+            VerifySchedule(messages[1], true);
             ScheduleMessage(delayed, messages[0], true, messages[1]);
             ScheduleMessage(delayed, messages[2], false, null);
+            VerifySchedule(messages[2], false);
             MoveTime(messages[0]);
             Assert.AreSame(messages[0], task1.GetAwaiter().GetResult());
             MoveTime(messages[1]);
-            Assert.AreSame(messages[1], delayed.ReceiveAsync(_cancel.Token).GetAwaiter().GetResult());
+            var task2 = delayed.ReceiveAsync(_cancel.Token);
+            VerifySchedule(messages[1], true);
+            Assert.AreSame(messages[1], task2.GetAwaiter().GetResult());
             MoveTime(messages[2]);
-            Assert.AreSame(messages[2], delayed.ReceiveAsync(_cancel.Token).GetAwaiter().GetResult());
+            var task3 = delayed.ReceiveAsync(_cancel.Token);
+            VerifySchedule(messages[2], true);
+            Assert.AreSame(messages[2], task3.GetAwaiter().GetResult());
             ScheduleMessage(delayed, messages[3], true, null);
+            var task4 = delayed.ReceiveAsync(_cancel.Token);
+            VerifySchedule(messages[3], true);
             MoveTime(messages[3]);
-            Assert.AreSame(messages[3], delayed.ReceiveAsync(_cancel.Token).GetAwaiter().GetResult());
+            Assert.AreSame(messages[3], task4.GetAwaiter().GetResult());
         }
 
         private void MoveTime(Message message)
@@ -105,12 +113,18 @@ namespace CqrsFramework.Tests.Messaging
         {
             var time = message.Headers.CreatedOn.Add(message.Headers.Delay);
             delayed.Add(time, message);
-            _time.Verify(time, shouldSetTimer ? 1 : 0);
             if (cancelledTime != null)
             {
+                _time.Verify(time, shouldSetTimer ? 1 : 0);
                 var previousTime = cancelledTime.Headers.CreatedOn.Add(cancelledTime.Headers.Delay);
                 _time.VerifyCancelled(previousTime, 1);
             }
+        }
+
+        private void VerifySchedule(Message message, bool shouldSetTimer)
+        {
+            var time = message.Headers.CreatedOn.Add(message.Headers.Delay);
+            _time.Verify(time, shouldSetTimer ? 1 : 0);
         }
 
         private Message BuildMessage(object contents, DateTime created, DateTime scheduled)
@@ -146,7 +160,7 @@ namespace CqrsFramework.Tests.Messaging
         public void ChangeTime(DateTime newTime)
         {
             _now = newTime;
-            var ready = _tasks.Where(t => t.Time >= _now).OrderBy(t => t.Time).ToList();
+            var ready = _tasks.Where(t => t.Time >= _now && !t.Cancelled).OrderBy(t => t.Time).ToList();
             _tasks.RemoveAll(t => t.Time >= _now);
             foreach (var task in ready)
                 task.TaskSource.TrySetResult(null);
