@@ -45,8 +45,8 @@ namespace CqrsFramework
         public Guid MessageId { get; set; }
         public Guid CorellationId { get; set; }
         public DateTime CreatedOn { get; set; }
-        public TimeSpan Delay { get; set; }
-        public TimeSpan TimeToLive { get; set; }
+        public DateTime DeliverOn { get; set; }
+        public DateTime ValidUntil { get; set; }
         public int RetryNumber { get; set; }
         public string ResourcePath { get; set; }
         public string TypePath { get; set; }
@@ -65,10 +65,10 @@ namespace CqrsFramework
                     this.CreatedOn = TryParseDate(value);
                     break;
                 case "Delay":
-                    this.Delay = TimeSpan.FromSeconds(TryParseInt(value));
+                    this.DeliverOn = TryParseDate(value);
                     break;
                 case "TimeToLive":
-                    this.TimeToLive = TimeSpan.FromSeconds(TryParseInt(value));
+                    this.ValidUntil = TryParseDate(value);
                     break;
                 case "RetryNumber":
                     this.RetryNumber = TryParseInt(value);
@@ -88,7 +88,7 @@ namespace CqrsFramework
         private static DateTime TryParseDate(string value)
         {
             DateTime dateTime;
-            DateTime.TryParseExact(value, "yyyy-MM-dd hh:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out dateTime);
+            DateTime.TryParseExact(value, "yyyy-MM-dd HH:mm:ss.ffff", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out dateTime);
             return dateTime;
         }
 
@@ -112,11 +112,11 @@ namespace CqrsFramework
                 case "CorellationId":
                     return this.CorellationId.ToString("D");
                 case "CreatedOn":
-                    return this.CreatedOn.ToString("yyyy-MM-dd hh:mm:ss");
-                case "Delay":
-                    return this.Delay.TotalSeconds.ToString();
-                case "TimeToLive":
-                    return this.TimeToLive.TotalSeconds.ToString();
+                    return this.CreatedOn.ToString("yyyy-MM-dd HH:mm:ss.ffff");
+                case "DeliverOn":
+                    return this.DeliverOn.ToString("yyyy-MM-dd HH:mm:ss.ffff");
+                case "ValidUntil":
+                    return this.ValidUntil.ToString("yyyy-MM-dd HH:mm:ss.ffff");
                 case "RetryNumber":
                     return this.RetryNumber.ToString();
                 case "ResourcePath":
@@ -135,8 +135,8 @@ namespace CqrsFramework
             AddNamedToList(list, MessageId != Guid.Empty, "MessageId", false);
             AddNamedToList(list, CorellationId != Guid.Empty, "CorellationId", true);
             AddNamedToList(list, CreatedOn != DateTime.MinValue, "CreatedOn", false);
-            AddNamedToList(list, Delay != TimeSpan.Zero, "Delay", false);
-            AddNamedToList(list, TimeToLive != TimeSpan.Zero, "TimeToLive", false);
+            AddNamedToList(list, DeliverOn != DateTime.MinValue, "DeliverOn", false);
+            AddNamedToList(list, ValidUntil != DateTime.MinValue, "ValidUntil", false);
             AddNamedToList(list, RetryNumber != 0, "RetryNumber", false);
             AddNamedToList(list, true, "ResourcePath", false);
             AddNamedToList(list, true, "TypePath", false);

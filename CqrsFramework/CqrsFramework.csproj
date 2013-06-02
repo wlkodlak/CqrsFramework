@@ -42,6 +42,7 @@
     <Compile Include="AggregateBase.cs" />
     <Compile Include="EventSerializer.cs" />
     <Compile Include="EventStore.cs" />
+    <Compile Include="InMemory\MemoryInbox.cs" />
     <Compile Include="Messaging.cs" />
     <Compile Include="IndexTable\IdxCell.cs" />
     <Compile Include="IndexTable\IdxContainer.cs" />
@@ -70,6 +71,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RepositoryBase.cs" />
     <Compile Include="RepositorySaveFlags.cs" />
+    <Compile Include="ServiceBus\Deduplicator.cs" />
     <Compile Include="ServiceBus\DelayedMessages.cs" />
     <Compile Include="ServiceBus\DispatcherProcess.cs" />
     <Compile Include="ServiceBus\MessageErrorPolicy.cs" />

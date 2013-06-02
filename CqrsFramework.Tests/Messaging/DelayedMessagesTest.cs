@@ -105,26 +105,22 @@ namespace CqrsFramework.Tests.Messaging
 
         private void MoveTime(Message message)
         {
-            var time = message.Headers.CreatedOn.Add(message.Headers.Delay);
-            _time.ChangeTime(time);
+            _time.ChangeTime(message.Headers.DeliverOn);
         }
 
         private void ScheduleMessage(DelayedMessages delayed, Message message, bool shouldSetTimer, Message cancelledTime)
         {
-            var time = message.Headers.CreatedOn.Add(message.Headers.Delay);
-            delayed.Add(time, message);
+            delayed.Add(message.Headers.DeliverOn, message);
             if (cancelledTime != null)
             {
-                _time.Verify(time, shouldSetTimer ? 1 : 0);
-                var previousTime = cancelledTime.Headers.CreatedOn.Add(cancelledTime.Headers.Delay);
-                _time.VerifyCancelled(previousTime, 1);
+                _time.Verify(message.Headers.DeliverOn, shouldSetTimer ? 1 : 0);
+                _time.VerifyCancelled(cancelledTime.Headers.DeliverOn, 1);
             }
         }
 
         private void VerifySchedule(Message message, bool shouldSetTimer)
         {
-            var time = message.Headers.CreatedOn.Add(message.Headers.Delay);
-            _time.Verify(time, shouldSetTimer ? 1 : 0);
+            _time.Verify(message.Headers.DeliverOn, shouldSetTimer ? 1 : 0);
         }
 
         private Message BuildMessage(object contents, DateTime created, DateTime scheduled)
@@ -132,7 +128,7 @@ namespace CqrsFramework.Tests.Messaging
             var message = new Message(contents);
             message.Headers.MessageId = Guid.NewGuid();
             message.Headers.CreatedOn = created;
-            message.Headers.Delay = scheduled - created;
+            message.Headers.DeliverOn = scheduled;
             return message;
         }
     }

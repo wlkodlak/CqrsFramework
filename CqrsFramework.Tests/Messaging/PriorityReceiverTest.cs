@@ -146,9 +146,9 @@ namespace CqrsFramework.Tests.Messaging
         public void DelayedMessage()
         {
             var message1 = BuildMessage("Msg1");
-            message1.Headers.Delay = TimeSpan.FromSeconds(30);
+            var message1on = message1.Headers.CreatedOn.AddSeconds(30);
+            message1.Headers.DeliverOn = message1on;
             var message2 = BuildMessage("Msg2");
-            var message1on = message1.Headers.CreatedOn.Add(message1.Headers.Delay);
 
             for (int i = 0; i < 12; i++)
                 TaskForCancel();

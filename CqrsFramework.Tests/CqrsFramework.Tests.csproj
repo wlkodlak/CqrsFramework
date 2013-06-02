@@ -82,6 +82,7 @@
     <Compile Include="IndexTable\TreeInsertTest.cs" />
     <Compile Include="IndexTable\TreeReadTest.cs" />
     <Compile Include="IndexTable\TreeUpdateTest.cs" />
+    <Compile Include="Infrastructure\MessageInboxMemoryTest.cs" />
     <Compile Include="Messaging\DelayedMessagesTest.cs" />
     <Compile Include="Messaging\DispatcherProcessTest.cs" />
     <Compile Include="Messaging\MessageErrorPolicyTest.cs" />

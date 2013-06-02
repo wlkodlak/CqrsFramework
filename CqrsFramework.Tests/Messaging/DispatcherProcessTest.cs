@@ -21,6 +21,7 @@ namespace CqrsFramework.Tests.Messaging
         private Mock<IPrioritizedInboxesReceiver> _receiver;
         private Mock<IMessageErrorPolicy> _errors;
         private Mock<IMessageDispatcher> _dispatcher;
+        private Mock<IMessageDeduplicator> _dup;
         private DateTime _now = new DateTime(2013, 6, 1, 18, 22, 33);
 
         [TestInitialize]
@@ -32,13 +33,14 @@ namespace CqrsFramework.Tests.Messaging
             _receiver = _repo.Create<IPrioritizedInboxesReceiver>();
             _errors = _repo.Create<IMessageErrorPolicy>();
             _dispatcher = _repo.Create<IMessageDispatcher>();
+            _dup = _repo.Create<IMessageDeduplicator>();
             _cancel = new CancellationTokenSource();
             _time.Setup(t => t.Get()).Returns(() => _now);
         }
 
         private void ProcessSingle()
         {
-            var process = new DispatcherProcessCore(_cancel.Token, _receiver.Object, _dispatcher.Object, _errors.Object, _time.Object);
+            var process = new DispatcherProcessCore(_cancel.Token, _receiver.Object, _dispatcher.Object, _errors.Object, _time.Object, _dup.Object);
             var processTask = process.ProcessSingle();
             processTask.GetAwaiter().GetResult();
             _repo.Verify();
@@ -50,7 +52,9 @@ namespace CqrsFramework.Tests.Messaging
             var message = BuildMessage();
             var msgsrc = new MessageWithSource(0, _inbox.Object, message);
             _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(Task.FromResult(msgsrc)).Verifiable();
+            _dup.Setup(d => d.IsDuplicate(message)).Returns(false).Verifiable();
             _dispatcher.Setup(d => d.Dispatch(message)).Verifiable();
+            _dup.Setup(d => d.MarkHandled(message)).Verifiable();
             _inbox.Setup(i => i.Delete(message)).Verifiable();
             ProcessSingle();
         }
@@ -62,6 +66,7 @@ namespace CqrsFramework.Tests.Messaging
             var msgsrc = new MessageWithSource(0, _inbox.Object, message);
             var exception = new ArgumentOutOfRangeException();
             _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(Task.FromResult(msgsrc)).Verifiable();
+            _dup.Setup(d => d.IsDuplicate(message)).Returns(false).Verifiable();
             _dispatcher.Setup(d => d.Dispatch(message)).Throws(exception).Verifiable();
             _errors.Setup(e => e.HandleException(_inbox.Object, message, exception)).Verifiable();
             ProcessSingle();
@@ -71,10 +76,12 @@ namespace CqrsFramework.Tests.Messaging
         public void MessageWithTimeout()
         {
             var message = BuildMessage();
-            message.Headers.TimeToLive = TimeSpan.FromSeconds(30);
+            message.Headers.ValidUntil = _now.AddSeconds(30);
             var msgsrc = new MessageWithSource(0, _inbox.Object, message);
             _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(Task.FromResult(msgsrc)).Verifiable();
+            _dup.Setup(d => d.IsDuplicate(message)).Returns(false).Verifiable();
             _dispatcher.Setup(d => d.Dispatch(message)).Verifiable();
+            _dup.Setup(d => d.MarkHandled(message)).Verifiable();
             _inbox.Setup(i => i.Delete(message)).Verifiable();
             ProcessSingle();
         }
@@ -83,10 +90,11 @@ namespace CqrsFramework.Tests.Messaging
         public void TimedOutMessage()
         {
             var message = BuildMessage();
-            message.Headers.TimeToLive = TimeSpan.FromSeconds(10);
+            message.Headers.ValidUntil = _now.AddSeconds(-5);
             var msgsrc = new MessageWithSource(0, _inbox.Object, message);
             var exception = new ArgumentOutOfRangeException();
             _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(Task.FromResult(msgsrc)).Verifiable();
+            _dup.Setup(d => d.IsDuplicate(message)).Returns(false);
             _inbox.Setup(i => i.Delete(message)).Verifiable();
             ProcessSingle();
         }
@@ -95,10 +103,11 @@ namespace CqrsFramework.Tests.Messaging
         public void DelayMessage()
         {
             var message = BuildMessage();
-            message.Headers.Delay = TimeSpan.FromSeconds(40);
+            message.Headers.DeliverOn = _now.AddSeconds(40);
             var msgsrc = new MessageWithSource(0, _inbox.Object, message);
-            var executeOn = message.Headers.CreatedOn.Add(message.Headers.Delay);
+            var executeOn = message.Headers.DeliverOn;
             _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(Task.FromResult(msgsrc)).Verifiable();
+            _dup.Setup(d => d.IsDuplicate(message)).Returns(false);
             _receiver.Setup(i => i.PutToDelayed(executeOn, msgsrc)).Verifiable();
             ProcessSingle();
         }
@@ -107,13 +116,27 @@ namespace CqrsFramework.Tests.Messaging
         public void DelayedButCurrentMessage()
         {
             var message = BuildMessage();
-            message.Headers.Delay = TimeSpan.FromSeconds(10);
+            message.Headers.DeliverOn = _now.AddSeconds(10);
             var msgsrc = new MessageWithSource(0, _inbox.Object, message);
-            var executeOn = message.Headers.CreatedOn.Add(message.Headers.Delay);
+            var executeOn = message.Headers.DeliverOn;
             _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(Task.FromResult(msgsrc)).Verifiable();
             _receiver.Setup(i => i.PutToDelayed(executeOn, msgsrc));
+            _dup.Setup(d => d.IsDuplicate(message)).Returns(false);
             _dispatcher.Setup(d => d.Dispatch(message));
+            _dup.Setup(d => d.MarkHandled(message));
             _inbox.Setup(i => i.Delete(message));
+            ProcessSingle();
+        }
+
+        [TestMethod]
+        public void DuplicatedMessage()
+        {
+            var message = BuildMessage();
+            var msgsrc = new MessageWithSource(0, _inbox.Object, message);
+            var executeOn = message.Headers.DeliverOn;
+            _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(Task.FromResult(msgsrc)).Verifiable();
+            _dup.Setup(d => d.IsDuplicate(message)).Returns(true).Verifiable();
+            _inbox.Setup(i => i.Delete(message)).Verifiable();
             ProcessSingle();
         }
 
@@ -123,7 +146,7 @@ namespace CqrsFramework.Tests.Messaging
         {
             var taskSource = new TaskCompletionSource<MessageWithSource>();
             _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(taskSource.Task).Verifiable();
-            var process = new DispatcherProcessCore(_cancel.Token, _receiver.Object, _dispatcher.Object, _errors.Object, _time.Object);
+            var process = new DispatcherProcessCore(_cancel.Token, _receiver.Object, _dispatcher.Object, _errors.Object, _time.Object, _dup.Object);
             var processTask = process.ProcessSingle();
             Assert.IsFalse(processTask.IsCompleted, "Task should wait for message");
             _cancel.Token.Register(() => taskSource.TrySetCanceled());
