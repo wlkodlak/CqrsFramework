@@ -46,4 +46,10 @@ namespace CqrsFramework
         void Delete(Message message);
         Task<Message> ReceiveAsync(CancellationToken token);
     }
+
+    public interface IMessageSerializer
+    {
+        byte[] Serialize(Message message);
+        Message Deserialize(byte[] message);
+    }
 }
