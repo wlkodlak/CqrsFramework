@@ -64,10 +64,10 @@ namespace CqrsFramework
                 case "CreatedOn":
                     this.CreatedOn = TryParseDate(value);
                     break;
-                case "Delay":
+                case "DeliverOn":
                     this.DeliverOn = TryParseDate(value);
                     break;
-                case "TimeToLive":
+                case "ValidUntil":
                     this.ValidUntil = TryParseDate(value);
                     break;
                 case "RetryNumber":
@@ -88,7 +88,7 @@ namespace CqrsFramework
         private static DateTime TryParseDate(string value)
         {
             DateTime dateTime;
-            DateTime.TryParseExact(value, "yyyy-MM-dd HH:mm:ss.ffff", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out dateTime);
+            DateTime.TryParseExact(value, "yyyy-MM-dd HH:mm:ss.ffff", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out dateTime);
             return dateTime;
         }
 

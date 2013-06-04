@@ -35,7 +35,10 @@ namespace CqrsFramework.ServiceBus
 
         protected virtual string GetTypename(Type type)
         {
-            return type.FullName;
+            var dataContract = (DataContractAttribute)Attribute.GetCustomAttribute(type, typeof(DataContractAttribute));
+            string name = (dataContract != null && dataContract.Name != null) ? dataContract.Name : type.Name;
+            string ns = (dataContract != null && dataContract.Namespace != null) ? dataContract.Namespace : type.Namespace;
+            return ns == "" ? name : string.Concat(ns, ".", name);
         }
 
         protected abstract IFormatter CreateFormatter(Type type);

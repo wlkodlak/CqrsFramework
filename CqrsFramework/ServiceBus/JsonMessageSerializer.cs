@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.Serialization;
 using System.IO;
+using ServiceStack.Text;
 
 namespace CqrsFramework.ServiceBus
 {
@@ -17,9 +18,38 @@ namespace CqrsFramework.ServiceBus
             Build(knownTypes);
         }
 
+        private class JsonFormatter : IFormatter
+        {
+            private Type _type;
+            public SerializationBinder Binder { get; set; }
+            public StreamingContext Context { get; set; }
+            public ISurrogateSelector SurrogateSelector { get; set; }
+
+            public JsonFormatter(Type type)
+            {
+                _type = type;
+            }
+
+            public object Deserialize(Stream stream)
+            {
+                using (var reader = new StreamReader(stream, new UTF8Encoding(false)))
+                {
+                    var contents = reader.ReadToEnd();
+                    return JsonSerializer.DeserializeFromString(contents, _type);
+                }
+            }
+
+            public void Serialize(Stream stream, object graph)
+            {
+                var contents = JsonSerializer.SerializeToString(graph, _type);
+                using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
+                    writer.Write(contents);
+            }
+        }
+
         protected override IFormatter CreateFormatter(Type type)
         {
-            throw new NotImplementedException();
+            return new JsonFormatter(type);
         }
 
         protected override void WriteTypeinfo(string typename, Stream stream)

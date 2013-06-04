@@ -12,11 +12,13 @@ namespace CqrsFramework.ServiceBus
     public class ProtobufMessageSerializer : AbstractMessageSerializer
     {
         System.Reflection.MethodInfo _createFormatterGeneric;
+        Encoding _valueEncoding;
 
         public ProtobufMessageSerializer(IEnumerable<Type> knownTypes)
         {
             Func<IFormatter> templateMethod = Serializer.CreateFormatter<object>;
             _createFormatterGeneric = templateMethod.Method.GetGenericMethodDefinition();
+            _valueEncoding = new UTF8Encoding(false);
             Build(knownTypes);
         }
 
@@ -43,10 +45,10 @@ namespace CqrsFramework.ServiceBus
         private void WriteSingleHeader(Stream stream, MessageHeader header)
         {
             byte[] nameBytes = Encoding.ASCII.GetBytes(header.Name);
-            byte[] valueBytes = Encoding.UTF8.GetBytes(header.Value);
+            byte[] valueBytes = _valueEncoding.GetBytes(header.Value);
             stream.WriteByte((byte)nameBytes.Length);
-            stream.WriteByte((byte)valueBytes.Length);
             stream.Write(nameBytes, 0, nameBytes.Length);
+            stream.WriteByte((byte)valueBytes.Length);
             stream.Write(valueBytes, 0, valueBytes.Length);
         }
 
@@ -70,12 +72,12 @@ namespace CqrsFramework.ServiceBus
         private MessageHeader ReadSingleHeader(Stream stream)
         {
             var nameLength = stream.ReadByte();
-            var valueLength = stream.ReadByte();
             byte[] nameBytes = new byte[nameLength];
-            byte[] valueBytes = new byte[valueLength];
             stream.Read(nameBytes, 0, nameLength);
+            var valueLength = stream.ReadByte();
+            byte[] valueBytes = new byte[valueLength];
             stream.Read(valueBytes, 0, valueLength);
-            return new MessageHeader(Encoding.ASCII.GetString(nameBytes), Encoding.UTF8.GetString(valueBytes), false);
+            return new MessageHeader(Encoding.ASCII.GetString(nameBytes), _valueEncoding.GetString(valueBytes), false);
         }
 
     }

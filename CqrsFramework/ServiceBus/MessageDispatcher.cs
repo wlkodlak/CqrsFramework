@@ -42,7 +42,7 @@ namespace CqrsFramework.ServiceBus
         public MessageDispatcher(IMessageDispatcherRegistrator registrator)
             : this()
         {
-            Register(registrator);
+            UseRegistrator(registrator);
         }
 
         public void Register<T>(Action<T> handler)
@@ -65,7 +65,7 @@ namespace CqrsFramework.ServiceBus
             RegisterInternal(new Registration(typeof(T), lambda));
         }
 
-        public void Register(IMessageDispatcherRegistrator registrator)
+        public void UseRegistrator(IMessageDispatcherRegistrator registrator)
         {
             registrator.RegisterToDispatcher(this);
         }
