@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Globalization;
+using System.Threading;
 
 namespace CqrsFramework.InFile
 {
@@ -28,7 +29,7 @@ namespace CqrsFramework.InFile
                 message.Headers.CreatedOn = _time.Get();
             if (message.Headers.MessageId == Guid.Empty)
                 message.Headers.MessageId = Guid.NewGuid();
-            var name = CreateQueueName(message, _sequenceId);
+            var name = FileMessageInboxReader.CreateQueueName(message, _sequenceId);
             _sequenceId = _sequenceId >= 999 ? 0 : _sequenceId + 1;
             using (var stream = _directory.Open(name, FileMode.CreateNew))
             {
@@ -37,13 +38,6 @@ namespace CqrsFramework.InFile
             }
         }
 
-        private static string CreateQueueName(Message message, int sequenceId)
-        {
-            var date = message.Headers.CreatedOn.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
-            var order = sequenceId.ToString("000");
-            var id = message.Headers.MessageId.ToString("N");
-            return string.Concat(date, order, ".", id, ".queuemessage");
-        }
     }
 
     public class FileMessageInboxReader : IMessageInboxReader
@@ -51,6 +45,16 @@ namespace CqrsFramework.InFile
         private IStreamProvider _directory;
         private IMessageSerializer _serializer;
         private ITimeProvider _time;
+        private TaskCompletionSource<Message> _task;
+        private object _lock = new object();
+
+        public static string CreateQueueName(Message message, int sequenceId)
+        {
+            var date = message.Headers.CreatedOn.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
+            var order = sequenceId.ToString("000");
+            var id = message.Headers.MessageId.ToString("N");
+            return string.Concat(date, order, ".", id, ".queuemessage");
+        }
 
         public FileMessageInboxReader(IStreamProvider directory, IMessageSerializer serializer, ITimeProvider time)
         {
@@ -70,9 +74,23 @@ namespace CqrsFramework.InFile
             throw new NotImplementedException();
         }
 
-        public Task<Message> ReceiveAsync(System.Threading.CancellationToken token)
+        public Task<Message> ReceiveAsync(CancellationToken token)
         {
-            throw new NotImplementedException();
+            lock (_lock)
+            {
+                _task = new TaskCompletionSource<Message>();
+                token.Register(CancelHandler);
+                return _task.Task;
+            }
+        }
+
+        private void CancelHandler()
+        {
+            lock (_lock)
+            {
+                _task.TrySetCanceled();
+                _task = null;
+            }
         }
 
         public void Put(Message message)

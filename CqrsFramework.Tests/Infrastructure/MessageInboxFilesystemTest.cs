@@ -4,11 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CqrsFramework.InFile;
+using CqrsFramework.InMemory;
 using System.IO;
 using Moq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Xml.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace CqrsFramework.Tests.Infrastructure
 {
@@ -20,6 +22,7 @@ namespace CqrsFramework.Tests.Infrastructure
         private Mock<IMessageSerializer> _serializer;
         private Mock<ITimeProvider> _time;
         private DateTime _now;
+        private MemoryStreamProvider _memoryDir;
 
         private byte[] SerializeMessage(Message message)
         {
@@ -45,6 +48,24 @@ namespace CqrsFramework.Tests.Infrastructure
             }
         }
 
+        private FileMessageInboxWriter CreateWriter()
+        {
+            return new FileMessageInboxWriter(_directory.Object, _serializer.Object, _time.Object);
+        }
+
+        private FileMessageInboxReader CreateReader()
+        {
+            return new FileMessageInboxReader(_directory.Object, _serializer.Object, _time.Object);
+        }
+
+        private Message BuildMessage(string contents)
+        {
+            var message = new Message(contents);
+            message.Headers.CreatedOn = _now;
+            message.Headers.MessageId = Guid.NewGuid();
+            return message;
+        }
+
         [TestInitialize]
         public void Initialize()
         {
@@ -54,6 +75,7 @@ namespace CqrsFramework.Tests.Infrastructure
             _time = _repo.Create<ITimeProvider>();
             _time.Setup(t => t.Get()).Returns(() => _now);
             _now = new DateTime(2013, 6, 5, 15, 2, 8, DateTimeKind.Utc);
+            _memoryDir = new MemoryStreamProvider();
         }
 
         [TestMethod]
@@ -72,7 +94,7 @@ namespace CqrsFramework.Tests.Infrastructure
                 .Returns(messageStream).Verifiable();
             _serializer.Setup(d => d.Serialize(message)).Returns<Message>(SerializeMessage).Verifiable();
 
-            var inbox = new FileMessageInboxWriter(_directory.Object, _serializer.Object, _time.Object);
+            var inbox = CreateWriter();
             inbox.Put(message);
             _repo.Verify();
 
@@ -93,7 +115,7 @@ namespace CqrsFramework.Tests.Infrastructure
                 .Callback<string, FileMode>((s, m) => usedName = s);
             _serializer.Setup(d => d.Serialize(message)).Returns<Message>(SerializeMessage);
 
-            var inbox = new FileMessageInboxWriter(_directory.Object, _serializer.Object, _time.Object);
+            var inbox = CreateWriter();
             inbox.Put(message);
 
             var match = Regex.Match(usedName, @"^([0-9]{17})([0-9]{3}).([0-9a-z]{32}).queuemessage");
@@ -117,7 +139,7 @@ namespace CqrsFramework.Tests.Infrastructure
                 .Setup(d => d.Serialize(It.IsAny<Message>()))
                 .Returns<Message>(SerializeMessage);
 
-            var inbox = new FileMessageInboxWriter(_directory.Object, _serializer.Object, _time.Object);
+            var inbox = CreateWriter();
             inbox.Put(new Message("Hello world"));
             inbox.Put(new Message("See ya"));
 
@@ -143,46 +165,91 @@ namespace CqrsFramework.Tests.Infrastructure
                 "20130605142217214000.a7cf1cd488c843a3b4c202133fc15b7a.queuemessage"
             }).Verifiable();
 
-            var inbox = new FileMessageInboxReader(_directory.Object, _serializer.Object, _time.Object);
+            CreateReader();
             _repo.Verify();
         }
 
-        [TestMethod, Ignore]
+        [TestMethod]
+        [Ignore]
+        [Timeout(1000)]
         public void ReceiveWaitsForPutWhenEmpty()
         {
+            var originalMessage = BuildMessage("Hello world");
+            var streamName = FileMessageInboxReader.CreateQueueName(originalMessage, 0);
+            _serializer.Setup(d => d.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage);
+            _directory.Setup(d => d.GetStreams()).Returns(new string[0]);
+            _directory.Setup(d => d.Open(streamName, FileMode.CreateNew)).Returns<string, FileMode>(_memoryDir.Open);
+            var inbox = CreateReader();
+            var task = inbox.ReceiveAsync(CancellationToken.None);
+            Assert.IsFalse(task.IsCompleted, "Complete at start");
         }
 
-        [TestMethod, Ignore]
+        [TestMethod]
+        [Timeout(1000)]
         public void ReceivesMessageThatWasPresentWhenCreating()
         {
+            var originalMessage = BuildMessage("Hello world");
+            var streamName = FileMessageInboxReader.CreateQueueName(originalMessage, 0);
+            _serializer.Setup(d => d.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage).Verifiable();
+            _directory.Setup(d => d.GetStreams()).Returns(new string[] { streamName }).Verifiable();
+            _directory.Setup(d => d.Open(streamName, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            var inbox = CreateReader();
+            var receivedMessage = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
+            _repo.Verify();
+            AssertExtension.AreEqual(originalMessage, receivedMessage);
         }
 
-        [TestMethod, Ignore]
+        [TestMethod]
+        [Ignore]
+        [Timeout(1000)]
         public void ReceivesMessageThatWasPutJustBeforeReceive()
         {
         }
 
-        [TestMethod, Ignore]
+        [TestMethod]
+        [Timeout(1000)]
         public void ReceiveIsCancellable()
         {
+            var cancel = new CancellationTokenSource();
+            _directory.Setup(d => d.GetStreams()).Returns(new string[0]);
+            var inbox = CreateReader();
+            var task = inbox.ReceiveAsync(cancel.Token);
+            Assert.IsFalse(task.IsCompleted, "Complete at start");
+            cancel.Cancel();
+            try
+            {
+                task.GetAwaiter().GetResult();
+                Assert.Fail("Expected cancel");
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
 
-        [TestMethod, Ignore]
+        [TestMethod]
+        [Ignore]
+        [Timeout(1000)]
         public void ReceivesInOrder()
         {
         }
 
-        [TestMethod, Ignore]
+        [TestMethod]
+        [Ignore]
+        [Timeout(1000)]
         public void DeleteFromQueue()
         {
         }
 
-        [TestMethod, Ignore]
+        [TestMethod]
+        [Ignore]
+        [Timeout(1000)]
         public void PutModifiedMessageBackToQueue()
         {
         }
 
-        [TestMethod, Ignore]
+        [TestMethod]
+        [Ignore]
+        [Timeout(1000)]
         public void PutNewMessageToQueue()
         {
         }
