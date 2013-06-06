@@ -135,10 +135,16 @@ namespace CqrsFramework.Tests.Infrastructure
             }
         }
 
-        [TestMethod, Ignore]
+        [TestMethod]
         public void EnumeratesStreamsOnReaderCreationButDoesNotReadThemUntilReceivingStarts()
         {
-            
+            _directory.Setup(d => d.GetStreams()).Returns(new string[] { 
+                "20130605142218821001.93b55c1a82b293de92093b003a73b12f.queuemessage",
+                "20130605142217214000.a7cf1cd488c843a3b4c202133fc15b7a.queuemessage"
+            }).Verifiable();
+
+            var inbox = new FileMessageInboxReader(_directory.Object, _serializer.Object, _time.Object);
+            _repo.Verify();
         }
 
         [TestMethod, Ignore]

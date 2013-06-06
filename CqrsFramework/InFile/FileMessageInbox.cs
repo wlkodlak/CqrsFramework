@@ -48,6 +48,23 @@ namespace CqrsFramework.InFile
 
     public class FileMessageInboxReader : IMessageInboxReader
     {
+        private IStreamProvider _directory;
+        private IMessageSerializer _serializer;
+        private ITimeProvider _time;
+
+        public FileMessageInboxReader(IStreamProvider directory, IMessageSerializer serializer, ITimeProvider time)
+        {
+            _directory = directory;
+            _serializer = serializer;
+            _time = time;
+            EnumerateDirectory();
+        }
+
+        private void EnumerateDirectory()
+        {
+            _directory.GetStreams();
+        }
+
         public void Delete(Message message)
         {
             throw new NotImplementedException();

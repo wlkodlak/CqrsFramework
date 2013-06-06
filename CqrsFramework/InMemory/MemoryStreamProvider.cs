@@ -66,5 +66,16 @@ namespace CqrsFramework.InMemory
                 _item.Data = ToArray();
             }
         }
+
+
+        public IEnumerable<string> GetStreams()
+        {
+            return _data.Keys.ToList();
+        }
+
+        public void Delete(string name)
+        {
+            _data.Remove(name);
+        }
     }
 }

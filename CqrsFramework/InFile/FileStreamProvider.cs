@@ -26,5 +26,15 @@ namespace CqrsFramework.InFile
                 throw new ArgumentOutOfRangeException(string.Format("{0} is not allowed stream name", name));
             return File.Open(Path.Combine(_basePath, name), fileMode);
         }
+
+        public IEnumerable<string> GetStreams()
+        {
+            return Directory.GetFiles(_basePath);
+        }
+
+        public void Delete(string name)
+        {
+            File.Delete(Path.Combine(_basePath, name));
+        }
     }
 }

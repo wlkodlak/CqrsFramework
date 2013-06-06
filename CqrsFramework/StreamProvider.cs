@@ -10,5 +10,7 @@ namespace CqrsFramework
     public interface IStreamProvider
     {
         Stream Open(string name, FileMode fileMode);
+        IEnumerable<string> GetStreams();
+        void Delete(string name);
     }
 }
