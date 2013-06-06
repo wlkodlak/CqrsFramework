@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="AggregateBase.cs" />
     <Compile Include="EventStore.cs" />
+    <Compile Include="InFile\FileMessageInbox.cs" />
     <Compile Include="InMemory\MemoryInbox.cs" />
     <Compile Include="Messaging.cs" />
     <Compile Include="IndexTable\IdxCell.cs" />

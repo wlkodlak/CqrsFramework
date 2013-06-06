@@ -64,7 +64,7 @@ namespace CqrsFramework.Tests.Messaging
         {
             var serialized = _serializer.Serialize(_message1);
             var deserialized = _serializer.Deserialize(serialized);
-            AssertEqualsDeep(_message1, deserialized);
+            AssertExtension.AreEqual(_message1, deserialized);
         }
 
         [TestMethod]
@@ -72,7 +72,7 @@ namespace CqrsFramework.Tests.Messaging
         {
             var serialized = _serializer.Serialize(_message2);
             var deserialized = _serializer.Deserialize(serialized);
-            AssertEqualsDeep(_message2, deserialized);
+            AssertExtension.AreEqual(_message2, deserialized);
         }
 
         [TestMethod]
@@ -90,7 +90,7 @@ namespace CqrsFramework.Tests.Messaging
                 Serializer.Serialize<TestMessage1>(stream, _contents1);
                 var expected = stream.ToArray();
                 var serialized = _serializer.Serialize(_message1);
-                AssertEqualsBytes(expected, serialized);
+                AssertExtension.AreEqual(expected, serialized);
             }
         }
 
@@ -108,7 +108,7 @@ namespace CqrsFramework.Tests.Messaging
                 Serializer.Serialize<TestMessage2>(stream, _contents2);
 
                 var deserialized = _serializer.Deserialize(stream.ToArray());
-                AssertEqualsDeep(_message2, deserialized);
+                AssertExtension.AreEqual(_message2, deserialized);
             }
         }
 
@@ -139,28 +139,6 @@ namespace CqrsFramework.Tests.Messaging
             {
                 return _stream.ToArray();
             }
-        }
-
-        private void AssertEqualsDeep(Message expected, Message actual)
-        {
-            var comparer = new CompareObjects();
-            comparer.MaxDifferences = 3;
-
-            var expectedHeaders = expected.Headers.ToList();
-            var actualHeaders = actual.Headers.ToList();
-            if (!comparer.Compare(expectedHeaders, actualHeaders))
-                throw new Exception(comparer.DifferencesString);
-            
-            if (!comparer.Compare(expected.Payload, actual.Payload))
-                throw new Exception(comparer.DifferencesString);
-        }
-
-        private void AssertEqualsBytes(byte[] expected, byte[] actual)
-        {
-            var min = Math.Min(expected.Length, actual.Length);
-            for (int i = 0; i < min; i++)
-                Assert.AreEqual(expected[i], actual[i], "Difference at {0}", i);
-            Assert.AreEqual(expected.Length, actual.Length, "Different lengths");
         }
     }
 }
