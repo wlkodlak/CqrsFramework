@@ -49,18 +49,18 @@ namespace CqrsFramework.Tests.Infrastructure
 
         private FileMessageInboxWriter CreateWriter()
         {
-            return new FileMessageInboxWriter(_directory.Object, _serializer.Object, _time.Object);
+            return new FileMessageInboxWriter(_directory.Object, _serializer.Object, _time);
         }
 
         private FileMessageInboxReader CreateReader()
         {
-            return new FileMessageInboxReader(_directory.Object, _serializer.Object, _time.Object);
+            return new FileMessageInboxReader(_directory.Object, _serializer.Object, _time);
         }
 
         private Message BuildMessage(string contents)
         {
             var message = new Message(contents);
-            message.Headers.CreatedOn = _now;
+            message.Headers.CreatedOn = _time.Get();
             message.Headers.MessageId = Guid.NewGuid();
             return message;
         }
@@ -292,7 +292,7 @@ namespace CqrsFramework.Tests.Infrastructure
         {
             var originalMessage = BuildMessage("Message for retry");
             var streamName = FileMessageInboxReader.CreateQueueName(originalMessage, 3);
-            _serializer.Setup(s => s.Serialize(message)).Returns<Message>(SerializeMessage);
+            _serializer.Setup(s => s.Serialize(originalMessage)).Returns<Message>(SerializeMessage);
             _serializer.Setup(s => s.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage).Verifiable();
             _directory.Setup(d => d.GetStreams()).Returns(_memoryDir.GetStreams).Verifiable();
             _directory.Setup(d => d.Open(streamName, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
