@@ -20,9 +20,8 @@ namespace CqrsFramework.Tests.Infrastructure
         private MockRepository _repo;
         private Mock<IStreamProvider> _directory;
         private Mock<IMessageSerializer> _serializer;
-        private Mock<ITimeProvider> _time;
-        private DateTime _now;
         private MemoryStreamProvider _memoryDir;
+        private TestTimeProvider _time;
 
         private byte[] SerializeMessage(Message message)
         {
@@ -72,9 +71,7 @@ namespace CqrsFramework.Tests.Infrastructure
             _repo = new MockRepository(MockBehavior.Strict);
             _directory = _repo.Create<IStreamProvider>();
             _serializer = _repo.Create<IMessageSerializer>();
-            _time = _repo.Create<ITimeProvider>();
-            _time.Setup(t => t.Get()).Returns(() => _now);
-            _now = new DateTime(2013, 6, 5, 15, 2, 8, DateTimeKind.Utc);
+            _time = new TestTimeProvider(new DateTime(2013, 6, 5, 15, 2, 8, DateTimeKind.Utc));
             _memoryDir = new MemoryStreamProvider();
         }
 
@@ -170,7 +167,6 @@ namespace CqrsFramework.Tests.Infrastructure
         }
 
         [TestMethod]
-        [Ignore]
         [Timeout(1000)]
         public void ReceiveWaitsForPutWhenEmpty()
         {
@@ -182,6 +178,10 @@ namespace CqrsFramework.Tests.Infrastructure
             var inbox = CreateReader();
             var task = inbox.ReceiveAsync(CancellationToken.None);
             Assert.IsFalse(task.IsCompleted, "Complete at start");
+            _memoryDir.SetContents(FileMessageInboxReader.CreateQueueName(originalMessage, 0), SerializeMessage(originalMessage));
+            _time.ChangeTime(_time.Get().AddMilliseconds(300));
+            var received = task.GetAwaiter().GetResult();
+            AssertExtension.AreEqual(originalMessage, received);
         }
 
         [TestMethod]
@@ -190,6 +190,7 @@ namespace CqrsFramework.Tests.Infrastructure
         {
             var originalMessage = BuildMessage("Hello world");
             var streamName = FileMessageInboxReader.CreateQueueName(originalMessage, 0);
+            _memoryDir.SetContents(streamName, SerializeMessage(originalMessage));
             _serializer.Setup(d => d.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage).Verifiable();
             _directory.Setup(d => d.GetStreams()).Returns(new string[] { streamName }).Verifiable();
             _directory.Setup(d => d.Open(streamName, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
@@ -200,10 +201,19 @@ namespace CqrsFramework.Tests.Infrastructure
         }
 
         [TestMethod]
-        [Ignore]
         [Timeout(1000)]
         public void ReceivesMessageThatWasPutJustBeforeReceive()
         {
+            var originalMessage = BuildMessage("Fresh message");
+            var streamName = FileMessageInboxReader.CreateQueueName(originalMessage, 1);
+            _serializer.Setup(d => d.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage).Verifiable();
+            _directory.Setup(d => d.GetStreams()).Returns(new string[] { streamName }).Verifiable();
+            _directory.Setup(d => d.Open(streamName, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            var inbox = CreateReader();
+            _memoryDir.SetContents(streamName, SerializeMessage(originalMessage));
+            var receivedMessage = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
+            _repo.Verify();
+            AssertExtension.AreEqual(originalMessage, receivedMessage);
         }
 
         [TestMethod]
@@ -227,31 +237,93 @@ namespace CqrsFramework.Tests.Infrastructure
         }
 
         [TestMethod]
-        [Ignore]
         [Timeout(1000)]
         public void ReceivesInOrder()
         {
+            var message1 = BuildMessage("Message1");
+            message1.Headers.CreatedOn += TimeSpan.FromSeconds(-3);
+            var message2 = BuildMessage("Message2");
+            message2.Headers.CreatedOn += TimeSpan.FromSeconds(-2);
+            var message3 = BuildMessage("Message3");
+            message3.Headers.CreatedOn += TimeSpan.FromSeconds(-1);
+            var name1 = FileMessageInboxReader.CreateQueueName(message1, 1);
+            var name2 = FileMessageInboxReader.CreateQueueName(message2, 1);
+            var name3 = FileMessageInboxReader.CreateQueueName(message3, 1);
+            _memoryDir.SetContents(name1, SerializeMessage(message1));
+            _memoryDir.SetContents(name2, SerializeMessage(message2));
+            _serializer.Setup(s => s.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage);
+            _directory.Setup(d => d.GetStreams()).Returns(_memoryDir.GetStreams).Verifiable();
+            _directory.Setup(d => d.Open(name1, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            _directory.Setup(d => d.Open(name2, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            _directory.Setup(d => d.Open(name3, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            var inbox = CreateReader();
+            var received1 = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
+            _memoryDir.SetContents(name3, SerializeMessage(message3));
+            var received2 = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
+            var received3 = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
+            _serializer.Verify(s => s.Deserialize(It.IsAny<byte[]>()), Times.Exactly(3));
+            _repo.Verify();
+            AssertExtension.AreEqual(message1, received1);
+            AssertExtension.AreEqual(message2, received2);
+            AssertExtension.AreEqual(message3, received3);
         }
 
         [TestMethod]
-        [Ignore]
         [Timeout(1000)]
         public void DeleteFromQueue()
         {
+            var originalMessage = BuildMessage("Message for deletion");
+            var streamName = FileMessageInboxReader.CreateQueueName(originalMessage, 1);
+            _memoryDir.SetContents(streamName, SerializeMessage(originalMessage));
+            _serializer.Setup(s => s.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage);
+            _directory.Setup(d => d.GetStreams()).Returns(_memoryDir.GetStreams).Verifiable();
+            _directory.Setup(d => d.Open(streamName, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            _directory.Setup(d => d.Delete(streamName)).Verifiable();
+            var inbox = CreateReader();
+            var received = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
+            inbox.Delete(received);
+            _repo.Verify();
+            Assert.IsTrue(_memoryDir.GetContents(streamName) == null);
         }
 
         [TestMethod]
-        [Ignore]
         [Timeout(1000)]
         public void PutModifiedMessageBackToQueue()
         {
+            var originalMessage = BuildMessage("Message for retry");
+            var streamName = FileMessageInboxReader.CreateQueueName(originalMessage, 3);
+            _serializer.Setup(s => s.Serialize(message)).Returns<Message>(SerializeMessage);
+            _serializer.Setup(s => s.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage).Verifiable();
+            _directory.Setup(d => d.GetStreams()).Returns(_memoryDir.GetStreams).Verifiable();
+            _directory.Setup(d => d.Open(streamName, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            _directory.Setup(d => d.Open(streamName, FileMode.Create)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            var inbox = CreateReader();
+            var received = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
+            received.Headers.DeliverOn = received.Headers.CreatedOn.AddSeconds(40);
+            received.Headers.RetryNumber = 3;
+            inbox.Put(received);
+            _repo.Verify();
+            var stored = DeserializeMessage(_memoryDir.GetContents(streamName));
+            Assert.AreEqual(3, received.Headers.RetryNumber);
+            Assert.AreEqual(_time.Get().AddSeconds(40), received.Headers.DeliverOn);
+            Assert.AreEqual("Message for retry", received.Payload);
         }
 
         [TestMethod]
-        [Ignore]
         [Timeout(1000)]
         public void PutNewMessageToQueue()
         {
+            var message = new Message("New message");
+            _serializer.Setup(s => s.Serialize(message)).Returns<Message>(SerializeMessage);
+            _directory.Setup(d => d.GetStreams()).Returns(_memoryDir.GetStreams).Verifiable();
+            _directory.Setup(d => d.Open(It.IsAny<string>(), FileMode.Create)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            var inbox = CreateReader();
+            inbox.Put(message);
+            _repo.Verify();
+            Assert.AreNotEqual(DateTime.MinValue, message.Headers.CreatedOn, "Creation date");
+            Assert.AreNotEqual(Guid.Empty, message.Headers.MessageId, "MessageId");
+            var streamName = _memoryDir.GetStreams().FirstOrDefault();
+            Assert.IsNotNull(streamName, "New item created");
         }
     }
 }

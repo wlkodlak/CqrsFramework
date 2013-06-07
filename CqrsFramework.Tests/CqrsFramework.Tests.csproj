@@ -118,6 +118,7 @@
     <Compile Include="EventStore\EventStoreTableTest.cs" />
     <Compile Include="Infrastructure\TableProviderInSqlTest.cs" />
     <Compile Include="Infrastructure\TableProviderMemoryTest.cs" />
+    <Compile Include="TestTimeProvider.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqrsFramework\CqrsFramework.csproj">
