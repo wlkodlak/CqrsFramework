@@ -31,8 +31,8 @@ namespace CqrsFramework.Tests
         public void ChangeTime(DateTime newTime)
         {
             _now = newTime;
-            var ready = _tasks.Where(t => t.Time >= _now && !t.Cancelled).OrderBy(t => t.Time).ToList();
-            _tasks.RemoveAll(t => t.Time >= _now);
+            var ready = _tasks.Where(t => t.Time <= _now && !t.Cancelled).OrderBy(t => t.Time).ToList();
+            _tasks.RemoveAll(t => t.Time <= _now);
             foreach (var task in ready)
                 task.TaskSource.TrySetResult(null);
         }

@@ -155,26 +155,14 @@ namespace CqrsFramework.Tests.Infrastructure
         }
 
         [TestMethod]
-        public void EnumeratesStreamsOnReaderCreationButDoesNotReadThemUntilReceivingStarts()
-        {
-            _directory.Setup(d => d.GetStreams()).Returns(new string[] { 
-                "20130605142218821001.93b55c1a82b293de92093b003a73b12f.queuemessage",
-                "20130605142217214000.a7cf1cd488c843a3b4c202133fc15b7a.queuemessage"
-            }).Verifiable();
-
-            CreateReader();
-            _repo.Verify();
-        }
-
-        [TestMethod]
         [Timeout(1000)]
         public void ReceiveWaitsForPutWhenEmpty()
         {
             var originalMessage = BuildMessage("Hello world");
             var streamName = FileMessageInboxReader.CreateQueueName(originalMessage, 0);
             _serializer.Setup(d => d.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage);
-            _directory.Setup(d => d.GetStreams()).Returns(new string[0]);
-            _directory.Setup(d => d.Open(streamName, FileMode.CreateNew)).Returns<string, FileMode>(_memoryDir.Open);
+            _directory.Setup(d => d.GetStreams()).Returns(_memoryDir.GetStreams);
+            _directory.Setup(d => d.Open(streamName, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open);
             var inbox = CreateReader();
             var task = inbox.ReceiveAsync(CancellationToken.None);
             Assert.IsFalse(task.IsCompleted, "Complete at start");
@@ -246,9 +234,12 @@ namespace CqrsFramework.Tests.Infrastructure
             message2.Headers.CreatedOn += TimeSpan.FromSeconds(-2);
             var message3 = BuildMessage("Message3");
             message3.Headers.CreatedOn += TimeSpan.FromSeconds(-1);
+            var message4 = BuildMessage("Message3");
+            message4.Headers.CreatedOn += TimeSpan.FromSeconds(1);
             var name1 = FileMessageInboxReader.CreateQueueName(message1, 1);
             var name2 = FileMessageInboxReader.CreateQueueName(message2, 1);
             var name3 = FileMessageInboxReader.CreateQueueName(message3, 1);
+            var name4 = FileMessageInboxReader.CreateQueueName(message4, 1);
             _memoryDir.SetContents(name1, SerializeMessage(message1));
             _memoryDir.SetContents(name2, SerializeMessage(message2));
             _serializer.Setup(s => s.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage);
@@ -256,16 +247,22 @@ namespace CqrsFramework.Tests.Infrastructure
             _directory.Setup(d => d.Open(name1, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
             _directory.Setup(d => d.Open(name2, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
             _directory.Setup(d => d.Open(name3, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            _directory.Setup(d => d.Open(name4, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
             var inbox = CreateReader();
             var received1 = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
             _memoryDir.SetContents(name3, SerializeMessage(message3));
             var received2 = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
             var received3 = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
-            _serializer.Verify(s => s.Deserialize(It.IsAny<byte[]>()), Times.Exactly(3));
+            var task4 = inbox.ReceiveAsync(CancellationToken.None);
+            _memoryDir.SetContents(name4, SerializeMessage(message4));
+            _time.ChangeTime(_time.Get().AddMilliseconds(300));
+            var received4 = task4.GetAwaiter().GetResult();
+            _serializer.Verify(s => s.Deserialize(It.IsAny<byte[]>()), Times.Exactly(4));
             _repo.Verify();
             AssertExtension.AreEqual(message1, received1);
             AssertExtension.AreEqual(message2, received2);
             AssertExtension.AreEqual(message3, received3);
+            AssertExtension.AreEqual(message4, received4);
         }
 
         [TestMethod]
@@ -278,7 +275,7 @@ namespace CqrsFramework.Tests.Infrastructure
             _serializer.Setup(s => s.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage);
             _directory.Setup(d => d.GetStreams()).Returns(_memoryDir.GetStreams).Verifiable();
             _directory.Setup(d => d.Open(streamName, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
-            _directory.Setup(d => d.Delete(streamName)).Verifiable();
+            _directory.Setup(d => d.Delete(streamName)).Callback<string>(_memoryDir.Delete).Verifiable();
             var inbox = CreateReader();
             var received = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
             inbox.Delete(received);
@@ -292,7 +289,8 @@ namespace CqrsFramework.Tests.Infrastructure
         {
             var originalMessage = BuildMessage("Message for retry");
             var streamName = FileMessageInboxReader.CreateQueueName(originalMessage, 3);
-            _serializer.Setup(s => s.Serialize(originalMessage)).Returns<Message>(SerializeMessage);
+            _memoryDir.SetContents(streamName, SerializeMessage(originalMessage));
+            _serializer.Setup(s => s.Serialize(It.IsAny<Message>())).Returns<Message>(SerializeMessage);
             _serializer.Setup(s => s.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage).Verifiable();
             _directory.Setup(d => d.GetStreams()).Returns(_memoryDir.GetStreams).Verifiable();
             _directory.Setup(d => d.Open(streamName, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
@@ -315,8 +313,12 @@ namespace CqrsFramework.Tests.Infrastructure
         {
             var message = new Message("New message");
             _serializer.Setup(s => s.Serialize(message)).Returns<Message>(SerializeMessage);
-            _directory.Setup(d => d.GetStreams()).Returns(_memoryDir.GetStreams).Verifiable();
-            _directory.Setup(d => d.Open(It.IsAny<string>(), FileMode.Create)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            _directory
+                .Setup(d => d.Open(
+                    It.IsAny<string>(),
+                    It.Is<FileMode>(m => m == FileMode.Create || m == FileMode.CreateNew)))
+                .Returns<string, FileMode>(_memoryDir.Open)
+                .Verifiable();
             var inbox = CreateReader();
             inbox.Put(message);
             _repo.Verify();
