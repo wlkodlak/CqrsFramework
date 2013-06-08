@@ -49,6 +49,7 @@ namespace CqrsFramework.InFile
         private object _lock = new object();
         private readonly TimeSpan _checkInterval = TimeSpan.FromMilliseconds(100);
         private Task _timerTask;
+        private CancellationToken _cancelToken;
         private CancellationTokenRegistration _cancelRegistration;
         private HashSet<string> _unconfirmedStreamNames;
         private Dictionary<Guid, string> _unconfirmedMessages;
@@ -117,6 +118,7 @@ namespace CqrsFramework.InFile
                 var nextStream = GetNextStreamName();
                 if (nextStream == null)
                 {
+                    _cancelToken = token;
                     _cancelRegistration = token.Register(CancelHandler);
                     _timerTask = _time.WaitUntil(_time.Get().Add(_checkInterval), token);
                     _timerTask.ContinueWith(TimerHandler, token, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Current);
@@ -146,16 +148,27 @@ namespace CqrsFramework.InFile
 
         private void TimerHandler(Task timerTask)
         {
+            if (timerTask != _timerTask || timerTask.IsCanceled)
+                return;
             TaskCompletionSource<Message> task = null;
             Message message = null;
             lock (_lock)
             {
                 var nextStream = GetNextStreamName();
-                message = ReadMessage(nextStream);
-                _cancelRegistration.Dispose();
-                task = _task;
-                _unconfirmedMessages[message.Headers.MessageId] = nextStream;
-                _task = null;
+                if (nextStream != null)
+                {
+                    message = ReadMessage(nextStream);
+                    _cancelRegistration.Dispose();
+                    task = _task;
+                    _unconfirmedMessages[message.Headers.MessageId] = nextStream;
+                    _unconfirmedStreamNames.Add(nextStream);
+                    _task = null;
+                }
+                else
+                {
+                    _timerTask = _time.WaitUntil(_time.Get().Add(_checkInterval), _cancelToken);
+                    _timerTask.ContinueWith(TimerHandler, _cancelToken, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Current);
+                }
             }
             if (task != null && message != null)
                 task.SetResult(message);
