@@ -74,17 +74,18 @@ namespace CqrsFramework.Tests.Infrastructure
             _table.Setup(t => t.NewRow()).Returns(CreateTableRow);
             _table.Setup(t => t.GetColumns()).Returns(new TableProviderColumn[]
             {
-                new TableProviderColumn(1, "deliveron", typeof(long), false),
-                new TableProviderColumn(2, "status", typeof(int), false),
-                new TableProviderColumn(3, "data", typeof(byte[]), false),
-                new TableProviderColumn(4, "queue", typeof(string), false)
+                new TableProviderColumn(1, "queue", typeof(string), false),
+                new TableProviderColumn(2, "messageid", typeof(string), false),
+                new TableProviderColumn(3, "deliveron", typeof(long), false),
+                new TableProviderColumn(4, "status", typeof(int), false),
+                new TableProviderColumn(5, "data", typeof(byte[]), false),
             });
             _table.Setup(t => t.GetRows()).Returns(new TableProviderFilterable(_table.Object));
         }
 
         private TableProviderRow CreateTableRow()
         {
-            return new TableProviderRow(_table.Object, 0, new object[4] { 0, 0, null, null });
+            return new TableProviderRow(_table.Object, 0, new object[5] { null, Guid.Empty.ToString("D"), 0, 0, null });
         }
 
         private TableProviderFilter[] MatchAllMessages()
@@ -99,9 +100,9 @@ namespace CqrsFramework.Tests.Infrastructure
             bool queueValid = false;
             foreach (var filter in filters)
             {
-                if (filter.ColumnIndex == 2)
+                if (filter.ColumnIndex == 4)
                     return false;
-                else if (filter.ColumnIndex == 4)
+                else if (filter.ColumnIndex == 1)
                 {
                     if (filter.Type != TableProviderFilterType.Exact || (string)filter.MinValue != _queueName)
                         return false;
@@ -124,13 +125,13 @@ namespace CqrsFramework.Tests.Infrastructure
             bool queueValid = false;
             foreach (var filter in filters)
             {
-                if (filter.ColumnIndex == 2)
+                if (filter.ColumnIndex == 4)
                 {
                     if (filter.Type != TableProviderFilterType.Exact || (int)filter.MinValue != 0)
                         return false;
                     statusValid = true;
                 }
-                else if (filter.ColumnIndex == 4)
+                else if (filter.ColumnIndex == 1)
                 {
                     if (filter.Type != TableProviderFilterType.Exact || (string)filter.MinValue != _queueName)
                         return false;
@@ -148,13 +149,14 @@ namespace CqrsFramework.Tests.Infrastructure
         private void AddMessageRow(List<TableProviderRow> rows, Message message, int status = 0)
         {
             var row = CreateTableRow();
+            row["queue"] = _queueName;
+            row["messageid"] = message.Headers.MessageId.ToString("D");
             if (message.Headers.DeliverOn == DateTime.MinValue)
-                row[1] = message.Headers.CreatedOn.Ticks;
+                row["deliveron"] = message.Headers.CreatedOn.Ticks;
             else
-                row[1] = message.Headers.DeliverOn.Ticks;
-            row[2] = status;
-            row[3] = SerializeMessage(message);
-            row[4] = _queueName;
+                row["deliveron"] = message.Headers.DeliverOn.Ticks;
+            row["status"] = status;
+            row["data"] = SerializeMessage(message);
             rows.Add(row);
         }
         
@@ -186,6 +188,7 @@ namespace CqrsFramework.Tests.Infrastructure
             _repo.Verify();
 
             Assert.IsNotNull(createdRow, "Row inserted");
+            Assert.AreEqual(message.Headers.MessageId.ToString("D"), createdRow.Get<string>("messageid"), "MessageId");
             Assert.AreEqual(new DateTime(2013, 6, 3, 17, 22, 54, 124).Ticks, createdRow.Get<long>("deliveron"), "DeliverOn");
             Assert.AreEqual(0, createdRow.Get<int>("status"), "Status");
             AssertExtension.AreEqual(expectedBytes, createdRow.Get<byte[]>("data"), "Data");
@@ -210,6 +213,7 @@ namespace CqrsFramework.Tests.Infrastructure
             Assert.AreEqual(_queueName, createdRow.Get<string>("queue"), "Queue");
             var putMessage = DeserializeMessage(createdRow.Get<byte[]>("data"));
             Assert.AreNotEqual(Guid.Empty, putMessage.Headers.MessageId, "MessageId");
+            Assert.AreEqual(putMessage.Headers.MessageId.ToString("D"), createdRow.Get<string>("messageid"), "Table MessageId");
             Assert.AreEqual(_time.Get(), putMessage.Headers.CreatedOn, "CreatedOn");
         }
 
@@ -393,6 +397,7 @@ namespace CqrsFramework.Tests.Infrastructure
             Assert.AreEqual(_time.Get().AddSeconds(40), received.Headers.DeliverOn, "DeliverOn");
             Assert.AreEqual(_time.Get().AddSeconds(40).Ticks, putMessage.Get<long>("deliveron"), "Delivery column");
             Assert.AreEqual("Message for retry", received.Payload, "Payload");
+            Assert.AreEqual(received.Headers.MessageId.ToString("D"), putMessage.Get<string>("messageid"), "Table MessageId");
         }
 
         [TestMethod]
@@ -414,6 +419,7 @@ namespace CqrsFramework.Tests.Infrastructure
             Assert.AreNotEqual(DateTime.MinValue, putMessage.Headers.CreatedOn, "Creation date");
             Assert.AreNotEqual(Guid.Empty, putMessage.Headers.MessageId, "MessageId");
             Assert.AreEqual("New message", putMessage.Payload, "Payload");
+            Assert.AreEqual(putMessage.Headers.MessageId.ToString("D"), putRow.Get<string>("messageid"), "Table MessageId");
         }
     }
 }

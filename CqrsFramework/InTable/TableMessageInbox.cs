@@ -143,6 +143,7 @@ namespace CqrsFramework.InTable
                 message.Headers.CreatedOn = _time.Get();
             var deliveron = message.Headers.DeliverOn == DateTime.MinValue ? message.Headers.CreatedOn : message.Headers.DeliverOn;
             var row = _table.NewRow();
+            row["messageid"] = message.Headers.MessageId.ToString("D");
             row["deliveron"] = deliveron.Ticks;
             row["status"] = 0;
             row["data"] = _serializer.Serialize(message);
