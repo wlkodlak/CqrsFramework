@@ -152,26 +152,42 @@ namespace CqrsFramework.InFile
                 return;
             TaskCompletionSource<Message> task = null;
             Message message = null;
+            Exception exception = null;
             lock (_lock)
             {
-                var nextStream = GetNextStreamName();
-                if (nextStream != null)
+                try
                 {
-                    message = ReadMessage(nextStream);
-                    _cancelRegistration.Dispose();
-                    task = _task;
-                    _unconfirmedMessages[message.Headers.MessageId] = nextStream;
-                    _unconfirmedStreamNames.Add(nextStream);
-                    _task = null;
+                    var nextStream = GetNextStreamName();
+                    if (nextStream != null)
+                    {
+                        message = ReadMessage(nextStream);
+                        _cancelRegistration.Dispose();
+                        task = _task;
+                        _unconfirmedMessages[message.Headers.MessageId] = nextStream;
+                        _unconfirmedStreamNames.Add(nextStream);
+                        _task = null;
+                    }
+                    else
+                    {
+                        _timerTask = _time.WaitUntil(_time.Get().Add(_checkInterval), _cancelToken);
+                        _timerTask.ContinueWith(TimerHandler, _cancelToken, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Current);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _timerTask = _time.WaitUntil(_time.Get().Add(_checkInterval), _cancelToken);
-                    _timerTask.ContinueWith(TimerHandler, _cancelToken, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Current);
+                    exception = ex;
+                    task = _task;
+                    _task = null;
+                    _cancelRegistration.Dispose();
                 }
             }
-            if (task != null && message != null)
-                task.SetResult(message);
+            if (task != null)
+            {
+                if (message != null)
+                    task.SetResult(message);
+                else if (exception != null)
+                    task.SetException(exception);
+            }
         }
 
         private Message ReadMessage(string streamName)

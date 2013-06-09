@@ -99,13 +99,17 @@ namespace CqrsFramework.Tests.Messaging
             ScheduleMessage(delayed, messages[3], true, null);
             var task4 = delayed.ReceiveAsync(_cancel.Token);
             VerifySchedule(messages[3], true);
-            MoveTime(messages[3]);
+            MoveTime(messages[3], true);
+            MoveTime(messages[3], false);
             Assert.AreSame(messages[3], task4.GetAwaiter().GetResult());
         }
 
-        private void MoveTime(Message message)
+        private void MoveTime(Message message, bool justBefore = false)
         {
-            _time.ChangeTime(message.Headers.DeliverOn);
+            var newTime = message.Headers.DeliverOn;
+            if (justBefore)
+                newTime = newTime.AddMilliseconds(-500);
+            _time.ChangeTime(newTime);
         }
 
         private void ScheduleMessage(DelayedMessages delayed, Message message, bool shouldSetTimer, Message cancelledTime)

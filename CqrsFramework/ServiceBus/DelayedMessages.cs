@@ -147,24 +147,39 @@ namespace CqrsFramework.ServiceBus
             if (task.IsCanceled)
                 return;
             TaskCompletionSource<Message> resultTask;
-            Message resultMessage;
+            Message resultMessage = null;
+            Exception exception = null;
 
             lock (_lock)
             {
-                if (_state != State.TimerWait || task != _timerTask)
-                    return;
-                var now = _time.Get();
-                foreach (var message in _future.GetOlder(now))
-                    _ready.Enqueue(message.Message);
-                _future.RemoveOlder(now);
-                _timerTaskCancel.Dispose();
-                _receiveCancelRegistration.Dispose();
-                resultTask = _receiveTask;
-                resultMessage = _ready.Dequeue();
-                _state = State.Nowait;
+                try
+                {
+                    if (_state != State.TimerWait || task != _timerTask)
+                        return;
+                    var now = _time.Get();
+                    foreach (var message in _future.GetOlder(now))
+                        _ready.Enqueue(message.Message);
+                    _future.RemoveOlder(now);
+                    _timerTaskCancel.Dispose();
+                    _receiveCancelRegistration.Dispose();
+                    resultTask = _receiveTask;
+                    resultMessage = _ready.Dequeue();
+                    _state = State.Nowait;
+                }
+                catch (Exception ex)
+                {
+                    _timerTaskCancel.Dispose();
+                    _receiveCancelRegistration.Dispose();
+                    resultTask = _receiveTask;
+                    exception = ex;
+                    _state = State.Nowait;
+                }
             }
 
-            resultTask.TrySetResult(resultMessage);
+            if (resultMessage != null)
+                resultTask.TrySetResult(resultMessage);
+            else if (exception != null)
+                resultTask.SetException(exception);
         }
 
         public void Add(DateTime time, Message message)

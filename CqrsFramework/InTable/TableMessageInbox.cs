@@ -106,14 +106,29 @@ namespace CqrsFramework.InTable
                 return;
             TaskCompletionSource<Message> task = null;
             Message message = null;
+            Exception exception = null;
             lock (_lock)
             {
-                message = GetNextMessage();
-                task = _task;
-                _cancelRegistration.Dispose();
+                try
+                {
+                    message = GetNextMessage();
+                    task = _task;
+                    _cancelRegistration.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    task = _task;
+                    _cancelRegistration.Dispose();
+                    exception = ex;
+                }
             }
-            if (task != null && message != null)
-                task.SetResult(message);
+            if (task != null)
+            {
+                if (message != null)
+                    task.SetResult(message);
+                else if (exception != null)
+                    task.SetException(exception);
+            }
         }
 
         public void Put(Message message)
