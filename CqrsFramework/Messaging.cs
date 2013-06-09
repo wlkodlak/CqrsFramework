@@ -52,4 +52,18 @@ namespace CqrsFramework
         byte[] Serialize(Message message);
         Message Deserialize(byte[] message);
     }
+
+    public interface IMessageBodySerializer
+    {
+        byte[] Serialize(object payload, MessageHeaders headers);
+        object Deserialize(byte[] serialized, MessageHeaders headers);
+    }
+
+    public interface IMessageTypeResolver
+    {
+        Type GetType(string name);
+        string GetName(Type type);
+        void RegisterType(Type type, string name, params string[] tags);
+        string[] GetTags(string name);
+    }
 }
