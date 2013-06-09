@@ -18,6 +18,8 @@ namespace CqrsFramework.InTable
         private readonly TimeSpan _checkInterval = TimeSpan.FromMilliseconds(100);
         private Task _timerTask;
         private Dictionary<Guid, TableProviderRow> _receivedMessages = new Dictionary<Guid, TableProviderRow>();
+        private Queue<TableProviderRow> _messagesForReceive = new Queue<TableProviderRow>();
+        private bool _oldMessagesLoaded = false;
 
         public TableMessageInbox(ITableProvider table, IMessageSerializer serializer, ITimeProvider time)
         {
@@ -39,7 +41,7 @@ namespace CqrsFramework.InTable
             lock (_lock)
             {
                 _task = new TaskCompletionSource<Message>();
-                var message = GetNextMessage(true);
+                var message = GetNextMessage();
                 if (message == null)
                 {
                     _cancelRegistration = token.Register(CancelHandler);
@@ -54,21 +56,33 @@ namespace CqrsFramework.InTable
             }
         }
 
-        private Message GetNextMessage(bool fromAll)
+        private Message GetNextMessage()
         {
-            var filterable = _table.GetRows();
-            if (!fromAll)
-                filterable = filterable.Where("status").Is(0);
-            var row = filterable.FirstOrDefault();
-            if (row != null)
+            TableProviderRow receivedRow = null;
+            if (_messagesForReceive.Count > 0)
+                receivedRow = _messagesForReceive.Dequeue();
+            else
             {
-                row["status"] = 2;
-                _table.Update(row);
+                var filterable = _table.GetRows();
+                if (_oldMessagesLoaded)
+                    filterable = filterable.Where("status").Is(0);
+                foreach (var row in filterable)
+                    _messagesForReceive.Enqueue(row);
+                _oldMessagesLoaded = true;
+                if (_messagesForReceive.Count > 0)
+                    receivedRow = _messagesForReceive.Dequeue();
             }
-            var message = MessageFromRow(row);
-            if (message != null)
-                _receivedMessages[message.Headers.MessageId] = row;
-            return message;
+
+            if (receivedRow != null)
+            {
+                receivedRow["status"] = 1;
+                _table.Update(receivedRow);
+                var message = MessageFromRow(receivedRow);
+                _receivedMessages[message.Headers.MessageId] = receivedRow;
+                return message;
+            }
+            else
+                return null;
         }
 
         private Message MessageFromRow(TableProviderRow row)
@@ -89,7 +103,7 @@ namespace CqrsFramework.InTable
             Message message = null;
             lock (_lock)
             {
-                message = GetNextMessage(false);
+                message = GetNextMessage();
                 task = _task;
                 _cancelRegistration.Dispose();
             }
@@ -110,12 +124,10 @@ namespace CqrsFramework.InTable
         private void ReplaceOldMessage(Message message, TableProviderRow oldRow)
         {
             var deliverOn = message.Headers.DeliverOn == DateTime.MinValue ? message.Headers.CreatedOn : message.Headers.DeliverOn;
-            var newRow = _table.NewRow();
-            newRow[1] = deliverOn;
-            newRow[2] = 1;
-            newRow[3] = _serializer.Serialize(message);
-            _table.Insert(newRow);
-            _table.Delete(oldRow);
+            oldRow[1] = deliverOn.Ticks;
+            oldRow[2] = 0;
+            oldRow[3] = _serializer.Serialize(message);
+            _table.Update(oldRow);
         }
 
         private void PutNewMessage(Message message)

@@ -119,10 +119,10 @@ namespace CqrsFramework.Tests.Infrastructure
         
         private void RemoveReceivedRowFromNewMessages(List<TableProviderRow> rows, TableProviderRow row)
         {
-            if (row.Get<int>("status") == 2)
+            if (row.Get<int>("status") != 0)
                 rows.Remove(row);
             else
-                throw new InvalidOperationException("Message must have status 2");
+                throw new InvalidOperationException("Message must not have status 0");
         }
 
 
@@ -241,7 +241,6 @@ namespace CqrsFramework.Tests.Infrastructure
             }
         }
 
-#if false
         [TestMethod]
         [Timeout(1000)]
         public void ReceivesInOrder()
@@ -254,25 +253,34 @@ namespace CqrsFramework.Tests.Infrastructure
             message3.Headers.CreatedOn += TimeSpan.FromSeconds(-1);
             var message4 = BuildMessage("Message3");
             message4.Headers.CreatedOn += TimeSpan.FromSeconds(1);
-            var name1 = FileMessageInboxReader.CreateQueueName(message1, 1);
-            var name2 = FileMessageInboxReader.CreateQueueName(message2, 1);
-            var name3 = FileMessageInboxReader.CreateQueueName(message3, 1);
-            var name4 = FileMessageInboxReader.CreateQueueName(message4, 1);
-            _memoryDir.SetContents(name1, SerializeMessage(message1));
-            _memoryDir.SetContents(name2, SerializeMessage(message2));
+            var messagesTable = new List<TableProviderRow>();
+            var receivedMessages = new HashSet<TableProviderRow>();
+            AddMessageRow(messagesTable, message1, 2);
+            AddMessageRow(messagesTable, message2, 1);
             _serializer.Setup(s => s.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage);
-            _directory.Setup(d => d.GetStreams()).Returns(_memoryDir.GetStreams).Verifiable();
-            _directory.Setup(d => d.Open(name1, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
-            _directory.Setup(d => d.Open(name2, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
-            _directory.Setup(d => d.Open(name3, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
-            _directory.Setup(d => d.Open(name4, FileMode.Open)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
+            _table
+                .Setup(t => t.GetRows(MatchAllMessages()))
+                .Returns(() => messagesTable.ToArray())
+                .Verifiable();
+            _table
+                .Setup(t => t.GetRows(MatchNewMessages()))
+                .Returns(() => messagesTable.Where(r => r.Get<int>("status") < 1).ToArray())
+                .Verifiable();
+            _table
+                .Setup(t => t.Update(It.Is<TableProviderRow>(r => messagesTable.Contains(r) && r.Get<int>("status") != 0)))
+                .Callback<TableProviderRow>(r =>
+                {
+                    if (!receivedMessages.Add(r))
+                        throw new InvalidOperationException("Row was already updated");
+                })
+                .Verifiable();
             var inbox = CreateReader();
             var received1 = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
-            _memoryDir.SetContents(name3, SerializeMessage(message3));
+            AddMessageRow(messagesTable, message3);
             var received2 = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
             var received3 = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
             var task4 = inbox.ReceiveAsync(CancellationToken.None);
-            _memoryDir.SetContents(name4, SerializeMessage(message4));
+            AddMessageRow(messagesTable, message4);
             _time.ChangeTime(_time.Get().AddMilliseconds(300));
             var received4 = task4.GetAwaiter().GetResult();
             _serializer.Verify(s => s.Deserialize(It.IsAny<byte[]>()), Times.Exactly(4));
@@ -282,7 +290,6 @@ namespace CqrsFramework.Tests.Infrastructure
             AssertExtension.AreEqual(message3, received3);
             AssertExtension.AreEqual(message4, received4);
         }
-#endif
 
         [TestMethod]
         [Timeout(1000)]
@@ -312,6 +319,7 @@ namespace CqrsFramework.Tests.Infrastructure
             var newMessages = new List<TableProviderRow>();
             var receivedMessages = new List<TableProviderRow>();
             TableProviderRow putMessage = null;
+            bool receivedMessageDropped = false;
             AddMessageRow(newMessages, originalMessage);
             _serializer.Setup(s => s.Serialize(It.IsAny<Message>())).Returns<Message>(SerializeMessage);
             _serializer.Setup(s => s.Deserialize(It.IsAny<byte[]>())).Returns<byte[]>(DeserializeMessage).Verifiable();
@@ -319,19 +327,29 @@ namespace CqrsFramework.Tests.Infrastructure
             _table.Setup(t => t.Update(MatchFrom(newMessages)))
                 .Callback<TableProviderRow>(r => { RemoveReceivedRowFromNewMessages(newMessages, r); receivedMessages.Add(r); })
                 .Verifiable();
-            _table.Setup(t => t.Delete(MatchFrom(receivedMessages))).Verifiable();
-            _table.Setup(t => t.Insert(It.IsAny<TableProviderRow>())).Callback<TableProviderRow>(r => putMessage = r).Verifiable();
+            _table
+                .Setup(t => t.Delete(MatchFrom(receivedMessages)))
+                .Callback<TableProviderRow>(m => receivedMessageDropped = true);
+            _table
+                .Setup(t => t.Insert(It.IsAny<TableProviderRow>()))
+                .Callback<TableProviderRow>(r => putMessage = r);
+            _table
+                .Setup(t => t.Update(MatchFrom(receivedMessages)))
+                .Callback<TableProviderRow>(r => { putMessage = r; receivedMessageDropped = true; });
             var inbox = CreateReader();
             var received = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
             received.Headers.DeliverOn = received.Headers.CreatedOn.AddSeconds(40);
             received.Headers.RetryNumber = 3;
             inbox.Put(received);
             _repo.Verify();
+            Assert.IsTrue(receivedMessageDropped, "Original deleted or replaced");
+            Assert.IsNotNull(putMessage, "New version of message saved");
             var stored = DeserializeMessage(putMessage.Get<byte[]>("data"));
-            Assert.AreEqual(1, putMessage.Get<int>("status"));
-            Assert.AreEqual(3, received.Headers.RetryNumber);
-            Assert.AreEqual(_time.Get().AddSeconds(40), received.Headers.DeliverOn);
-            Assert.AreEqual("Message for retry", received.Payload);
+            Assert.AreEqual(0, putMessage.Get<int>("status"), "Status");
+            Assert.AreEqual(3, received.Headers.RetryNumber, "Retry");
+            Assert.AreEqual(_time.Get().AddSeconds(40), received.Headers.DeliverOn, "DeliverOn");
+            Assert.AreEqual(_time.Get().AddSeconds(40).Ticks, putMessage.Get<long>("deliveron"), "Delivery column");
+            Assert.AreEqual("Message for retry", received.Payload, "Payload");
         }
 
         [TestMethod]

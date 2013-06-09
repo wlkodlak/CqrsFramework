@@ -23,16 +23,16 @@ namespace CqrsFramework
         private ITableProvider _table;
         private int _rowNumber;
         private object[] _data;
-        private Dictionary<string, int> _columnNames;
+        private Dictionary<string, TableProviderColumn> _columns;
 
         public TableProviderRow(ITableProvider table, int rowNumber, object[] data)
         {
             _table = table;
             _rowNumber = rowNumber;
             _data = data;
-            _columnNames = new Dictionary<string, int>();
+            _columns = new Dictionary<string, TableProviderColumn>();
             foreach (var column in table.GetColumns())
-                _columnNames[column.Name] = column.Ordinal;
+                _columns[column.Name] = column;
         }
 
         public ITableProvider Table { get { return _table; } }
@@ -48,12 +48,26 @@ namespace CqrsFramework
         }
         public object this[string name]
         {
-            get { return _data[_columnNames[name] - 1]; }
-            set { _data[_columnNames[name] - 1] = value; }
+            get { return _data[_columns[name].Ordinal - 1]; }
+            set { Set(name, value); }
         }
+
+        private void Set(string name, object value)
+        {
+            var column = _columns[name];
+            VerifyType(column.Type, value);
+            _data[column.Ordinal - 1] = value;
+        }
+
+        private void VerifyType(Type type, object value)
+        {
+            if (value != null && type != value.GetType())
+                throw new InvalidCastException(string.Format("Value {0} is not a {1}", value, type.Name));
+        }
+
         public T Get<T>(string name)
         {
-            return (T)_data[_columnNames[name] - 1];
+            return (T)_data[_columns[name].Ordinal - 1];
         }
     }
 
