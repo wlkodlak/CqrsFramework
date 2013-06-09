@@ -10,8 +10,10 @@ namespace CqrsFramework.InTable
     public class TableMessageInbox : IMessageInboxReader
     {
         private ITableProvider _table;
+        private string _queueName;
         private IMessageSerializer _serializer;
         private ITimeProvider _time;
+
         private object _lock = new object();
         private TaskCompletionSource<Message> _task;
         private CancellationTokenRegistration _cancelRegistration;
@@ -21,9 +23,10 @@ namespace CqrsFramework.InTable
         private Queue<TableProviderRow> _messagesForReceive = new Queue<TableProviderRow>();
         private bool _oldMessagesLoaded = false;
 
-        public TableMessageInbox(ITableProvider table, IMessageSerializer serializer, ITimeProvider time)
+        public TableMessageInbox(ITableProvider table, string queueName, IMessageSerializer serializer, ITimeProvider time)
         {
             _table = table;
+            _queueName = queueName;
             _serializer = serializer;
             _time = time;
         }
@@ -64,6 +67,8 @@ namespace CqrsFramework.InTable
             else
             {
                 var filterable = _table.GetRows();
+                if (_queueName != null)
+                    filterable = filterable.Where("queue").Is(_queueName);
                 if (_oldMessagesLoaded)
                     filterable = filterable.Where("status").Is(0);
                 foreach (var row in filterable)
@@ -124,9 +129,9 @@ namespace CqrsFramework.InTable
         private void ReplaceOldMessage(Message message, TableProviderRow oldRow)
         {
             var deliverOn = message.Headers.DeliverOn == DateTime.MinValue ? message.Headers.CreatedOn : message.Headers.DeliverOn;
-            oldRow[1] = deliverOn.Ticks;
-            oldRow[2] = 0;
-            oldRow[3] = _serializer.Serialize(message);
+            oldRow["deliveron"] = deliverOn.Ticks;
+            oldRow["status"] = 0;
+            oldRow["data"] = _serializer.Serialize(message);
             _table.Update(oldRow);
         }
 
@@ -141,6 +146,8 @@ namespace CqrsFramework.InTable
             row["deliveron"] = deliveron.Ticks;
             row["status"] = 0;
             row["data"] = _serializer.Serialize(message);
+            if (_queueName != null)
+                row["queue"] = _queueName;
             _table.Insert(row);
         }
     }

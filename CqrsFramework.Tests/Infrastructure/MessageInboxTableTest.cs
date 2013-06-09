@@ -20,6 +20,7 @@ namespace CqrsFramework.Tests.Infrastructure
         private Mock<IMessageSerializer> _serializer;
         private TestTimeProvider _time;
         private Mock<ITableProvider> _table;
+        private string _queueName = "queue";
 
         private byte[] SerializeMessage(Message message)
         {
@@ -47,12 +48,12 @@ namespace CqrsFramework.Tests.Infrastructure
 
         private TableMessageInbox CreateWriter()
         {
-            return new TableMessageInbox(_table.Object, _serializer.Object, _time);
+            return new TableMessageInbox(_table.Object, _queueName, _serializer.Object, _time);
         }
 
         private TableMessageInbox CreateReader()
         {
-            return new TableMessageInbox(_table.Object, _serializer.Object, _time);
+            return new TableMessageInbox(_table.Object, _queueName, _serializer.Object, _time);
         }
 
         private Message BuildMessage(string contents)
@@ -75,29 +76,68 @@ namespace CqrsFramework.Tests.Infrastructure
             {
                 new TableProviderColumn(1, "deliveron", typeof(long), false),
                 new TableProviderColumn(2, "status", typeof(int), false),
-                new TableProviderColumn(3, "data", typeof(byte[]), false)
+                new TableProviderColumn(3, "data", typeof(byte[]), false),
+                new TableProviderColumn(4, "queue", typeof(string), false)
             });
             _table.Setup(t => t.GetRows()).Returns(new TableProviderFilterable(_table.Object));
         }
 
         private TableProviderRow CreateTableRow()
         {
-            return new TableProviderRow(_table.Object, 0, new object[3] { 0, 0, null });
+            return new TableProviderRow(_table.Object, 0, new object[4] { 0, 0, null, null });
         }
 
         private TableProviderFilter[] MatchAllMessages()
         {
-            return Match.Create<TableProviderFilter[]>(f => f != null && f.Length == 0, () => MatchAllMessages());
+            return Match.Create<TableProviderFilter[]>(f => MatchAllMessagesPredicate(f), () => MatchAllMessages());
+        }
+
+        private bool MatchAllMessagesPredicate(TableProviderFilter[] filters)
+        {
+            if (filters == null)
+                return false;
+            bool queueValid = false;
+            foreach (var filter in filters)
+            {
+                if (filter.ColumnIndex == 2)
+                    return false;
+                else if (filter.ColumnIndex == 4)
+                {
+                    if (filter.Type != TableProviderFilterType.Exact || (string)filter.MinValue != _queueName)
+                        return false;
+                    queueValid = true;
+                }
+            }
+            return queueValid;
         }
 
         private TableProviderFilter[] MatchNewMessages()
         {
-            return Match.Create<TableProviderFilter[]>(
-                f => f != null && f.Length == 1 &&
-                    f[0].Type == TableProviderFilterType.Exact &&
-                    f[0].MinValue is int &&
-                    (int)f[0].MinValue == 0 &&
-                    f[0].ColumnIndex == 2);
+            return Match.Create<TableProviderFilter[]>(f => MatchNewMessagesPredicate(f), () => MatchNewMessages());
+        }
+
+        private bool MatchNewMessagesPredicate(TableProviderFilter[] filters)
+        {
+            if (filters == null)
+                return false;
+            bool statusValid = false;
+            bool queueValid = false;
+            foreach (var filter in filters)
+            {
+                if (filter.ColumnIndex == 2)
+                {
+                    if (filter.Type != TableProviderFilterType.Exact || (int)filter.MinValue != 0)
+                        return false;
+                    statusValid = true;
+                }
+                else if (filter.ColumnIndex == 4)
+                {
+                    if (filter.Type != TableProviderFilterType.Exact || (string)filter.MinValue != _queueName)
+                        return false;
+                    queueValid = true;
+                }
+            }
+            return statusValid && queueValid;
         }
 
         private TableProviderRow MatchFrom(List<TableProviderRow> list)
@@ -114,6 +154,7 @@ namespace CqrsFramework.Tests.Infrastructure
                 row[1] = message.Headers.DeliverOn.Ticks;
             row[2] = status;
             row[3] = SerializeMessage(message);
+            row[4] = _queueName;
             rows.Add(row);
         }
         
@@ -147,7 +188,8 @@ namespace CqrsFramework.Tests.Infrastructure
             Assert.IsNotNull(createdRow, "Row inserted");
             Assert.AreEqual(new DateTime(2013, 6, 3, 17, 22, 54, 124).Ticks, createdRow.Get<long>("deliveron"), "DeliverOn");
             Assert.AreEqual(0, createdRow.Get<int>("status"), "Status");
-            AssertExtension.AreEqual(expectedBytes, createdRow.Get<byte[]>("data"));
+            AssertExtension.AreEqual(expectedBytes, createdRow.Get<byte[]>("data"), "Data");
+            Assert.AreEqual(_queueName, createdRow.Get<string>("queue"), "Queue");
         }
 
         [TestMethod]
@@ -165,6 +207,7 @@ namespace CqrsFramework.Tests.Infrastructure
             Assert.IsNotNull(createdRow, "Row inserted");
             Assert.AreEqual(_time.Get().Ticks, createdRow.Get<long>("deliveron"), "Table deliver-on");
             Assert.AreEqual(0, createdRow.Get<int>("status"), "Status");
+            Assert.AreEqual(_queueName, createdRow.Get<string>("queue"), "Queue");
             var putMessage = DeserializeMessage(createdRow.Get<byte[]>("data"));
             Assert.AreNotEqual(Guid.Empty, putMessage.Headers.MessageId, "MessageId");
             Assert.AreEqual(_time.Get(), putMessage.Headers.CreatedOn, "CreatedOn");
@@ -357,15 +400,20 @@ namespace CqrsFramework.Tests.Infrastructure
         public void PutNewMessageToQueue()
         {
             var message = new Message("New message");
-            TableProviderRow putMessage = null;
+            TableProviderRow putRow = null;
             _serializer.Setup(s => s.Serialize(message)).Returns<Message>(SerializeMessage);
             _table.Setup(t => t.GetRows(MatchAllMessages())).Returns(new TableProviderRow[0]);
-            _table.Setup(t => t.Insert(It.IsAny<TableProviderRow>())).Callback<TableProviderRow>(r => putMessage = r).Verifiable();
+            _table.Setup(t => t.Insert(It.IsAny<TableProviderRow>())).Callback<TableProviderRow>(r => putRow = r).Verifiable();
             var inbox = CreateReader();
             inbox.Put(message);
             _repo.Verify();
-            Assert.AreNotEqual(DateTime.MinValue, message.Headers.CreatedOn, "Creation date");
-            Assert.AreNotEqual(Guid.Empty, message.Headers.MessageId, "MessageId");
+            Assert.IsNotNull(putRow, "Inserted");
+            Assert.AreEqual(_queueName, putRow.Get<string>("queue"), "Queue");
+            Assert.AreEqual(0, putRow.Get<int>("status"), "Status");
+            var putMessage = DeserializeMessage(putRow.Get<byte[]>("data"));
+            Assert.AreNotEqual(DateTime.MinValue, putMessage.Headers.CreatedOn, "Creation date");
+            Assert.AreNotEqual(Guid.Empty, putMessage.Headers.MessageId, "MessageId");
+            Assert.AreEqual("New message", putMessage.Payload, "Payload");
         }
     }
 }
