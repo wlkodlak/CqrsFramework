@@ -99,12 +99,12 @@
     <Compile Include="Messaging\MessageInboxFilesystemTest.cs" />
     <Compile Include="Messaging\MessageInboxMemoryTest.cs" />
     <Compile Include="Messaging\MessageInboxTableTest.cs" />
-    <Compile Include="Messaging\DelayedMessagesTest.cs" />
-    <Compile Include="Messaging\DispatcherProcessTest.cs" />
+    <Compile Include="ServiceBus\DelayedMessagesTest.cs" />
+    <Compile Include="ServiceBus\DispatcherProcessTest.cs" />
     <Compile Include="Messaging\MessageDispatcherTest.cs" />
-    <Compile Include="Messaging\MessageErrorPolicyTest.cs" />
+    <Compile Include="ServiceBus\MessageErrorPolicyTest.cs" />
     <Compile Include="Messaging\MessageHeadersTest.cs" />
-    <Compile Include="Messaging\PriorityReceiverTest.cs" />
+    <Compile Include="ServiceBus\PriorityReceiverTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Domain\AggregateBaseTest.cs" />
     <Compile Include="EventStore\EventStoreMemoryTest.cs" />
@@ -136,9 +136,7 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="ServiceBus\" />
-  </ItemGroup>
+  <ItemGroup />
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
       <ItemGroup>

@@ -89,12 +89,12 @@
     <Compile Include="Serialization\Serialization.cs" />
     <Compile Include="Serialization\TextMessageSerializer.cs" />
     <Compile Include="Serialization\UniversalMessageBodySerializer.cs" />
-    <Compile Include="Messaging\Deduplicator.cs" />
-    <Compile Include="Messaging\DelayedMessages.cs" />
-    <Compile Include="Messaging\DispatcherProcess.cs" />
+    <Compile Include="ServiceBus\Deduplicator.cs" />
+    <Compile Include="ServiceBus\DelayedMessages.cs" />
+    <Compile Include="ServiceBus\DispatcherProcess.cs" />
     <Compile Include="Messaging\MessageDispatcher.cs" />
-    <Compile Include="Messaging\MessageErrorPolicy.cs" />
-    <Compile Include="Messaging\PrioritizedInboxesReceiver.cs" />
+    <Compile Include="ServiceBus\MessageErrorPolicy.cs" />
+    <Compile Include="ServiceBus\PrioritizedInboxesReceiver.cs" />
     <Compile Include="Infrastructure\StreamProvider.cs" />
     <Compile Include="Infrastructure\MemoryStreamProvider.cs" />
     <Compile Include="Infrastructure\TableProvider.cs" />
@@ -103,9 +103,7 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="ServiceBus\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
