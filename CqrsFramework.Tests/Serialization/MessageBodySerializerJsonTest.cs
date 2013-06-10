@@ -52,12 +52,12 @@ namespace CqrsFramework.Tests.Serialization
             var headers = new MessageHeaders();
             var serialized = _serializer.Serialize(_contents2, headers);
             _resolver.Verify(r => r.GetName(typeof(TestMessage2)));
-            Assert.AreEqual(serialized.Length.ToString(), headers["PayloadLength"], "Length");
-            Assert.AreEqual("TestMessage2Type", headers["PayloadType"], "Typename");
+            Assert.AreEqual(serialized.Length, headers.PayloadLength, "Length");
+            Assert.AreEqual("TestMessage2Type", headers.PayloadType, "Typename");
         }
 
         [TestMethod]
-        public void Deserialize()
+        public void DeserializePayload()
         {
             using (var stream = new MemoryStream())
             {
@@ -65,11 +65,32 @@ namespace CqrsFramework.Tests.Serialization
                 var serialized = _encoding.GetBytes(expectedString);
 
                 var headers = new MessageHeaders();
-                headers["PayloadLength"] = serialized.Length.ToString();
-                headers["PayloadType"] = "TestMessage2Type";
+                headers.PayloadLength = serialized.Length;
+                headers.PayloadType = "TestMessage2Type";
 
                 var deserialized = _serializer.Deserialize(serialized, headers);
+
                 AssertExtension.AreEqual(_contents2, deserialized);
+            }
+        }
+
+        [TestMethod]
+        public void DeserializeDropsHeaders()
+        {
+            using (var stream = new MemoryStream())
+            {
+                var expectedString = JsonSerializer.SerializeToString(_contents2);
+                var serialized = _encoding.GetBytes(expectedString);
+
+                var headers = new MessageHeaders();
+                headers.PayloadLength = serialized.Length;
+                headers.PayloadType = "TestMessage2Type";
+
+                var deserialized = _serializer.Deserialize(serialized, headers);
+
+                Assert.IsNull(headers.PayloadFormat);
+                Assert.IsNull(headers.PayloadType);
+                Assert.AreEqual(0, headers.PayloadLength);
             }
         }
 

@@ -101,12 +101,10 @@
     <Compile Include="Infrastructure\MessageInboxTableTest.cs" />
     <Compile Include="Messaging\DelayedMessagesTest.cs" />
     <Compile Include="Messaging\DispatcherProcessTest.cs" />
-    <Compile Include="Messaging\JsonMessageSerializerTest.cs" />
     <Compile Include="Messaging\MessageDispatcherTest.cs" />
     <Compile Include="Messaging\MessageErrorPolicyTest.cs" />
     <Compile Include="Messaging\MessageHeadersTest.cs" />
     <Compile Include="Messaging\PriorityReceiverTest.cs" />
-    <Compile Include="Messaging\ProtobufMessageSerializerTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Domain\AggregateBaseTest.cs" />
     <Compile Include="EventStore\EventStoreMemoryTest.cs" />
@@ -123,6 +121,8 @@
     <Compile Include="Infrastructure\TableProviderMemoryTest.cs" />
     <Compile Include="Serialization\MessageBodySerializerJsonTest.cs" />
     <Compile Include="Serialization\MessageBodySerializerProtobufTest.cs" />
+    <Compile Include="Serialization\MessageSerializerBinaryTest.cs" />
+    <Compile Include="Serialization\MessageSerializerTextTest.cs" />
     <Compile Include="Serialization\MessageTypeResolverTest.cs" />
     <Compile Include="Serialization\UniversalMessageBodySerializerTest.cs" />
     <Compile Include="TestTimeProvider.cs" />

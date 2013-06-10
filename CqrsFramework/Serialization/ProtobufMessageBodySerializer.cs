@@ -43,8 +43,8 @@ namespace CqrsFramework.Serialization
                 SerializerInfo info = GetFormatter(payload.GetType());
                 info.Formatter.Serialize(stream, payload);
                 var bytes = stream.ToArray();
-                headers["PayloadLength"] = bytes.Length.ToString();
-                headers["PayloadType"] = info.Name;
+                headers.PayloadLength = bytes.Length;
+                headers.PayloadType = info.Name;
                 return bytes;
             }
         }
@@ -60,9 +60,11 @@ namespace CqrsFramework.Serialization
         public object Deserialize(byte[] serialized, MessageHeaders headers)
         {
             SerializerInfo info;
-            var typename = headers["PayloadType"];
+            var typename = headers.PayloadType;
             if (!_byName.TryGetValue(typename, out info))
                 throw new InvalidOperationException(string.Format("Unknown typename {0}", typename));
+            headers.PayloadLength = 0;
+            headers.PayloadType = null;
             using (var stream = new MemoryStream(serialized))
                 return info.Formatter.Deserialize(stream);
         }

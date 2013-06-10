@@ -50,6 +50,9 @@ namespace CqrsFramework
         public int RetryNumber { get; set; }
         public string ResourcePath { get; set; }
         public string TypePath { get; set; }
+        public string PayloadFormat { get; set; }
+        public int PayloadLength { get; set; }
+        public string PayloadType { get; set; }
 
         private void SetHeader(string name, string value)
         {
@@ -78,6 +81,15 @@ namespace CqrsFramework
                     break;
                 case "TypePath":
                     this.TypePath = value;
+                    break;
+                case "PayloadFormat":
+                    this.PayloadFormat = value;
+                    break;
+                case "PayloadLength":
+                    this.PayloadLength = TryParseInt(value);
+                    break;
+                case "PayloadType":
+                    this.PayloadType = value;
                     break;
                 default:
                     _headers[name] = value;
@@ -123,6 +135,12 @@ namespace CqrsFramework
                     return this.ResourcePath;
                 case "TypePath":
                     return this.TypePath;
+                case "PayloadFormat":
+                    return this.PayloadFormat;
+                case "PayloadLength":
+                    return this.PayloadLength.ToString();
+                case "PayloadType":
+                    return this.PayloadType;
                 default:
                     _headers.TryGetValue(name, out value);
                     return value;
@@ -140,6 +158,9 @@ namespace CqrsFramework
             AddNamedToList(list, RetryNumber != 0, "RetryNumber", false);
             AddNamedToList(list, true, "ResourcePath", false);
             AddNamedToList(list, true, "TypePath", false);
+            AddNamedToList(list, true, "PayloadFormat", false);
+            AddNamedToList(list, PayloadLength != 0, "PayloadLength", false);
+            AddNamedToList(list, true, "PayloadType", false);
             foreach (var item in _headers)
                 if (!string.IsNullOrEmpty(item.Value))
                     list.Add(new MessageHeader(item.Key, item.Value, true));
@@ -160,6 +181,24 @@ namespace CqrsFramework
         {
             return GetEnumerator();
         }
+
+        public void CopyFrom(MessageHeaders headers)
+        {
+            MessageId = headers.MessageId;
+            CorellationId = headers.CorellationId;
+            CreatedOn = headers.CreatedOn;
+            DeliverOn = headers.DeliverOn;
+            ValidUntil = headers.ValidUntil;
+            RetryNumber = headers.RetryNumber;
+            ResourcePath = headers.ResourcePath;
+            TypePath = headers.TypePath;
+            PayloadFormat = headers.PayloadFormat;
+            PayloadLength = headers.PayloadLength;
+            PayloadType = headers.PayloadType;
+            foreach (var header in headers._headers)
+                _headers[header.Key] = header.Value;
+        }
+
     }
 
     public class MessageHeader

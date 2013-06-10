@@ -43,11 +43,12 @@ namespace CqrsFramework.Tests.Serialization
             var bytes = Encoding.ASCII.GetBytes(expected);
             _serializer.RegisterFormat("xml", _serializer1.Object);
             _serializer.RegisterFormat("json", _serializer2.Object);
-            _headers["PayloadFormat"] = "xml";
+            _headers.PayloadFormat = "xml";
             _serializer1.Setup(s => s.Deserialize(bytes, _headers)).Returns(expected).Verifiable(); 
             var actual = (string)_serializer.Deserialize(bytes, _headers);
             _repo.Verify();
-            Assert.AreEqual(expected, actual);
+            Assert.AreEqual(expected, actual, "Body");
+            Assert.IsNull(_headers.PayloadFormat, "PayloadFormat");
         }
 
         [TestMethod]
@@ -57,11 +58,12 @@ namespace CqrsFramework.Tests.Serialization
             var bytes = Encoding.ASCII.GetBytes(expected);
             _serializer.RegisterFormat("xml", _serializer1.Object);
             _serializer.RegisterFormat("json", _serializer2.Object);
-            _headers["PayloadFormat"] = "json";
+            _headers.PayloadFormat = "json";
             _serializer2.Setup(s => s.Deserialize(bytes, _headers)).Returns(expected).Verifiable();
             var actual = (string)_serializer.Deserialize(bytes, _headers);
             _repo.Verify();
-            Assert.AreEqual(expected, actual);
+            Assert.AreEqual(expected, actual, "Body");
+            Assert.IsNull(_headers.PayloadFormat, "PayloadFormat");
         }
 
         [TestMethod]
@@ -71,7 +73,7 @@ namespace CqrsFramework.Tests.Serialization
             var bytes = Encoding.ASCII.GetBytes(expected);
             _serializer.RegisterFormat("xml", _serializer1.Object);
             _serializer.RegisterFormat("json", _serializer2.Object);
-            _headers["PayloadFormat"] = "protobuf";
+            _headers.PayloadFormat = "protobuf";
             try
             {
                 _serializer.Deserialize(bytes, _headers);
@@ -94,7 +96,7 @@ namespace CqrsFramework.Tests.Serialization
             var actual = _serializer.Serialize(message, _headers);
             _repo.Verify();
             Assert.AreEqual(expected, actual, "Data");
-            Assert.AreEqual("xml", _headers["PayloadFormat"]);
+            Assert.AreEqual("xml", _headers.PayloadFormat);
         }
 
         [TestMethod]
@@ -109,7 +111,7 @@ namespace CqrsFramework.Tests.Serialization
             var actual = _serializer.Serialize(message, _headers);
             _repo.Verify();
             Assert.AreEqual(expected, actual, "Data");
-            Assert.AreEqual("json", _headers["PayloadFormat"]);
+            Assert.AreEqual("json", _headers.PayloadFormat);
         }
 
         [TestMethod]
@@ -126,7 +128,7 @@ namespace CqrsFramework.Tests.Serialization
             Assert.AreEqual("json", linked.OutputFormat);
             Assert.AreEqual("xml", _serializer.OutputFormat);
             Assert.AreEqual(expected, actual, "Data");
-            Assert.AreEqual("json", _headers["PayloadFormat"]);
+            Assert.AreEqual("json", _headers.PayloadFormat);
         }
 
         [TestMethod]
@@ -144,7 +146,7 @@ namespace CqrsFramework.Tests.Serialization
             Assert.AreEqual("json", linked.OutputFormat);
             Assert.AreEqual("xml", _serializer.OutputFormat);
             Assert.AreEqual(expected, actual, "Data");
-            Assert.AreEqual("json", _headers["PayloadFormat"]);
+            Assert.AreEqual("json", _headers.PayloadFormat);
         }
     }
 }

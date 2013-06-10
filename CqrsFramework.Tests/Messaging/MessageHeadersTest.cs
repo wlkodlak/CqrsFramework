@@ -34,11 +34,16 @@ namespace CqrsFramework.Tests.Messaging
             headers.RetryNumber = 2;
             headers.ResourcePath = "topic/49304";
             headers.TypePath = "Event.Supertype.Subtype";
+            headers.PayloadFormat = "json";
+            headers.PayloadLength = 218;
+            headers.PayloadType = "Subtype";
 
             Assert.AreEqual(msgId.ToString("D"), headers["MessageId"]);
             Assert.AreEqual("2", headers["RetryNumber"]);
             Assert.AreEqual("2013-06-01 14:02:00.0000", headers["DeliverOn"]);
             Assert.AreEqual("2013-06-01 14:10:00.0000", headers["ValidUntil"]);
+            Assert.AreEqual("218", headers["PayloadLength"]);
+            Assert.AreEqual("Subtype", headers["PayloadType"]);
         }
 
         [TestMethod]

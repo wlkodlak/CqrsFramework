@@ -39,14 +39,15 @@ namespace CqrsFramework.Serialization
 
         public byte[] Serialize(object payload, MessageHeaders headers)
         {
-            headers["PayloadFormat"] = OutputFormat;
+            headers.PayloadFormat = OutputFormat;
             return _master._serializers[OutputFormat].Serialize(payload, headers);
         }
 
         public object Deserialize(byte[] serialized, MessageHeaders headers)
         {
-            var format = headers["PayloadFormat"];
+            var format = headers.PayloadFormat;
             var serializer = _master._serializers[format];
+            headers.PayloadFormat = null;
             return serializer.Deserialize(serialized, headers);
         }
     }

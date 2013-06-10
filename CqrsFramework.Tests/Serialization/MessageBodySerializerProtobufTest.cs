@@ -55,13 +55,31 @@ namespace CqrsFramework.Tests.Serialization
                 var headers = new MessageHeaders();
                 var serialized = _serializer.Serialize(_contents2, headers);
                 _resolver.Verify();
-                Assert.AreEqual(serialized.Length.ToString(), headers["PayloadLength"], "Length");
-                Assert.AreEqual("TestMessage2Type", headers["PayloadType"], "Typename");
+                Assert.AreEqual(serialized.Length, headers.PayloadLength, "Length");
+                Assert.AreEqual("TestMessage2Type", headers.PayloadType, "Typename");
             }
         }
 
         [TestMethod]
-        public void Deserialize()
+        public void DeserializePayload()
+        {
+            using (var stream = new MemoryStream())
+            {
+                Serializer.Serialize<TestMessage2>(stream, _contents2);
+                var serialized = stream.ToArray();
+
+                var headers = new MessageHeaders();
+                headers.PayloadLength = serialized.Length;
+                headers.PayloadType = "TestMessage2Type";
+
+                var deserialized = _serializer.Deserialize(serialized, headers);
+
+                AssertExtension.AreEqual(_contents2, deserialized);
+            }
+        }
+
+        [TestMethod]
+        public void DeserializeDropsHeaders()
         {
             using (var stream = new MemoryStream())
             {
@@ -73,7 +91,10 @@ namespace CqrsFramework.Tests.Serialization
                 headers["PayloadType"] = "TestMessage2Type";
 
                 var deserialized = _serializer.Deserialize(serialized, headers);
-                AssertExtension.AreEqual(_contents2, deserialized);
+
+                Assert.IsNull(headers.PayloadFormat);
+                Assert.IsNull(headers.PayloadType);
+                Assert.AreEqual(0, headers.PayloadLength);
             }
         }
 

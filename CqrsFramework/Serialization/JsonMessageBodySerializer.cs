@@ -26,14 +26,16 @@ namespace CqrsFramework.Serialization
                 throw new InvalidOperationException(string.Format("Unknown type {0}", type.Name));
             var resultString = JsonSerializer.SerializeToString(payload, type);
             var resultBytes = _encoding.GetBytes(resultString);
-            headers["PayloadLength"] = resultBytes.Length.ToString();
-            headers["PayloadType"] = typename;
+            headers.PayloadLength = resultBytes.Length;
+            headers.PayloadType = typename;
             return resultBytes;
         }
 
         public object Deserialize(byte[] serialized, MessageHeaders headers)
         {
-            var typename = headers["PayloadType"];
+            var typename = headers.PayloadType;
+            headers.PayloadLength = 0;
+            headers.PayloadType = null;
             var type = _resolver.GetType(typename);
             var inputString = _encoding.GetString(serialized);
             return JsonSerializer.DeserializeFromString(inputString, type);
