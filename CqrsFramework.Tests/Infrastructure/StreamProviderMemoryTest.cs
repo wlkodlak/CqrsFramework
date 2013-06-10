@@ -1,6 +1,6 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CqrsFramework.InMemory;
+using CqrsFramework.Infrastructure;
 
 namespace CqrsFramework.Tests.Infrastructure
 {

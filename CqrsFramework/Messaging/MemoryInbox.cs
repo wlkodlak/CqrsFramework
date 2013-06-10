@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CqrsFramework.InMemory
+namespace CqrsFramework.Messaging
 {
     public class MemoryInbox : IMessageInboxReader
     {

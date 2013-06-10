@@ -8,8 +8,10 @@ using CqrsFramework;
 using CqrsFramework.ServiceBus;
 using Moq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using CqrsFramework.Infrastructure;
+using CqrsFramework.Messaging;
 
-namespace CqrsFramework.Tests.Messaging
+namespace CqrsFramework.Tests.ServiceBus
 {
     [TestClass]
     public class DispatcherProcessTest

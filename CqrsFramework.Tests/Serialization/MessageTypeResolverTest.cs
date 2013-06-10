@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CqrsFramework.Serialization;
 using System.Reflection;
+using CqrsFramework.Domain;
 
 namespace CqrsFramework.Tests.Serialization
 {

@@ -4,8 +4,8 @@ using System.Data;
 using System.Linq;
 using Moq;
 using System.Collections.Generic;
-using CqrsFramework.InMemory;
-using CqrsFramework.InTable;
+using CqrsFramework.Infrastructure;
+using CqrsFramework.EventStore;
 
 namespace CqrsFramework.Tests.EventStore
 {

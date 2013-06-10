@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Moq;
 using CqrsFramework.Serialization;
+using CqrsFramework.Messaging;
 
 namespace CqrsFramework.Tests.Serialization
 {

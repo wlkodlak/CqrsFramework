@@ -6,16 +6,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CqrsFramework.InSql
+namespace CqrsFramework.Infrastructure
 {
-    public class TableProvider : ITableProvider
+    public class SqlTableProvider : ITableProvider
     {
         private Func<IDbConnection> _connectionFactory;
         private IList<TableProviderColumn> _columns;
         private string _tableName;
         private TableProviderColumn _idColumn;
 
-        public TableProvider(Func<IDbConnection> connectionFactory, string tableName, IList<TableProviderColumn> columns)
+        public SqlTableProvider(Func<IDbConnection> connectionFactory, string tableName, IList<TableProviderColumn> columns)
         {
             _connectionFactory = connectionFactory;
             _tableName = tableName;

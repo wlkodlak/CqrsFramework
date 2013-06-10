@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace CqrsFramework
+namespace CqrsFramework.Infrastructure
 {
     public interface IStreamProvider
     {

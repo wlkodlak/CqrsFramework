@@ -4,17 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Globalization;
+using CqrsFramework.Domain;
 
-namespace CqrsFramework
+namespace CqrsFramework.Messaging
 {
-    public interface IEvent
-    {
-    }
-
-    public interface ICommand
-    {
-    }
-
     public interface IEventMessageFactory
     {
         Message CreateMessage(IEvent @event, object context);

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace CqrsFramework.InFile
+namespace CqrsFramework.Infrastructure
 {
     public class FileStreamProvider : IStreamProvider
     {

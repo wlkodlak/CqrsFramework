@@ -5,8 +5,16 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
 
-namespace CqrsFramework
+namespace CqrsFramework.Domain
 {
+    public interface IEvent
+    {
+    }
+
+    public interface ICommand
+    {
+    }
+
     public interface IAggregate
     {
         void LoadFromHistory(object snapshot, IEnumerable<IEvent> history);

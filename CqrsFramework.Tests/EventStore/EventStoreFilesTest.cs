@@ -2,7 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CqrsFramework.InFile;
+using CqrsFramework.EventStore;
 
 namespace CqrsFramework.Tests.EventStore
 {
@@ -12,12 +12,12 @@ namespace CqrsFramework.Tests.EventStore
         private class Builder : IEventStoreTestBuilder
         {
             MemoryStream _dataFileStream;
-            FileDataFile _dataFile;
+            FileEventStoreDataFile _dataFile;
 
             public Builder()
             {
                 _dataFileStream = new MemoryStream();
-                _dataFile = new FileDataFile(_dataFileStream);
+                _dataFile = new FileEventStoreDataFile(_dataFileStream);
             }
 
             public IEventStore Build()
@@ -37,9 +37,9 @@ namespace CqrsFramework.Tests.EventStore
                     _dataFile.AppendEntry(CreateEntry(name, @event));
             }
 
-            private DataFileEntry CreateEntry(string name, EventStoreSnapshot snapshot)
+            private FileEventStoreEntry CreateEntry(string name, EventStoreSnapshot snapshot)
             {
-                return new DataFileEntry
+                return new FileEventStoreEntry
                 {
                     IsSnapshot = true,
                     Published = true,
@@ -50,9 +50,9 @@ namespace CqrsFramework.Tests.EventStore
                 };
             }
 
-            private DataFileEntry CreateEntry(string name, EventStoreEvent @event)
+            private FileEventStoreEntry CreateEntry(string name, EventStoreEvent @event)
             {
-                return new DataFileEntry
+                return new FileEventStoreEntry
                 {
                     IsEvent = true,
                     Published = @event.Published,

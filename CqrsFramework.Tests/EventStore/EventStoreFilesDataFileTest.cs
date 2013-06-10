@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CqrsFramework.InFile;
+using CqrsFramework.EventStore;
 
 namespace CqrsFramework.Tests.EventStore
 {
@@ -12,7 +12,7 @@ namespace CqrsFramework.Tests.EventStore
         [TestMethod]
         public void ReadEntryFromEmptyFile()
         {
-            using (var file = new FileDataFile(new MemoryStream()))
+            using (var file = new FileEventStoreDataFile(new MemoryStream()))
             {
                 Assert.IsNull(file.ReadEntry(0));
             }
@@ -28,7 +28,7 @@ namespace CqrsFramework.Tests.EventStore
                 WriteEntry(writer, true, true, "agg-2", 1, 8, "Help me! I'm in trouble.");
             }
             buffer.Seek(0, SeekOrigin.Begin);
-            using (var file = new FileDataFile(buffer))
+            using (var file = new FileEventStoreDataFile(buffer))
             {
                 var entry = file.ReadEntry(44);
                 Assert.AreEqual(44, entry.Position);
@@ -78,9 +78,9 @@ namespace CqrsFramework.Tests.EventStore
                                                             
             }
             buffer.Seek(0, SeekOrigin.Begin);
-            using (var file = new FileDataFile(buffer))
+            using (var file = new FileEventStoreDataFile(buffer))
             {
-                var entry = new DataFileEntry();
+                var entry = new FileEventStoreEntry();
                 entry.Data = Encoding.ASCII.GetBytes("Trying a new stuff");
                 entry.Key = "agg-34";
                 entry.Version = 493;
@@ -113,7 +113,7 @@ namespace CqrsFramework.Tests.EventStore
                                                             
             }
             buffer.Seek(0, SeekOrigin.Begin);
-            using (var file = new FileDataFile(buffer))
+            using (var file = new FileEventStoreDataFile(buffer))
             {
                 file.MarkAsPublished(0);
             }

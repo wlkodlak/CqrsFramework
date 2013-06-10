@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using CqrsFramework.InFile;
-using CqrsFramework.InMemory;
 using System.IO;
 using Moq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Xml.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using CqrsFramework.Serialization;
+using CqrsFramework.Infrastructure;
+using CqrsFramework.Messaging;
 
-namespace CqrsFramework.Tests.Infrastructure
+namespace CqrsFramework.Tests.Messaging
 {
     [TestClass]
     public class MessageInboxFilesystemTest

@@ -5,21 +5,21 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace CqrsFramework.InFile
+namespace CqrsFramework.EventStore
 {
     public class FileEventStore : IEventStore
     {
-        private FileDataFile _dataFile;
+        private FileEventStoreDataFile _dataFile;
         private Stream _indexFile;
         private Dictionary<string, FileEventStream> _streams;
-        private List<DataFileEntry> _unpublished;
+        private List<FileEventStoreEntry> _unpublished;
 
         public FileEventStore(Stream dataFile, Stream indexFile)
         {
-            _dataFile = new FileDataFile(dataFile);
+            _dataFile = new FileEventStoreDataFile(dataFile);
             _indexFile = indexFile;
             _streams = new Dictionary<string, FileEventStream>();
-            _unpublished = new List<DataFileEntry>();
+            _unpublished = new List<FileEventStoreEntry>();
 
             var entry = _dataFile.ReadEntry(0);
             while (entry != null)
@@ -100,12 +100,12 @@ namespace CqrsFramework.InFile
                 .ToList();
         }
 
-        internal void AppendEntryToDataFile(DataFileEntry entry)
+        internal void AppendEntryToDataFile(FileEventStoreEntry entry)
         {
             _dataFile.AppendEntry(entry);
         }
 
-        internal void AppendEntryToUnpublished(DataFileEntry entry)
+        internal void AppendEntryToUnpublished(FileEventStoreEntry entry)
         {
             _unpublished.Add(entry);
         }

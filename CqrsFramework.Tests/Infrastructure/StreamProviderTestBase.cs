@@ -4,6 +4,7 @@ using System.Text;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using CqrsFramework.Infrastructure;
 
 namespace CqrsFramework.Tests.Infrastructure
 {

@@ -1,11 +1,13 @@
-﻿using System;
+﻿using CqrsFramework.Infrastructure;
+using CqrsFramework.Serialization;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CqrsFramework.InTable
+namespace CqrsFramework.Messaging
 {
     public class TableMessageInbox : IMessageInboxReader
     {

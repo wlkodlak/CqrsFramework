@@ -1,10 +1,12 @@
-﻿using System;
+﻿using CqrsFramework.EventStore;
+using CqrsFramework.Messaging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CqrsFramework
+namespace CqrsFramework.Domain
 {
     public abstract class RepositoryBase<TKey, TAgg>
         where TAgg : class, IAggregate, new()

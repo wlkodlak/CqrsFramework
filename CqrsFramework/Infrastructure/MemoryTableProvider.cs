@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CqrsFramework.InMemory
+namespace CqrsFramework.Infrastructure
 {
     public class MemoryTableProvider : ITableProvider
     {

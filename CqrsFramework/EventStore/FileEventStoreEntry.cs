@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CqrsFramework.InFile
+namespace CqrsFramework.EventStore
 {
-    public class DataFileEntry
+    public class FileEventStoreEntry
     {
         public long Position;
         public long NextPosition;

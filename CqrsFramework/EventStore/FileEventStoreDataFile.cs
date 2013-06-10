@@ -5,14 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CqrsFramework.InFile
+namespace CqrsFramework.EventStore
 {
-    public class FileDataFile : IDisposable
+    public class FileEventStoreDataFile : IDisposable
     {
         private Stream _stream;
         private long _appendPosition;
 
-        public FileDataFile(Stream stream)
+        public FileEventStoreDataFile(Stream stream)
         {
             _stream = stream;
         }
@@ -22,7 +22,7 @@ namespace CqrsFramework.InFile
             _stream.Dispose();
         }
 
-        public DataFileEntry ReadEntry(long position)
+        public FileEventStoreEntry ReadEntry(long position)
         {
             try
             {
@@ -46,7 +46,7 @@ namespace CqrsFramework.InFile
                     var endMarkLength = EndMarkLength(keyLength, dataLength);
                     var endMark = reader.ReadBytes(1 + endMarkLength);
 
-                    var entry = new DataFileEntry();
+                    var entry = new FileEventStoreEntry();
                     entry.Position = position;
                     entry.Published = (flags & 0x80) != 0;
                     entry.IsEvent = (flags & 0x0F) == 0;
@@ -76,7 +76,7 @@ namespace CqrsFramework.InFile
             return (baseLength == 0) ? 0 : 4 - baseLength;
         }
 
-        public void AppendEntry(DataFileEntry entry)
+        public void AppendEntry(FileEventStoreEntry entry)
         {
             GotoAppendPosition();
             using (var writer = new BinaryWriter(_stream, Encoding.ASCII, true))

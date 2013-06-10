@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.Serialization;
 
-namespace CqrsFramework.ServiceBus
+namespace CqrsFramework.Messaging
 {
     public interface IMessageDispatcherRegistrator
     {

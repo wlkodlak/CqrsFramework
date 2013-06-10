@@ -1,11 +1,12 @@
-﻿using System;
+﻿using CqrsFramework.Infrastructure;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CqrsFramework.InTable
+namespace CqrsFramework.EventStore
 {
     public class TableEventStream : IEventStream
     {

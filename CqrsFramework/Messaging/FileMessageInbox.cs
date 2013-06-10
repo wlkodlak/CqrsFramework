@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Globalization;
 using System.Threading;
+using CqrsFramework.Infrastructure;
+using CqrsFramework.Serialization;
 
-namespace CqrsFramework.InFile
+namespace CqrsFramework.Messaging
 {
     public class FileMessageInboxWriter : IMessageInboxWriter
     {

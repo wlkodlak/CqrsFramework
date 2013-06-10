@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using Moq;
 using CqrsFramework.ServiceBus;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using CqrsFramework.Infrastructure;
+using CqrsFramework.Messaging;
 
-namespace CqrsFramework.Tests.Messaging
+namespace CqrsFramework.Tests.ServiceBus
 {
     [TestClass]
     public class MessageErrorPolicyTest

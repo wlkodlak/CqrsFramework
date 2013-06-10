@@ -3,6 +3,7 @@ using CqrsFramework;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
+using CqrsFramework.Domain;
 
 namespace CqrsFramework.Tests.Domain
 {

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 using ProtoBuf;
 using System.Runtime.Serialization;
+using CqrsFramework.Messaging;
 
 namespace CqrsFramework.Serialization
 {

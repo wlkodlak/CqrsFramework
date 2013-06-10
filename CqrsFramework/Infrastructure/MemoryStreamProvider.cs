@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace CqrsFramework.InMemory
+namespace CqrsFramework.Infrastructure
 {
     public class MemoryStreamProvider : IStreamProvider
     {

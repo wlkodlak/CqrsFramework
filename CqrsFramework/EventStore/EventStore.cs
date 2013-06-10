@@ -1,10 +1,11 @@
-﻿using System;
+﻿using CqrsFramework.Messaging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CqrsFramework
+namespace CqrsFramework.EventStore
 {
     public interface IEventStore : IDisposable
     {

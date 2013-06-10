@@ -3,12 +3,12 @@ using System.Linq;
 using System.Collections.Generic;
 using Moq;
 using CqrsFramework;
-using CqrsFramework.InMemory;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using CqrsFramework.Messaging;
 
-namespace CqrsFramework.Tests.Infrastructure
+namespace CqrsFramework.Tests.Messaging
 {
     public interface IMessageInboxTestBuilder : IDisposable
     {

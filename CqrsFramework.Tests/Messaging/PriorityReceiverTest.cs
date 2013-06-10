@@ -7,8 +7,9 @@ using System.Linq;
 using Moq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using CqrsFramework.Messaging;
 
-namespace CqrsFramework.Tests.Messaging
+namespace CqrsFramework.Tests.ServiceBus
 {
     [TestClass]
     public class PriorityReceiverTest

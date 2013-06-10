@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Data;
 
-namespace CqrsFramework
+namespace CqrsFramework.Infrastructure
 {
     public interface ITableProvider : IDisposable
     {

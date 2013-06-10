@@ -7,6 +7,7 @@ using CqrsFramework.ServiceBus;
 using System.Xml.Linq;
 using Moq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using CqrsFramework.Messaging;
 
 namespace CqrsFramework.Tests.Messaging
 {

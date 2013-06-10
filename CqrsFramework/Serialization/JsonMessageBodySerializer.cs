@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ServiceStack.Text;
+using CqrsFramework.Messaging;
 
 namespace CqrsFramework.Serialization
 {

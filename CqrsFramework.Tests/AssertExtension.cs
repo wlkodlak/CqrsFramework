@@ -1,4 +1,5 @@
-﻿using KellermanSoftware.CompareNetObjects;
+﻿using CqrsFramework.Messaging;
+using KellermanSoftware.CompareNetObjects;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;

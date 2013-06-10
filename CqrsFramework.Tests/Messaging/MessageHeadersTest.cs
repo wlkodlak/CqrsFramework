@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using CqrsFramework.Messaging;
 
 namespace CqrsFramework.Tests.Messaging
 {

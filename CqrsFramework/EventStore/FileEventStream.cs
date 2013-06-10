@@ -4,20 +4,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CqrsFramework.InFile
+namespace CqrsFramework.EventStore
 {
     internal class FileEventStream : IEventStream
     {
         private FileEventStore _store;
         private string _name;
-        private DataFileEntry _snapshot;
-        private List<DataFileEntry> _events;
+        private FileEventStoreEntry _snapshot;
+        private List<FileEventStoreEntry> _events;
 
         public FileEventStream(FileEventStore store, string name)
         {
             _store = store;
             _name = name;
-            _events = new List<DataFileEntry>();
+            _events = new List<FileEventStoreEntry>();
             IsEmpty = true;
         }
 
@@ -71,7 +71,7 @@ namespace CqrsFramework.InFile
 
             foreach (var @event in events)
             {
-                var entry = new DataFileEntry();
+                var entry = new FileEventStoreEntry();
                 entry.Data = @event.Data;
                 entry.IsEvent = true;
                 entry.Key = _name;
@@ -87,7 +87,7 @@ namespace CqrsFramework.InFile
         {
             if (_snapshot == null || _snapshot.Version < snapshot.Version)
             {
-                var entry = new DataFileEntry();
+                var entry = new FileEventStoreEntry();
                 entry.IsSnapshot = true;
                 entry.Key = _name;
                 entry.Data = snapshot.Data;
@@ -97,13 +97,13 @@ namespace CqrsFramework.InFile
             }
         }
 
-        public void AppendEvent(DataFileEntry entry)
+        public void AppendEvent(FileEventStoreEntry entry)
         {
             _events.Add(entry);
             IsEmpty = false;
         }
 
-        public void SetSnapshot(DataFileEntry entry)
+        public void SetSnapshot(FileEventStoreEntry entry)
         {
             if (_snapshot == null || _snapshot.Version < entry.Version)
             {

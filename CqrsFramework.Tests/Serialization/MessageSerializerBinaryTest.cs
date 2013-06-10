@@ -1,4 +1,5 @@
-﻿using CqrsFramework.Serialization;
+﻿using CqrsFramework.Messaging;
+using CqrsFramework.Serialization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System;

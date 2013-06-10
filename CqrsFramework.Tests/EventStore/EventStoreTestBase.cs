@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Text;
+using CqrsFramework.EventStore;
 
 namespace CqrsFramework.Tests.EventStore
 {

@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.Xml.Linq;
 using System.IO;
 using System.Linq;
+using CqrsFramework.Domain;
+using CqrsFramework.EventStore;
+using CqrsFramework.Messaging;
 
 namespace CqrsFramework.Tests.Domain
 {

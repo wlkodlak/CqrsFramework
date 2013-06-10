@@ -9,6 +9,7 @@ using System.Runtime.Serialization;
 using CqrsFramework.Serialization;
 using Moq;
 using ServiceStack.Text;
+using CqrsFramework.Messaging;
 
 namespace CqrsFramework.Tests.Serialization
 {
