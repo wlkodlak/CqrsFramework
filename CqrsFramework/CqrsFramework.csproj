@@ -49,11 +49,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AggregateBase.cs" />
-    <Compile Include="EventStore.cs" />
-    <Compile Include="InFile\FileMessageInbox.cs" />
-    <Compile Include="InMemory\MemoryInbox.cs" />
-    <Compile Include="InTable\TableMessageInbox.cs" />
-    <Compile Include="Messaging.cs" />
+    <Compile Include="EventStore\EventStore.cs" />
+    <Compile Include="Messaging\FileMessageInbox.cs" />
+    <Compile Include="Messaging\MemoryInbox.cs" />
+    <Compile Include="Messaging\TableMessageInbox.cs" />
+    <Compile Include="Messaging\Messaging.cs" />
     <Compile Include="IndexTable\IdxCell.cs" />
     <Compile Include="IndexTable\IdxContainer.cs" />
     <Compile Include="IndexTable\IdxFile.cs" />
@@ -66,18 +66,18 @@
     <Compile Include="IndexTable\IdxOverflow.cs" />
     <Compile Include="IndexTable\IdxPage.cs" />
     <Compile Include="IndexTable\IdxTree.cs" />
-    <Compile Include="InFile\FileEventStoreEntry.cs" />
-    <Compile Include="InFile\FileEventStoreDataFile.cs" />
-    <Compile Include="InFile\FileEventStore.cs" />
-    <Compile Include="InFile\FileEventStream.cs" />
-    <Compile Include="InFile\FileStreamProvider.cs" />
-    <Compile Include="InMemory\MemoryEventStream.cs" />
-    <Compile Include="InMemory\MemoryEventStore.cs" />
-    <Compile Include="InTable\TableEventStore.cs" />
-    <Compile Include="InTable\TableEventStream.cs" />
+    <Compile Include="EventStore\FileEventStoreEntry.cs" />
+    <Compile Include="EventStore\FileEventStoreDataFile.cs" />
+    <Compile Include="EventStore\FileEventStore.cs" />
+    <Compile Include="EventStore\FileEventStream.cs" />
+    <Compile Include="Infrastructure\FileStreamProvider.cs" />
+    <Compile Include="EventStore\MemoryEventStream.cs" />
+    <Compile Include="EventStore\MemoryEventStore.cs" />
+    <Compile Include="EventStore\TableEventStore.cs" />
+    <Compile Include="EventStore\TableEventStream.cs" />
     <Compile Include="IndexTable\IdxPagedFile.cs" />
-    <Compile Include="InSql\TableProvider.cs" />
-    <Compile Include="Messages.cs" />
+    <Compile Include="Infrastructure\SqlTableProvider.cs" />
+    <Compile Include="Messaging\Messages.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RepositoryBase.cs" />
     <Compile Include="RepositorySaveFlags.cs" />
@@ -87,16 +87,16 @@
     <Compile Include="Serialization\ProtobufMessageBodySerializer.cs" />
     <Compile Include="Serialization\TextMessageSerializer.cs" />
     <Compile Include="Serialization\UniversalMessageBodySerializer.cs" />
-    <Compile Include="ServiceBus\Deduplicator.cs" />
-    <Compile Include="ServiceBus\DelayedMessages.cs" />
-    <Compile Include="ServiceBus\DispatcherProcess.cs" />
-    <Compile Include="ServiceBus\MessageDispatcher.cs" />
-    <Compile Include="ServiceBus\MessageErrorPolicy.cs" />
-    <Compile Include="ServiceBus\PrioritizedInboxesReceiver.cs" />
-    <Compile Include="StreamProvider.cs" />
-    <Compile Include="InMemory\MemoryStreamProvider.cs" />
+    <Compile Include="Messaging\Deduplicator.cs" />
+    <Compile Include="Messaging\DelayedMessages.cs" />
+    <Compile Include="Messaging\DispatcherProcess.cs" />
+    <Compile Include="Messaging\MessageDispatcher.cs" />
+    <Compile Include="Messaging\MessageErrorPolicy.cs" />
+    <Compile Include="Messaging\PrioritizedInboxesReceiver.cs" />
+    <Compile Include="Infrastructure\StreamProvider.cs" />
+    <Compile Include="Infrastructure\MemoryStreamProvider.cs" />
     <Compile Include="TableProvider.cs" />
-    <Compile Include="InMemory\MemoryTableProvider.cs" />
+    <Compile Include="Infrastructure\MemoryTableProvider.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

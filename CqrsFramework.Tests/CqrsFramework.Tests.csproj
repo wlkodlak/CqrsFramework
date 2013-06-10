@@ -96,9 +96,9 @@
     <Compile Include="IndexTable\TreeInsertTest.cs" />
     <Compile Include="IndexTable\TreeReadTest.cs" />
     <Compile Include="IndexTable\TreeUpdateTest.cs" />
-    <Compile Include="Infrastructure\MessageInboxFilesystemTest.cs" />
-    <Compile Include="Infrastructure\MessageInboxMemoryTest.cs" />
-    <Compile Include="Infrastructure\MessageInboxTableTest.cs" />
+    <Compile Include="Messaging\MessageInboxFilesystemTest.cs" />
+    <Compile Include="Messaging\MessageInboxMemoryTest.cs" />
+    <Compile Include="Messaging\MessageInboxTableTest.cs" />
     <Compile Include="Messaging\DelayedMessagesTest.cs" />
     <Compile Include="Messaging\DispatcherProcessTest.cs" />
     <Compile Include="Messaging\MessageDispatcherTest.cs" />
