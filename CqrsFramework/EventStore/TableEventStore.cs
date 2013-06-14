@@ -76,7 +76,7 @@ namespace CqrsFramework.EventStore
 
         public long GetClock()
         {
-            throw new NotImplementedException();
+            return _tableEvents.GetRows().Count();
         }
     }
 }

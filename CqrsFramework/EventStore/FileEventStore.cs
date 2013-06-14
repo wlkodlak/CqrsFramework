@@ -13,6 +13,7 @@ namespace CqrsFramework.EventStore
         private Stream _indexFile;
         private Dictionary<string, FileEventStream> _streams;
         private List<FileEventStoreEntry> _unpublished;
+        private long _clock = 0;
 
         public FileEventStore(Stream dataFile, Stream indexFile)
         {
@@ -34,6 +35,8 @@ namespace CqrsFramework.EventStore
                     stream.AppendEvent(entry);
                     if (!entry.Published)
                         _unpublished.Add(entry);
+                    if (_clock < entry.Clock)
+                        _clock = entry.Clock;
                 }
                 entry = _dataFile.ReadEntry(entry.NextPosition);
             }
@@ -113,7 +116,7 @@ namespace CqrsFramework.EventStore
 
         public long GetClock()
         {
-            throw new NotImplementedException();
+            return _clock;
         }
     }
 }

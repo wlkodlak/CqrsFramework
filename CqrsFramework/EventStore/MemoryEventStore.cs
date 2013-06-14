@@ -11,6 +11,7 @@ namespace CqrsFramework.EventStore
         private object _lock = new object();
         private List<EventStoreEvent> _unpublished = new List<EventStoreEvent>();
         private Dictionary<string, MemoryEventStream> _streams = new Dictionary<string, MemoryEventStream>();
+        private long _clock = 0;
 
         internal void AddToUnpublished(IEnumerable<EventStoreEvent> events)
         {
@@ -21,6 +22,8 @@ namespace CqrsFramework.EventStore
         {
             _streams[name] = new MemoryEventStream(this, name, snapshot, events);
             _unpublished.AddRange(events.Where(e => !e.Published));
+            if (events.Length > 0)
+                UpdateClock(events.Max(e => e.Clock));
         }
 
         public IEnumerable<EventStoreEvent> GetUnpublishedEvents()
@@ -87,7 +90,13 @@ namespace CqrsFramework.EventStore
 
         public long GetClock()
         {
-            throw new NotImplementedException();
+            return _clock;
+        }
+
+        public void UpdateClock(long clock)
+        {
+            if (_clock < clock)
+                _clock = clock;
         }
     }
 }

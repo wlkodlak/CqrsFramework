@@ -226,5 +226,19 @@ namespace CqrsFramework.Infrastructure
         public void Dispose()
         {
         }
+
+
+        public long GetMaxRowNumber()
+        {
+            using (var conn = _connectionFactory())
+            {
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = string.Format("SELECT MAX(id) FROM {0}", _tableName);
+                    var maxId = cmd.ExecuteScalar();
+                    return (maxId is int) ? (int)maxId : 0;
+                }
+            }
+        }
     }
 }

@@ -48,6 +48,7 @@ namespace CqrsFramework.EventStore
                 throw EventStoreException.UnexpectedVersion(_name, expectedVersion, version);
             _events.AddRange(events);
             _store.AddToUnpublished(events.Where(e => !e.Published));
+            _store.UpdateClock(events.Max(e => e.Clock));
         }
 
         public void SaveSnapshot(EventStoreSnapshot snapshot)
