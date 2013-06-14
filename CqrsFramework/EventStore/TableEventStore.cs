@@ -72,5 +72,11 @@ namespace CqrsFramework.EventStore
         {
             _tableEvents.Dispose();
         }
+
+
+        public long GetClock()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

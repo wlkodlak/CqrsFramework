@@ -83,5 +83,11 @@ namespace CqrsFramework.EventStore
                 .OrderBy(e => e.Clock)
                 .ToList();
         }
+
+
+        public long GetClock()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

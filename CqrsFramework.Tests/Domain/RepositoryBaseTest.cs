@@ -8,6 +8,7 @@ using System.Linq;
 using CqrsFramework.Domain;
 using CqrsFramework.EventStore;
 using CqrsFramework.Messaging;
+using CqrsFramework.Serialization;
 
 namespace CqrsFramework.Tests.Domain
 {
@@ -16,7 +17,7 @@ namespace CqrsFramework.Tests.Domain
     {
         private class TestRepository : RepositoryBase<int, TestAggregate>
         {
-            public TestRepository(IEventStore eventStore, IMessagePublisher busWriter, IEventMessageFactory messageFactory, IEventStoreSerializer eventSerializer)
+            public TestRepository(IEventStore eventStore, IMessagePublisher busWriter, IEventMessageFactory messageFactory, IMessageSerializer eventSerializer)
                 : base(eventStore, busWriter, messageFactory, eventSerializer)
             {
             }
@@ -29,6 +30,11 @@ namespace CqrsFramework.Tests.Domain
             protected override int AggreagateId(TestAggregate aggregate)
             {
                 return aggregate.Id;
+            }
+
+            protected override int AggregateVersion(TestAggregate aggregate)
+            {
+                return aggregate.Version;
             }
         }
 
@@ -91,19 +97,31 @@ namespace CqrsFramework.Tests.Domain
                 this.Version = version;
             }
 
-            public EventStoreEvent GetStoredEvent()
+            public byte[] GetBytes()
             {
-                var data = new byte[2];
-                data[0] = 100;
-                data[1] = (byte)Version;
+                var stream = new MemoryStream();
+                var elem = new XElement("TestEvent",
+                    new XAttribute("Agg", Aggregate),
+                    new XAttribute("Ver", Version));
+                elem.Save(stream);
+                return stream.ToArray();
+            }
+
+            public EventStoreEvent GetStored()
+            {
                 return new EventStoreEvent
                 {
-                    Key = string.Format("TestAggregate:{0}", Aggregate),
-                    Published = true,
-                    Clock = Version,
+                    Data = GetBytes(),
                     Version = Version,
-                    Data = data
+                    Published = false,
+                    Key = string.Format("TestAggregate:{0}", Aggregate),
+                    Clock = 100
                 };
+            }
+
+            public Message GetMessage()
+            {
+                return new Message(this);
             }
         }
 
@@ -113,24 +131,33 @@ namespace CqrsFramework.Tests.Domain
             public int Version;
             public List<IEvent> Historic = new List<IEvent>();
 
-            public EventStoreSnapshot GetStoredSnapshot()
+            public byte[] GetBytes()
             {
                 XElement elem = new XElement("Snapshot",
                     new XAttribute("Id", Aggregate),
                     new XAttribute("Version", Version),
-                    Historic.Cast<TestEvent>().Select(e => 
+                    Historic.Cast<TestEvent>().Select(e =>
                         new XElement("Event", new XAttribute("Version", e.Version))),
                     null);
 
                 var stream = new MemoryStream();
                 elem.Save(stream);
+                return stream.ToArray();
+            }
 
+            public EventStoreSnapshot GetStored()
+            {
                 return new EventStoreSnapshot
                 {
-                    Key = string.Format("TestAggregate:{0}", Aggregate),
+                    Data = GetBytes(),
                     Version = Version,
-                    Data = stream.ToArray()
+                    Key = string.Format("TestAggregate:{0}", Aggregate)
                 };
+            }
+
+            public Message GetMessage()
+            {
+                return new Message(this);
             }
         }
 
@@ -140,65 +167,56 @@ namespace CqrsFramework.Tests.Domain
             return message;
         }
 
+        private MockRepository _repo;
+        private Mock<IEventStore> _store;
+        private Mock<IEventStream> _stream;
+        private Mock<IMessagePublisher> _bus;
+        private Mock<IMessageSerializer> _serializer;
+        private Mock<IEventMessageFactory> _factory;
+
+        [TestInitialize]
+        public void Initialize()
+        {
+            _repo = new MockRepository(MockBehavior.Strict);
+            _store = _repo.Create<IEventStore>();
+            _stream = _repo.Create<IEventStream>();
+            _bus = _repo.Create<IMessagePublisher>();
+            _serializer = _repo.Create<IMessageSerializer>();
+            _factory = _repo.Create<IEventMessageFactory>();
+        }
+
         [TestMethod]
         public void LoadingNonExistentReturnsNull()
         {
-            var storeMock = new Mock<IEventStore>();
-            var busMock = new Mock<IMessagePublisher>();
-            var serializerMock = new Mock<IEventStoreSerializer>();
-            var factoryMock = new Mock<IEventMessageFactory>();
-
-            storeMock
+            _store
                 .Setup(s => s.GetStream("TestAggregate:847", EventStreamOpenMode.Open))
                 .Returns((IEventStream)null)
                 .Verifiable();
-            var repository = new TestRepository(storeMock.Object, busMock.Object, factoryMock.Object, serializerMock.Object);
+            var repository = new TestRepository(_store.Object, _bus.Object, _factory.Object, _serializer.Object);
             Assert.IsNull(repository.Get(847));
-            storeMock.Verify();
+            _repo.Verify();
         }
 
         [TestMethod]
         public void LoadingExistingWithoutSnapshot()
         {
-            var storeMock = new Mock<IEventStore>();
-            var busMock = new Mock<IMessagePublisher>();
-            var serializerMock = new Mock<IEventStoreSerializer>();
-            var streamMock = new Mock<IEventStream>();
-            var factoryMock = new Mock<IEventMessageFactory>();
-
             var event1 = new TestEvent(157, 1);
             var event2 = new TestEvent(157, 2);
-            var stored1 = event1.GetStoredEvent();
-            var stored2 = event2.GetStoredEvent();
+            var message1 = event1.GetMessage();
+            var message2 = event2.GetMessage();
+            var stored1 = event1.GetStored();
+            var stored2 = event2.GetStored();
 
-            storeMock
-                .Setup(s => s.GetStream("TestAggregate:157", EventStreamOpenMode.Open))
-                .Returns(streamMock.Object)
-                .Verifiable();
-            streamMock
-                .Setup(s => s.GetSnapshot())
-                .Returns((EventStoreSnapshot)null)
-                .Verifiable();
-            streamMock
-                .Setup(s => s.GetEvents(1))
-                .Returns(new[] { stored1, stored2 })
-                .Verifiable();
-            serializerMock
-                .Setup(s => s.DeserializeEvent(stored1))
-                .Returns(EventMessageFactoryMethod(event1, null))
-                .Verifiable();
-            serializerMock
-                .Setup(s => s.DeserializeEvent(stored2))
-                .Returns(EventMessageFactoryMethod(event2, null))
-                .Verifiable();
+            _store.Setup(s => s.GetStream("TestAggregate:157", EventStreamOpenMode.Open)).Returns(_stream.Object).Verifiable();
+            _stream.Setup(s => s.GetSnapshot()).Returns((EventStoreSnapshot)null).Verifiable();
+            _stream.Setup(s => s.GetEvents(1)).Returns(new[] { stored1, stored2 }).Verifiable();
+            _serializer.Setup(s => s.Deserialize(stored1.Data)).Returns(message1).Verifiable();
+            _serializer.Setup(s => s.Deserialize(stored2.Data)).Returns(message2).Verifiable();
 
-            var repository = new TestRepository(storeMock.Object, busMock.Object, factoryMock.Object, serializerMock.Object);
+            var repository = new TestRepository(_store.Object, _bus.Object, _factory.Object, _serializer.Object);
             var aggregate = repository.Get(157);
 
-            storeMock.Verify();
-            streamMock.Verify();
-            serializerMock.Verify();
-
+            _repo.Verify();
             Assert.IsNull(aggregate.Snapshot);
             CollectionAssert.AreEqual(new[] { event1, event2 }, aggregate.HistoricEvents);
             CollectionAssert.AreEqual(new IEvent[0], aggregate.NewEvents);
@@ -207,12 +225,6 @@ namespace CqrsFramework.Tests.Domain
         [TestMethod]
         public void LoadingExistingWithSnapshot()
         {
-            var storeMock = new Mock<IEventStore>();
-            var busMock = new Mock<IMessagePublisher>();
-            var serializerMock = new Mock<IEventStoreSerializer>();
-            var streamMock = new Mock<IEventStream>();
-            var factoryMock = new Mock<IEventMessageFactory>();
-
             var snapshot = new TestSnapshot();
             var event1 = new TestEvent(111, 1);
             var event2 = new TestEvent(111, 2);
@@ -221,37 +233,19 @@ namespace CqrsFramework.Tests.Domain
             snapshot.Version = 2;
             snapshot.Historic.Add(event1);
             snapshot.Historic.Add(event2);
-            var storedSnapshot = snapshot.GetStoredSnapshot();
-            var stored3 = event3.GetStoredEvent();
+            var storedSnapshot = snapshot.GetStored();
+            var stored3 = event3.GetStored();
 
-            storeMock
-                .Setup(s => s.GetStream("TestAggregate:111", EventStreamOpenMode.Open))
-                .Returns(streamMock.Object)
-                .Verifiable();
-            streamMock
-                .Setup(s => s.GetSnapshot())
-                .Returns(storedSnapshot)
-                .Verifiable();
-            serializerMock
-                .Setup(s => s.DeserializeSnapshot(storedSnapshot))
-                .Returns(snapshot)
-                .Verifiable();
-            streamMock
-                .Setup(s => s.GetEvents(3))
-                .Returns(new[] { stored3 })
-                .Verifiable();
-            serializerMock
-                .Setup(s => s.DeserializeEvent(stored3))
-                .Returns(EventMessageFactoryMethod(event3, null))
-                .Verifiable();
+            _store.Setup(s => s.GetStream("TestAggregate:111", EventStreamOpenMode.Open)).Returns(_stream.Object).Verifiable();
+            _stream.Setup(s => s.GetSnapshot()).Returns(storedSnapshot).Verifiable();
+            _serializer.Setup(s => s.Deserialize(storedSnapshot.Data)).Returns(snapshot.GetMessage()).Verifiable();
+            _stream.Setup(s => s.GetEvents(3)).Returns(new[] { stored3 }).Verifiable();
+            _serializer.Setup(s => s.Deserialize(stored3.Data)).Returns(event3.GetMessage()).Verifiable();
 
-            var repository = new TestRepository(storeMock.Object, busMock.Object, factoryMock.Object, serializerMock.Object);
+            var repository = new TestRepository(_store.Object, _bus.Object, _factory.Object, _serializer.Object);
             var aggregate = repository.Get(111);
 
-            storeMock.Verify();
-            streamMock.Verify();
-            serializerMock.Verify();
-
+            _repo.Verify();
             Assert.IsNotNull(aggregate.Snapshot);
             Assert.AreEqual(2, aggregate.Snapshot.Version);
             CollectionAssert.AreEqual(new[] { event1, event2 }, aggregate.Snapshot.Historic);
@@ -265,66 +259,45 @@ namespace CqrsFramework.Tests.Domain
             var aggregate = new TestAggregate();
             var event1 = new TestEvent(111, 1);
             var event2 = new TestEvent(111, 2);
+            var message1 = event1.GetMessage();
+            var message2 = event2.GetMessage();
+            var stored1 = event1.GetStored();
+            var stored2 = event2.GetStored();
             var context = "Hello";
-            var message1 = EventMessageFactoryMethod(event1, context);
-            var message2 = EventMessageFactoryMethod(event2, context);
-            var stored1 = event1.GetStoredEvent();
-            var stored2 = event2.GetStoredEvent();
             aggregate.PublishEvents(new[] { event1, event2 });
 
-            var store = new Mock<IEventStore>();
-            var stream = new Mock<IEventStream>();
-            var bus = new Mock<IMessagePublisher>();
-            var serializer = new Mock<IEventStoreSerializer>();
-            var factory = new Mock<IEventMessageFactory>();
-            var busSequence = new MockSequence();
+            _store.Setup(s => s.GetClock()).Returns(100).Verifiable();
+            _store.Setup(s => s.GetStream("TestAggregate:111", EventStreamOpenMode.Create)).Returns(_stream.Object).Verifiable();
+            _factory.Setup(f => f.CreateMessage(event1, context, 100, event1.Version)).Returns(message1).Verifiable();
+            _factory.Setup(f => f.CreateMessage(event2, context, 100, event2.Version)).Returns(message2).Verifiable();
+            var busSequence = 0;
+            _bus
+                .Setup(b => b.Publish(It.Is<Message>(m => m.Payload == event1)))
+                .Callback<Message>(m => { Assert.AreEqual(0, busSequence, "Bus sequence"); busSequence++; })
+                .Verifiable();
+            _bus
+                .Setup(b => b.Publish(It.Is<Message>(m => m.Payload == event2)))
+                .Callback<Message>(m => { Assert.AreEqual(1, busSequence, "Bus sequence"); busSequence++; })
+                .Verifiable();
+            _serializer.Setup(s => s.Serialize(message1)).Returns(event1.GetBytes()).Verifiable();
+            _serializer.Setup(s => s.Serialize(message2)).Returns(event2.GetBytes()).Verifiable();
 
-            store
-                .Setup(s => s.GetStream("TestAggregate:111", EventStreamOpenMode.Create))
-                .Returns(stream.Object)
+            _stream
+                .Setup(s => s.SaveEvents(0, It.IsAny<EventStoreEvent[]>()))
+                .Callback<int, EventStoreEvent[]>((v, e) => 
+                    {
+                        Assert.AreEqual(2, e.Length, "Length");
+                        AssertExtension.AreEqual(stored1, e[0], "Event1");
+                        AssertExtension.AreEqual(stored2, e[1], "Event2");
+                    })
                 .Verifiable();
-            bus.InSequence(busSequence).Setup(b => b.Publish(message1)).Verifiable();
-            bus.InSequence(busSequence).Setup(b => b.Publish(message2)).Verifiable();
-            serializer
-                .Setup(s => s.SerializeEvent(message1))
-                .Returns(stored1)
-                .Verifiable();
-            serializer
-                .Setup(s => s.SerializeEvent(message2))
-                .Returns(stored2)
-                .Verifiable();
-            factory
-                .Setup(f => f.CreateMessage(event1, context))
-                .Returns(message1)
-                .Verifiable();
-            factory
-                .Setup(f => f.CreateMessage(event2, context))
-                .Returns(message2)
-                .Verifiable();
+            _store.Setup(s => s.MarkAsPublished(stored1)).Verifiable();
+            _store.Setup(s => s.MarkAsPublished(stored2)).Verifiable();
 
-            stream
-                .Setup(s => s.SaveEvents(0, 
-                    It.Is<EventStoreEvent[]>(l => 
-                        l.Length == 2 &&
-                        l[0].Equals(stored1) &&
-                        l[1].Equals(stored2))))
-                .Verifiable();
-            store
-                .Setup(s => s.MarkAsPublished(stored1))
-                .Verifiable();
-            store
-                .Setup(s => s.MarkAsPublished(stored2))
-                .Verifiable();
-
-            var repository = new TestRepository(store.Object, bus.Object, factory.Object, serializer.Object);
+            var repository = new TestRepository(_store.Object, _bus.Object, _factory.Object, _serializer.Object);
             repository.Save(aggregate, context, RepositorySaveFlags.Create.WithoutSnapshot);
 
-            store.Verify();
-            stream.Verify();
-            bus.Verify();
-            serializer.Verify();
-            factory.Verify();
-
+            _repo.Verify();
             CollectionAssert.AreEqual(new[] { event1, event2 }, aggregate.HistoricEvents);
             CollectionAssert.AreEqual(new IEvent[0], aggregate.NewEvents);
             Assert.AreEqual(111, aggregate.Id);
@@ -337,47 +310,37 @@ namespace CqrsFramework.Tests.Domain
             var event1 = new TestEvent(584, 1);
             var event2 = new TestEvent(584, 2);
             var event3 = new TestEvent(584, 3);
-            var message1 = EventMessageFactoryMethod(event1, context);
-            var message2 = EventMessageFactoryMethod(event2, context);
-            var message3 = EventMessageFactoryMethod(event3, context);
-            var stored1 = event1.GetStoredEvent();
-            var stored2 = event2.GetStoredEvent();
-            var stored3 = event3.GetStoredEvent();
+            var message1 = event1.GetMessage();
+            var message2 = event2.GetMessage();
+            var message3 = event3.GetMessage();
+            var stored1 = event1.GetStored();
+            var stored2 = event2.GetStored();
+            var stored3 = event3.GetStored();
 
-            var store = new Mock<IEventStore>();
-            var stream = new Mock<IEventStream>();
-            var bus = new Mock<IMessagePublisher>();
-            var serializer = new Mock<IEventStoreSerializer>();
-            var factory = new Mock<IEventMessageFactory>();
-
-            store
+            _store
                 .Setup(s => s.GetStream("TestAggregate:584", EventStreamOpenMode.Open))
-                .Returns(stream.Object);
-            serializer.Setup(s => s.DeserializeEvent(stored1)).Returns(message1);
-            serializer.Setup(s => s.DeserializeEvent(stored2)).Returns(message2);
-            stream.Setup(s => s.GetSnapshot()).Returns((EventStoreSnapshot)null);
-            stream.Setup(s => s.GetEvents(1)).Returns(new[] { stored1, stored2 });
+                .Returns(_stream.Object);
+            _serializer.Setup(s => s.Deserialize(stored1.Data)).Returns(message1);
+            _serializer.Setup(s => s.Deserialize(stored2.Data)).Returns(message2);
+            _stream.Setup(s => s.GetSnapshot()).Returns((EventStoreSnapshot)null);
+            _stream.Setup(s => s.GetEvents(1)).Returns(new[] { stored1, stored2 });
 
-            store
+            _store.Setup(s => s.GetClock()).Returns(100).Verifiable();
+            _store
                 .Setup(s => s.GetStream("TestAggregate:584", EventStreamOpenMode.OpenExisting))
-                .Returns(stream.Object);
-            serializer.Setup(s => s.SerializeEvent(message3)).Returns(stored3).Verifiable();
-            stream.Setup(s => s.SaveEvents(2, It.Is<EventStoreEvent[]>(ea => ea.Single().Equals(stored3)))).Verifiable();
-            bus.Setup(b => b.Publish(message3)).Verifiable();
-            store.Setup(s => s.MarkAsPublished(stored3)).Verifiable();
-            factory.Setup(f => f.CreateMessage(event3, context)).Returns(message3).Verifiable();
+                .Returns(_stream.Object);
+            _serializer.Setup(s => s.Serialize(message3)).Returns(stored3.Data).Verifiable();
+            _stream.Setup(s => s.SaveEvents(2, It.Is<EventStoreEvent[]>(ea => ea.Single().Equals(stored3)))).Verifiable();
+            _bus.Setup(b => b.Publish(message3)).Verifiable();
+            _store.Setup(s => s.MarkAsPublished(stored3)).Verifiable();
+            _factory.Setup(f => f.CreateMessage(event3, context, 100, 3)).Returns(message3).Verifiable();
 
-            var repository = new TestRepository(store.Object, bus.Object, factory.Object, serializer.Object);
+            var repository = new TestRepository(_store.Object, _bus.Object, _factory.Object, _serializer.Object);
             var aggregate = repository.Get(584);
             aggregate.PublishEvents(new[] { event3 });
             repository.Save(aggregate, context, RepositorySaveFlags.Append.ToVersion(2).WithoutSnapshot);
 
-            store.Verify();
-            stream.Verify();
-            bus.Verify();
-            serializer.Verify();
-            factory.Verify();
-
+            _repo.Verify();
             CollectionAssert.AreEqual(new[] { event1, event2, event3 }, aggregate.HistoricEvents);
             CollectionAssert.AreEqual(new IEvent[0], aggregate.NewEvents);
             Assert.AreEqual(3, aggregate.Version);
@@ -393,57 +356,49 @@ namespace CqrsFramework.Tests.Domain
             var message1 = EventMessageFactoryMethod(event1, context);
             var message2 = EventMessageFactoryMethod(event2, context);
             var message3 = EventMessageFactoryMethod(event3, context);
-            var stored1 = event1.GetStoredEvent();
-            var stored2 = event2.GetStoredEvent();
-            var stored3 = event3.GetStoredEvent();
+            var stored1 = event1.GetStored();
+            var stored2 = event2.GetStored();
+            var stored3 = event3.GetStored();
             var snapshot = new TestSnapshot() { Aggregate = 584, Version = 3 };
+            var storedSnapshot = snapshot.GetStored();
             snapshot.Historic.AddRange(new[] { event1, event2, event3 });
-            var storedSnapshot = snapshot.GetStoredSnapshot();
 
-            var store = new Mock<IEventStore>();
-            var stream = new Mock<IEventStream>();
-            var bus = new Mock<IMessagePublisher>();
-            var serializer = new Mock<IEventStoreSerializer>();
-            var factory = new Mock<IEventMessageFactory>();
-
-            store
+            _store
                 .Setup(s => s.GetStream("TestAggregate:584", EventStreamOpenMode.Open))
-                .Returns(stream.Object);
-            serializer.Setup(s => s.DeserializeEvent(stored1)).Returns(message1);
-            serializer.Setup(s => s.DeserializeEvent(stored2)).Returns(message2);
-            stream.Setup(s => s.GetSnapshot()).Returns((EventStoreSnapshot)null);
-            stream.Setup(s => s.GetEvents(1)).Returns(new[] { stored1, stored2 });
+                .Returns(_stream.Object);
+            _serializer.Setup(s => s.Deserialize(stored1.Data)).Returns(message1);
+            _serializer.Setup(s => s.Deserialize(stored2.Data)).Returns(message2);
+            _stream.Setup(s => s.GetSnapshot()).Returns((EventStoreSnapshot)null);
+            _stream.Setup(s => s.GetEvents(1)).Returns(new[] { stored1, stored2 });
 
-            store
+            _store.Setup(s => s.GetClock()).Returns(100).Verifiable();
+            _store
                 .Setup(s => s.GetStream("TestAggregate:584", EventStreamOpenMode.OpenExisting))
-                .Returns(stream.Object);
-            serializer.Setup(s => s.SerializeEvent(message3)).Returns(stored3).Verifiable();
-            serializer.Setup(s => s.SerializeSnapshot(snapshot)).Returns(storedSnapshot).Verifiable();
-            stream
+                .Returns(_stream.Object);
+            _serializer.Setup(s => s.Serialize(message3)).Returns(stored3.Data).Verifiable();
+            _serializer.Setup(s => s.Serialize(It.Is<Message>(m => m.Payload == snapshot))).Returns(storedSnapshot.Data).Verifiable();
+            _stream
                 .Setup(s => s.SaveEvents(
-                    It.Is<int>(i => i == -1 || i == 2), 
+                    It.Is<int>(i => i == -1 || i == 2),
                     It.Is<EventStoreEvent[]>(ea => ea.Single().Equals(stored3))
                     )).Verifiable();
-            bus.Setup(b => b.Publish(message3)).Verifiable();
-            store.Setup(s => s.MarkAsPublished(stored3)).Verifiable();
-            stream.Setup(s => s.SaveSnapshot(storedSnapshot)).Verifiable();
-            factory.Setup(f => f.CreateMessage(event3, context)).Returns(message3).Verifiable();
+            _bus.Setup(b => b.Publish(message3)).Verifiable();
+            _store.Setup(s => s.MarkAsPublished(stored3)).Verifiable();
+            _stream.Setup(s => s.SaveSnapshot(It.IsAny<EventStoreSnapshot>()))
+                .Callback<EventStoreSnapshot>(s => AssertExtension.AreEqual(storedSnapshot, s))
+                .Verifiable();
+            _factory.Setup(f => f.CreateMessage(event3, context, 100, 3)).Returns(message3).Verifiable();
 
-            var repository = new TestRepository(store.Object, bus.Object, factory.Object, serializer.Object);
+            var repository = new TestRepository(_store.Object, _bus.Object, _factory.Object, _serializer.Object);
             var aggregate = repository.Get(584);
             aggregate.PublishEvents(new[] { event3 });
             aggregate.Snapshot = snapshot;
             repository.Save(aggregate, context, RepositorySaveFlags.Append.WithSnapshot);
 
-            store.Verify();
-            stream.Verify();
-            bus.Verify();
-            serializer.Verify();
-
+            _repo.Verify();
             CollectionAssert.AreEqual(new[] { event1, event2, event3 }, aggregate.HistoricEvents);
             CollectionAssert.AreEqual(new IEvent[0], aggregate.NewEvents);
             Assert.AreEqual(3, aggregate.Version);
         }
-
     }
 }

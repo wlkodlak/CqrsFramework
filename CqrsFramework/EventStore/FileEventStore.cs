@@ -109,5 +109,11 @@ namespace CqrsFramework.EventStore
         {
             _unpublished.Add(entry);
         }
+
+
+        public long GetClock()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

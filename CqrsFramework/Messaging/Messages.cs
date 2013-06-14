@@ -10,7 +10,7 @@ namespace CqrsFramework.Messaging
 {
     public interface IEventMessageFactory
     {
-        Message CreateMessage(IEvent @event, object context);
+        Message CreateMessage(IEvent @event, object context, long clock, int version);
     }
 
     public class Message

@@ -13,6 +13,7 @@ namespace CqrsFramework.EventStore
         IEventStream GetStream(string name, EventStreamOpenMode mode);
         void MarkAsPublished(EventStoreEvent @event);
         IEnumerable<EventStoreEvent> GetSince(long clock);
+        long GetClock();
     }
     
     public interface IEventStream
@@ -24,14 +25,6 @@ namespace CqrsFramework.EventStore
         void SaveEvents(int expectedVersion, EventStoreEvent[] events);
         void SaveSnapshot(EventStoreSnapshot snapshot);
         int GetSnapshotVersion();
-    }
-
-    public interface IEventStoreSerializer
-    {
-        Message DeserializeEvent(EventStoreEvent stored);
-        object DeserializeSnapshot(EventStoreSnapshot storedSnapshot);
-        EventStoreEvent SerializeEvent(Message @event);
-        EventStoreSnapshot SerializeSnapshot(object snapshot);
     }
 
     public enum EventStreamOpenMode

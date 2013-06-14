@@ -1,5 +1,6 @@
 ﻿using CqrsFramework.EventStore;
 using CqrsFramework.Messaging;
+using CqrsFramework.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,15 +14,15 @@ namespace CqrsFramework.Domain
     {
         private IEventStore _store;
         private IMessagePublisher _bus;
-        private IEventStoreSerializer _serializer;
+        private IMessageSerializer _serializer;
         private IEventMessageFactory _eventMessageFactory;
 
-        public RepositoryBase(IEventStore eventStore, IMessagePublisher busWriter, IEventMessageFactory eventMessageFactory, IEventStoreSerializer eventSerializer)
+        public RepositoryBase(IEventStore eventStore, IMessagePublisher busWriter, IEventMessageFactory eventMessageFactory, IMessageSerializer serializer)
         {
             this._store = eventStore;
             this._bus = busWriter;
             this._eventMessageFactory = eventMessageFactory;
-            this._serializer = eventSerializer;
+            this._serializer = serializer;
         }
 
         public TAgg Get(TKey key)
@@ -30,9 +31,9 @@ namespace CqrsFramework.Domain
             if (stream == null)
                 return null;
             var storedSnapshot = stream.GetSnapshot();
-            var snapshot = storedSnapshot == null ? null : _serializer.DeserializeSnapshot(storedSnapshot);
+            var snapshot = storedSnapshot == null ? null : _serializer.Deserialize(storedSnapshot.Data).Payload;
             var minVersion = storedSnapshot == null ? 1 : storedSnapshot.Version + 1;
-            var events = stream.GetEvents(minVersion).Select(e => (IEvent)_serializer.DeserializeEvent(e).Payload);
+            var events = stream.GetEvents(minVersion).Select(e => (IEvent)_serializer.Deserialize(e.Data).Payload);
             var agg = new TAgg();
             agg.LoadFromHistory(snapshot, events);
             return agg;
@@ -40,12 +41,23 @@ namespace CqrsFramework.Domain
 
         public void Save(TAgg aggregate, object context, RepositorySaveFlags repositorySaveFlags)
         {
-            IEventStream stream = OpenSaveStream(EventStreamName(AggreagateId(aggregate)), repositorySaveFlags);
+            var streamName = EventStreamName(AggreagateId(aggregate));
+            IEventStream stream = OpenSaveStream(streamName, repositorySaveFlags);
             var events = aggregate.GetEvents().ToArray();
-            var eventMessages = events.Select(e => _eventMessageFactory.CreateMessage(e, context)).ToArray();
-            var storedEvents = eventMessages.Select(e => _serializer.SerializeEvent(e)).ToArray();
-            var version = ExpectedVersion(repositorySaveFlags);
-            stream.SaveEvents(version, storedEvents);
+            var eventMessages = new Message[events.Length];
+            var storedEvents = new EventStoreEvent[events.Length];
+            var aggregateVersionNow = AggregateVersion(aggregate);
+            var aggregateVersionBeforeChanges = aggregateVersionNow - events.Length;
+            var clock = _store.GetClock();
+            for (int i = 0; i < events.Length; i++)
+            {
+                var eventVersion = aggregateVersionBeforeChanges + i + 1;
+                eventMessages[i] = _eventMessageFactory.CreateMessage(events[i], context, clock, eventVersion);
+                var data = _serializer.Serialize(eventMessages[i]);
+                storedEvents[i] = new EventStoreEvent() { Clock = clock, Key = streamName, Version = eventVersion, Data = data };
+            }
+            var streamVersion = ExpectedVersion(repositorySaveFlags);
+            stream.SaveEvents(streamVersion, storedEvents);
             for (int i = 0; i < events.Length; i++)
             {
                 _bus.Publish(eventMessages[i]);
@@ -58,7 +70,8 @@ namespace CqrsFramework.Domain
                 var snapshot = aggregate.GetSnapshot();
                 if (snapshot != null)
                 {
-                    var storedSnapshot = _serializer.SerializeSnapshot(snapshot);
+                    var snapshotData = _serializer.Serialize(new Message(snapshot));
+                    var storedSnapshot = new EventStoreSnapshot() { Key = streamName, Version = aggregateVersionNow, Data = snapshotData };
                     stream.SaveSnapshot(storedSnapshot);
                 }
             }
@@ -110,5 +123,6 @@ namespace CqrsFramework.Domain
 
         protected abstract string EventStreamName(TKey key);
         protected abstract TKey AggreagateId(TAgg aggregate);
+        protected abstract int AggregateVersion(TAgg aggregate);
     }
 }

@@ -77,17 +77,33 @@ namespace CqrsFramework.ServiceBus
         private void FinishedInbox(Task<Message> task, object state)
         {
             var pair = state as PrioritizedInboxesPair;
-            var result = new MessageWithSource(pair.Key, pair.Inbox, task.Result);
-            if (_taskSource.TrySetResult(result))
-                pair.InboxTask = null;
+            if (task.IsCanceled)
+            {
+                if (_taskSource.TrySetCanceled())
+                    pair.InboxTask = null;
+            }
+            else
+            {
+                var result = new MessageWithSource(pair.Key, pair.Inbox, task.Result);
+                if (_taskSource.TrySetResult(result))
+                    pair.InboxTask = null;
+            }
         }
 
         private void FinishedDelayed(Task<Message> task, object state)
         {
             var pair = state as PrioritizedInboxesPair;
-            var result = new MessageWithSource(pair.Key, pair.Inbox, task.Result);
-            if (_taskSource.TrySetResult(result))
-                pair.DelayedTask = null;
+            if (task.IsCanceled)
+            {
+                if (_taskSource.TrySetCanceled())
+                    pair.DelayedTask = null;
+            }
+            else
+            {
+                var result = new MessageWithSource(pair.Key, pair.Inbox, task.Result);
+                if (_taskSource.TrySetResult(result))
+                    pair.DelayedTask = null;
+            }
         }
 
         public void PutToDelayed(DateTime executeOn, MessageWithSource message)
