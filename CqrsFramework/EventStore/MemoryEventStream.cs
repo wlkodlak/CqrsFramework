@@ -46,7 +46,14 @@ namespace CqrsFramework.EventStore
             var version = GetCurrentVersion();
             if (expectedVersion != -1 && version != expectedVersion)
                 throw EventStoreException.UnexpectedVersion(_name, expectedVersion, version);
-            _events.AddRange(events);
+            var clock = _store.GetClock();
+            foreach (var @event in events)
+            {
+                clock++;
+                @event.Clock = clock;
+                _events.Add(@event);
+            }
+            _store.UpdateClock(clock);
             _store.AddToUnpublished(events.Where(e => !e.Published));
             _store.UpdateClock(events.Max(e => e.Clock));
         }

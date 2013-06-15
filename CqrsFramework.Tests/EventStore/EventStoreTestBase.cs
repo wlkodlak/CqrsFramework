@@ -295,6 +295,21 @@ namespace CqrsFramework.Tests.EventStore
         }
 
         [TestMethod]
+        public void SavingEventsAddsClock()
+        {
+            var event1 = new EventStoreEvent { Key = "agg-1", Version = 1, Data = new byte[] { 1, 15 }, Published = true, Clock = 40 };
+            var event2 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 2, 17 } };
+            var builder = CreateBuilder();
+            builder.WithStream("agg-1", null, new[] { event1 });
+            using (var store = builder.Build())
+            {
+                IEventStream streamToWrite = store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
+                streamToWrite.SaveEvents(1, new[] { event2 });
+                Assert.IsTrue(event2.Clock >= event1.Clock);
+            }
+        }
+
+        [TestMethod]
         public void NewEventsAreMarkedAsPublished()
         {
             var event1 = new EventStoreEvent { Key = "agg-1", Version = 1, Data = new byte[] { 1, 15 }, Published = true };
@@ -330,12 +345,13 @@ namespace CqrsFramework.Tests.EventStore
             var event2 = new EventStoreEvent { Key = "agg-2", Version = 1, Data = new byte[] { 3, 19 }, Clock = 2 };
             var event3 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 2, 17 }, Clock = 3 };
             var builder = CreateBuilder();
-            builder.WithStream("agg-1", null, new[] { event1, event3 });
+            builder.WithStream("agg-1", null, new[] { event1 });
             builder.WithStream("agg-2", null, new[] { event2 });
+            builder.WithStream("agg-1", null, new[] { event3 });
             using (var store = builder.Build())
             {
                 var expected = new[] { event2, event3 };
-                var actual = store.GetSince(2).ToList();
+                var actual = store.GetSince(event2.Clock).ToList();
                 CollectionAssert.AreEqual(expected, actual);
             }
         }
@@ -370,33 +386,6 @@ namespace CqrsFramework.Tests.EventStore
                 Assert.AreEqual(2, actualEvents.Count);
             }
         }
-
-        [TestMethod]
-        public void ReturnsClockForEmptyStore()
-        {
-            var builder = CreateBuilder();
-            using (var store = builder.Build())
-            {
-                Assert.IsTrue(store.GetClock() >= 0);
-            }
-        }
-
-        [TestMethod]
-        public void ClockForNonemptyStoreIsAtleastGreatestClockInStore()
-        {
-            var event1 = new EventStoreEvent { Key = "agg-1", Version = 1, Data = new byte[] { 1, 15 }, Published = true, Clock = 1 };
-            var event2 = new EventStoreEvent { Key = "agg-2", Version = 1, Data = new byte[] { 3, 19 }, Clock = 2 };
-            var event3 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 2, 17 }, Clock = 3 };
-            var builder = CreateBuilder();
-            builder.WithStream("agg-1", null, new[] { event1, event3 });
-            builder.WithStream("agg-2", null, new[] { event2 });
-            using (var store = builder.Build())
-            {
-                var clock = store.GetClock();
-                Assert.IsTrue(clock >= 3);
-            }
-        }
-
     }
 
 }

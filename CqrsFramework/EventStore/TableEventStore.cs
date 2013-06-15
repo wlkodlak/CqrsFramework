@@ -72,11 +72,5 @@ namespace CqrsFramework.EventStore
         {
             _tableEvents.Dispose();
         }
-
-
-        public long GetClock()
-        {
-            return _tableEvents.GetRows().Count();
-        }
     }
 }

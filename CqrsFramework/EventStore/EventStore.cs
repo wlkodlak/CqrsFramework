@@ -13,7 +13,6 @@ namespace CqrsFramework.EventStore
         IEventStream GetStream(string name, EventStreamOpenMode mode);
         void MarkAsPublished(EventStoreEvent @event);
         IEnumerable<EventStoreEvent> GetSince(long clock);
-        long GetClock();
     }
     
     public interface IEventStream

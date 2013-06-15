@@ -78,6 +78,7 @@ namespace CqrsFramework.EventStore
                 entry.Published = @event.Published;
                 entry.Version = @event.Version;
                 _store.AppendEntryToDataFile(entry);
+                @event.Clock = entry.Clock;
                 _events.Add(entry);
                 _store.AppendEntryToUnpublished(entry);
             }

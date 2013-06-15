@@ -107,7 +107,7 @@ namespace CqrsFramework.Tests.Domain
                 return stream.ToArray();
             }
 
-            public EventStoreEvent GetStored()
+            public EventStoreEvent GetStored(int clock)
             {
                 return new EventStoreEvent
                 {
@@ -115,7 +115,7 @@ namespace CqrsFramework.Tests.Domain
                     Version = Version,
                     Published = false,
                     Key = string.Format("TestAggregate:{0}", Aggregate),
-                    Clock = 100
+                    Clock = clock
                 };
             }
 
@@ -204,8 +204,8 @@ namespace CqrsFramework.Tests.Domain
             var event2 = new TestEvent(157, 2);
             var message1 = event1.GetMessage();
             var message2 = event2.GetMessage();
-            var stored1 = event1.GetStored();
-            var stored2 = event2.GetStored();
+            var stored1 = event1.GetStored(1);
+            var stored2 = event2.GetStored(2);
 
             _store.Setup(s => s.GetStream("TestAggregate:157", EventStreamOpenMode.Open)).Returns(_stream.Object).Verifiable();
             _stream.Setup(s => s.GetSnapshot()).Returns((EventStoreSnapshot)null).Verifiable();
@@ -234,7 +234,7 @@ namespace CqrsFramework.Tests.Domain
             snapshot.Historic.Add(event1);
             snapshot.Historic.Add(event2);
             var storedSnapshot = snapshot.GetStored();
-            var stored3 = event3.GetStored();
+            var stored3 = event3.GetStored(50);
 
             _store.Setup(s => s.GetStream("TestAggregate:111", EventStreamOpenMode.Open)).Returns(_stream.Object).Verifiable();
             _stream.Setup(s => s.GetSnapshot()).Returns(storedSnapshot).Verifiable();
@@ -261,15 +261,16 @@ namespace CqrsFramework.Tests.Domain
             var event2 = new TestEvent(111, 2);
             var message1 = event1.GetMessage();
             var message2 = event2.GetMessage();
-            var stored1 = event1.GetStored();
-            var stored2 = event2.GetStored();
+            var stored1 = event1.GetStored(50);
+            var stored2 = event2.GetStored(100);
             var context = "Hello";
             aggregate.PublishEvents(new[] { event1, event2 });
 
-            _store.Setup(s => s.GetClock()).Returns(100).Verifiable();
             _store.Setup(s => s.GetStream("TestAggregate:111", EventStreamOpenMode.Create)).Returns(_stream.Object).Verifiable();
-            _factory.Setup(f => f.CreateMessage(event1, context, 100, event1.Version)).Returns(message1).Verifiable();
-            _factory.Setup(f => f.CreateMessage(event2, context, 100, event2.Version)).Returns(message2).Verifiable();
+            _factory.Setup(f => f.CreateMessage(event1, context)).Returns(message1).Verifiable();
+            _factory.Setup(f => f.EnhanceMessage(message1, 50, event1.Version)).Verifiable();
+            _factory.Setup(f => f.CreateMessage(event2, context)).Returns(message2).Verifiable();
+            _factory.Setup(f => f.EnhanceMessage(message2, 100, event2.Version)).Verifiable();
             var busSequence = 0;
             _bus
                 .Setup(b => b.Publish(It.Is<Message>(m => m.Payload == event1)))
@@ -286,6 +287,8 @@ namespace CqrsFramework.Tests.Domain
                 .Setup(s => s.SaveEvents(0, It.IsAny<EventStoreEvent[]>()))
                 .Callback<int, EventStoreEvent[]>((v, e) => 
                     {
+                        e[0].Clock = 50;
+                        e[1].Clock = 100;
                         Assert.AreEqual(2, e.Length, "Length");
                         AssertExtension.AreEqual(stored1, e[0], "Event1");
                         AssertExtension.AreEqual(stored2, e[1], "Event2");
@@ -313,9 +316,9 @@ namespace CqrsFramework.Tests.Domain
             var message1 = event1.GetMessage();
             var message2 = event2.GetMessage();
             var message3 = event3.GetMessage();
-            var stored1 = event1.GetStored();
-            var stored2 = event2.GetStored();
-            var stored3 = event3.GetStored();
+            var stored1 = event1.GetStored(4);
+            var stored2 = event2.GetStored(8);
+            var stored3 = event3.GetStored(100);
 
             _store
                 .Setup(s => s.GetStream("TestAggregate:584", EventStreamOpenMode.Open))
@@ -325,15 +328,18 @@ namespace CqrsFramework.Tests.Domain
             _stream.Setup(s => s.GetSnapshot()).Returns((EventStoreSnapshot)null);
             _stream.Setup(s => s.GetEvents(1)).Returns(new[] { stored1, stored2 });
 
-            _store.Setup(s => s.GetClock()).Returns(100).Verifiable();
             _store
                 .Setup(s => s.GetStream("TestAggregate:584", EventStreamOpenMode.OpenExisting))
                 .Returns(_stream.Object);
             _serializer.Setup(s => s.Serialize(message3)).Returns(stored3.Data).Verifiable();
-            _stream.Setup(s => s.SaveEvents(2, It.Is<EventStoreEvent[]>(ea => ea.Single().Equals(stored3)))).Verifiable();
+            _stream
+                .Setup(s => s.SaveEvents(2, It.Is<EventStoreEvent[]>(ea => ea.Single().Equals(stored3))))
+                .Callback<int, EventStoreEvent[]>((v,e) => e[0].Clock = 100)
+                .Verifiable();
             _bus.Setup(b => b.Publish(message3)).Verifiable();
             _store.Setup(s => s.MarkAsPublished(stored3)).Verifiable();
-            _factory.Setup(f => f.CreateMessage(event3, context, 100, 3)).Returns(message3).Verifiable();
+            _factory.Setup(f => f.CreateMessage(event3, context)).Returns(message3).Verifiable();
+            _factory.Setup(f => f.EnhanceMessage(message3, 100, 3)).Verifiable();
 
             var repository = new TestRepository(_store.Object, _bus.Object, _factory.Object, _serializer.Object);
             var aggregate = repository.Get(584);
@@ -356,9 +362,9 @@ namespace CqrsFramework.Tests.Domain
             var message1 = EventMessageFactoryMethod(event1, context);
             var message2 = EventMessageFactoryMethod(event2, context);
             var message3 = EventMessageFactoryMethod(event3, context);
-            var stored1 = event1.GetStored();
-            var stored2 = event2.GetStored();
-            var stored3 = event3.GetStored();
+            var stored1 = event1.GetStored(50);
+            var stored2 = event2.GetStored(100);
+            var stored3 = event3.GetStored(150);
             var snapshot = new TestSnapshot() { Aggregate = 584, Version = 3 };
             var storedSnapshot = snapshot.GetStored();
             snapshot.Historic.AddRange(new[] { event1, event2, event3 });
@@ -371,7 +377,6 @@ namespace CqrsFramework.Tests.Domain
             _stream.Setup(s => s.GetSnapshot()).Returns((EventStoreSnapshot)null);
             _stream.Setup(s => s.GetEvents(1)).Returns(new[] { stored1, stored2 });
 
-            _store.Setup(s => s.GetClock()).Returns(100).Verifiable();
             _store
                 .Setup(s => s.GetStream("TestAggregate:584", EventStreamOpenMode.OpenExisting))
                 .Returns(_stream.Object);
@@ -381,13 +386,16 @@ namespace CqrsFramework.Tests.Domain
                 .Setup(s => s.SaveEvents(
                     It.Is<int>(i => i == -1 || i == 2),
                     It.Is<EventStoreEvent[]>(ea => ea.Single().Equals(stored3))
-                    )).Verifiable();
+                    ))
+                .Callback<int, EventStoreEvent[]>((v, e) => { e[0].Clock = 150; })
+                .Verifiable();
             _bus.Setup(b => b.Publish(message3)).Verifiable();
             _store.Setup(s => s.MarkAsPublished(stored3)).Verifiable();
             _stream.Setup(s => s.SaveSnapshot(It.IsAny<EventStoreSnapshot>()))
                 .Callback<EventStoreSnapshot>(s => AssertExtension.AreEqual(storedSnapshot, s))
                 .Verifiable();
-            _factory.Setup(f => f.CreateMessage(event3, context, 100, 3)).Returns(message3).Verifiable();
+            _factory.Setup(f => f.CreateMessage(event3, context)).Returns(message3).Verifiable();
+            _factory.Setup(f => f.EnhanceMessage(message3, 150, 3)).Verifiable();
 
             var repository = new TestRepository(_store.Object, _bus.Object, _factory.Object, _serializer.Object);
             var aggregate = repository.Get(584);

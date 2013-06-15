@@ -87,16 +87,15 @@ namespace CqrsFramework.EventStore
                 .ToList();
         }
 
-
-        public long GetClock()
-        {
-            return _clock;
-        }
-
         public void UpdateClock(long clock)
         {
             if (_clock < clock)
                 _clock = clock;
+        }
+
+        public long GetClock()
+        {
+            return _clock;
         }
     }
 }

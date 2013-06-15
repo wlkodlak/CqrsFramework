@@ -48,18 +48,18 @@ namespace CqrsFramework.Domain
             var storedEvents = new EventStoreEvent[events.Length];
             var aggregateVersionNow = AggregateVersion(aggregate);
             var aggregateVersionBeforeChanges = aggregateVersionNow - events.Length;
-            var clock = _store.GetClock();
             for (int i = 0; i < events.Length; i++)
             {
                 var eventVersion = aggregateVersionBeforeChanges + i + 1;
-                eventMessages[i] = _eventMessageFactory.CreateMessage(events[i], context, clock, eventVersion);
+                eventMessages[i] = _eventMessageFactory.CreateMessage(events[i], context);
                 var data = _serializer.Serialize(eventMessages[i]);
-                storedEvents[i] = new EventStoreEvent() { Clock = clock, Key = streamName, Version = eventVersion, Data = data };
+                storedEvents[i] = new EventStoreEvent() { Key = streamName, Version = eventVersion, Data = data };
             }
             var streamVersion = ExpectedVersion(repositorySaveFlags);
             stream.SaveEvents(streamVersion, storedEvents);
             for (int i = 0; i < events.Length; i++)
             {
+                _eventMessageFactory.EnhanceMessage(eventMessages[i], storedEvents[i].Clock, storedEvents[i].Version);
                 _bus.Publish(eventMessages[i]);
                 _store.MarkAsPublished(storedEvents[i]);
             }

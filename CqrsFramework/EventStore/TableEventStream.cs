@@ -131,9 +131,14 @@ namespace CqrsFramework.EventStore
                 return;
             bool createStream = _version == 0;
             _version = events.Max(e => e.Version);
+            var clock = _tableEvents.GetMaxRowNumber() + 1;
             SaveStreamToDb(createStream);
             foreach (var @event in events)
+            {
+                @event.Clock = clock;
                 SaveEventToDb(@event);
+                clock++;
+            }
         }
 
         private void SaveEventToDb(EventStoreEvent @event)

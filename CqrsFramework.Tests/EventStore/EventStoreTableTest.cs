@@ -84,6 +84,7 @@ namespace CqrsFramework.Tests.EventStore
                     rowEvent["published"] = @event.Published ? 1 : 0;
                     rowEvent["clock"] = (int)@event.Clock;
                     _tableEvents.Insert(rowEvent);
+                    @event.Clock = rowEvent.RowNumber;
                 }
 
                 _dataTableStreams.AcceptChanges();

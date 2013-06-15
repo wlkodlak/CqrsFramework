@@ -112,11 +112,5 @@ namespace CqrsFramework.EventStore
         {
             _unpublished.Add(entry);
         }
-
-
-        public long GetClock()
-        {
-            return _clock;
-        }
     }
 }

@@ -93,6 +93,7 @@ namespace CqrsFramework.EventStore
 
                 entry.Position = _appendPosition;
                 entry.NextPosition = _appendPosition + 9 + 8 + nameLength + dataLength + endMarkLength;
+                entry.Clock = _appendPosition;
 
                 writer.Write(flags);
                 writer.Write(nameLength);

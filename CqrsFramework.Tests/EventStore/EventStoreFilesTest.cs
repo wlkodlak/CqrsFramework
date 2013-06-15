@@ -34,7 +34,11 @@ namespace CqrsFramework.Tests.EventStore
                 if (snapshot != null)
                     _dataFile.AppendEntry(CreateEntry(name, snapshot));
                 foreach (var @event in events)
-                    _dataFile.AppendEntry(CreateEntry(name, @event));
+                {
+                    var entry = CreateEntry(name, @event);
+                    _dataFile.AppendEntry(entry);
+                    @event.Clock = entry.Clock;
+                }
             }
 
             private FileEventStoreEntry CreateEntry(string name, EventStoreSnapshot snapshot)

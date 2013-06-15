@@ -84,14 +84,13 @@ namespace CqrsFramework.Tests.EventStore
                 entry.Data = Encoding.ASCII.GetBytes("Trying a new stuff");
                 entry.Key = "agg-34";
                 entry.Version = 493;
-                entry.Clock = 110;
                 entry.IsEvent = true;
                 entry.Published = false;
                 file.AppendEntry(entry);
             }
 
             var expectedStream = new MemoryStream();
-            WriteEntry(new BinaryWriter(expectedStream, Encoding.ASCII, true), false, false, "agg-34", 493, 110, "Trying a new stuff");
+            WriteEntry(new BinaryWriter(expectedStream, Encoding.ASCII, true), false, false, "agg-34", 493, 92, "Trying a new stuff");
             var expectedBytes = expectedStream.ToArray();
 
             buffer = new MemoryStream(buffer.ToArray());
