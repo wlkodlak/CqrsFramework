@@ -16,7 +16,7 @@ namespace CqrsFramework.Infrastructure
         TableProviderColumn[] GetColumns();
         TableProviderRow[] GetRows(TableProviderFilter[] filter);
         TableProviderFilterable GetRows();
-        long GetMaxRowNumber();
+        int GetMaxRowNumber();
     }
 
     public class TableProviderRow

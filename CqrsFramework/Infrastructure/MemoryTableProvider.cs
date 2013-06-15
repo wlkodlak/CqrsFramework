@@ -149,7 +149,7 @@ namespace CqrsFramework.Infrastructure
             _table.Dispose();
         }
 
-        public long GetMaxRowNumber()
+        public int GetMaxRowNumber()
         {
             return _nextRowNumber - 1;
         }

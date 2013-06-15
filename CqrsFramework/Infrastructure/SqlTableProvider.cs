@@ -23,37 +23,68 @@ namespace CqrsFramework.Infrastructure
             _columns = columns;
         }
 
+        public virtual bool CreatesRowIdInAdvance()
+        {
+            return true;
+        }
+
+        protected virtual int GetNextRowId(IDbConnection conn)
+        {
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = string.Format("SELECT MAX(id) FROM {0}", _tableName);
+                var maxId = cmd.ExecuteScalar();
+                if (maxId is int)
+                    return (int)maxId + 1;
+            }
+            return 1;
+        }
+
+        protected virtual int GetInsertedRowId(IDbConnection conn)
+        {
+            throw new InvalidOperationException("This gets Row ID in advance");
+        }
+
+        protected virtual string GetParameterPlaceholder(string name)
+        {
+            return string.Concat("@", name);
+        }
+
         public void Insert(TableProviderRow row)
         {
             using (var conn = _connectionFactory())
             {
-                int newRowId = 1;
+                int newRowId = CreatesRowIdInAdvance() ? GetNextRowId(conn) : -1;
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = string.Format("SELECT MAX(id) FROM {0}", _tableName);
-                    var maxId = cmd.ExecuteScalar();
-                    if (maxId is int)
-                        newRowId = (int)maxId + 1;
-                }
-                using (var cmd = conn.CreateCommand())
-                {
+                    bool isFirstColumn = true;
                     var sql1 = new StringBuilder();
                     var sql2 = new StringBuilder();
-                    sql1.AppendFormat("INSERT INTO {0} (id", _tableName);
-                    sql2.Append(") VALUES (@id");
-                    AddParameter(cmd, "@id", typeof(int), newRowId);
+                    sql1.AppendFormat("INSERT INTO {0} (", _tableName);
+                    sql2.Append(") VALUES (");
+                    if (newRowId >= 0)
+                    {
+                        sql1.Append("id");
+                        sql2.Append(GetParameterPlaceholder("id"));
+                        AddParameter(cmd, "id", typeof(int), newRowId);
+                        isFirstColumn = false;
+                    }
                     foreach (var column in _columns)
                     {
-                        sql1.AppendFormat(", {0}", column.Name);
-                        sql2.AppendFormat(", @{0}", column.Name);
-                        AddParameter(cmd, "@" + column.Name, column.Type, row[column.Ordinal]);
+                        var comma = isFirstColumn ? "" : ", ";
+                        sql1.AppendFormat("{0}{1}", comma, column.Name);
+                        sql2.AppendFormat("{0}{1}", comma, GetParameterPlaceholder(column.Name));
+                        AddParameter(cmd, column.Name, column.Type, row[column.Ordinal]);
                     }
                     sql1.Append(sql2);
                     sql1.Append(")");
                     cmd.CommandText = sql1.ToString();
                     cmd.ExecuteNonQuery();
+                    if (newRowId >= 0)
+                        row.RowNumber = newRowId;
+                    else
+                        row.RowNumber = GetInsertedRowId(conn);
                 }
-                row.RowNumber = newRowId;
             }
         }
 
@@ -71,11 +102,11 @@ namespace CqrsFramework.Infrastructure
                         first = false;
                     else
                         sql.Append(", ");
-                    sql.AppendFormat("{0} = @{0}", column.Name);
-                    AddParameter(cmd, "@" + column.Name, column.Type, row[column.Ordinal]);
+                    sql.AppendFormat("{0} = {1}", column.Name, GetParameterPlaceholder(column.Name));
+                    AddParameter(cmd, column.Name, column.Type, row[column.Ordinal]);
                 }
-                sql.Append(" WHERE id = @id");
-                AddParameter(cmd, "@id", typeof(int), row.RowNumber);
+                sql.AppendFormat(" WHERE id = {0}", GetParameterPlaceholder("id"));
+                AddParameter(cmd, "id", typeof(int), row.RowNumber);
                 cmd.CommandText = sql.ToString();
                 cmd.ExecuteNonQuery();
             }
@@ -86,8 +117,8 @@ namespace CqrsFramework.Infrastructure
             using (var conn = _connectionFactory())
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = string.Format("DELETE FROM {0} WHERE id = @id", _tableName);
-                AddParameter(cmd, "@id", typeof(int), row.RowNumber);
+                cmd.CommandText = string.Format("DELETE FROM {0} WHERE id = {1}", _tableName, GetParameterPlaceholder("id"));
+                AddParameter(cmd, "id", typeof(int), row.RowNumber);
                 cmd.ExecuteNonQuery();
             }
         }
@@ -135,21 +166,24 @@ namespace CqrsFramework.Infrastructure
                 switch (elem.Type)
                 {
                     case TableProviderFilterType.Exact:
-                        sql.AppendFormat("{0} = @{0}", column.Name);
-                        AddParameter(cmd, "@" + column.Name, column.Type, elem.MinValue);
+                        sql.AppendFormat("{0} = {1}", column.Name, GetParameterPlaceholder(column.Name));
+                        AddParameter(cmd, column.Name, column.Type, elem.MinValue);
                         break;
                     case TableProviderFilterType.Minimum:
-                        sql.AppendFormat("{0} >= @{0}", column.Name);
-                        AddParameter(cmd, "@" + column.Name, column.Type, elem.MinValue);
+                        sql.AppendFormat("{0} >= {1}", column.Name, GetParameterPlaceholder(column.Name));
+                        AddParameter(cmd, column.Name, column.Type, elem.MinValue);
                         break;
                     case TableProviderFilterType.Maximum:
-                        sql.AppendFormat("{0} <= @{0}", column.Name);
-                        AddParameter(cmd, "@" + column.Name, column.Type, elem.MaxValue);
+                        sql.AppendFormat("{0} <= {1}", column.Name, GetParameterPlaceholder(column.Name));
+                        AddParameter(cmd, column.Name, column.Type, elem.MaxValue);
                         break;
                     case TableProviderFilterType.Range:
-                        sql.AppendFormat("{0} >= @min{0} AND {0} <= @max{0}", column.Name);
-                        AddParameter(cmd, "@min" + column.Name, column.Type, elem.MinValue);
-                        AddParameter(cmd, "@max" + column.Name, column.Type, elem.MaxValue);
+                        sql.AppendFormat("{0} >= {1} AND {0} <= {2}", 
+                            column.Name, 
+                            GetParameterPlaceholder("min" + column.Name),
+                            GetParameterPlaceholder("max" + column.Name));
+                        AddParameter(cmd, "min" + column.Name, column.Type, elem.MinValue);
+                        AddParameter(cmd, "max" + column.Name, column.Type, elem.MaxValue);
                         break;
                 }
             }
@@ -157,24 +191,77 @@ namespace CqrsFramework.Infrastructure
             cmd.CommandText = sql.ToString();
         }
 
+        protected virtual string ParameterName(string name)
+        {
+            return string.Concat("@", name);
+        }
+
+        protected virtual DbType MapParametererType(Type type)
+        {
+            if (type == typeof(int))
+                return DbType.Int32;
+            else if (type == typeof(decimal))
+                return DbType.Decimal;
+            else if (type == typeof(string))
+                return DbType.String;
+            else if (type == typeof(DateTime))
+                return DbType.DateTime;
+            else if (type == typeof(Guid))
+                return DbType.Guid;
+            else if (type == typeof(byte[]))
+                return DbType.Binary;
+            else
+                throw UnsupportedColumnTypeException(type);
+        }
+
+        private Exception UnsupportedColumnTypeException(Type type)
+        {
+            return new ArgumentOutOfRangeException(string.Format("Type {0} is not supported by this TableProvider", type.Name));
+        }
+
+        protected virtual object MapParameterValue(Type type, object value)
+        {
+            return value;
+        }
+
         private void AddParameter(IDbCommand cmd, string name, Type type, object value)
         {
             var param = cmd.CreateParameter();
-            param.ParameterName = name;
-            param.Value = value;
-            if (type == typeof(int))
-                param.DbType = DbType.Int32;
-            else if (type == typeof(decimal))
-                param.DbType = DbType.Decimal;
-            else if (type == typeof(string))
-                param.DbType = DbType.String;
-            else if (type == typeof(DateTime))
-                param.DbType = DbType.DateTime;
-            else if (type == typeof(Guid))
-                param.DbType = DbType.Guid;
-            else if (type == typeof(byte[]))
-                param.DbType = DbType.Binary;
+            param.ParameterName = ParameterName(name);
+            param.Value = MapParameterValue(type, value);
+            param.DbType = MapParametererType(type);
             cmd.Parameters.Add(param);
+        }
+
+        protected virtual object ReadValue(IDataReader reader, Type type, int ordinal)
+        {
+            if (reader.IsDBNull(ordinal))
+                return null;
+            else if (type == typeof(int))
+                return reader.GetInt32(ordinal);
+            else if (type == typeof(string))
+                return reader.GetString(ordinal);
+            else if (type == typeof(DateTime))
+                return reader.GetDateTime(ordinal);
+            else if (type == typeof(decimal))
+                return reader.GetDecimal(ordinal);
+            else if (type == typeof(Guid))
+                return reader.GetGuid(ordinal);
+            else if (type == typeof(byte[]))
+            {
+                var stream = new MemoryStream();
+                int bytesRead;
+                int offset = 0;
+                var buffer = new byte[4096];
+                while ((bytesRead = (int)reader.GetBytes(ordinal, offset, buffer, 0, 4096)) > 0)
+                {
+                    stream.Write(buffer, 0, bytesRead);
+                    offset += bytesRead;
+                }
+                return stream.ToArray();
+            }
+            else
+                throw UnsupportedColumnTypeException(type);
         }
 
         private List<TableProviderRow> BuildRowsFromReader(IDataReader reader)
@@ -185,34 +272,7 @@ namespace CqrsFramework.Infrastructure
                 var rowNumber = reader.GetInt32(0);
                 var data = new object[_columns.Count];
                 foreach (var column in _columns)
-                {
-                    var ordinal = column.Ordinal;
-                    if (reader.IsDBNull(ordinal))
-                        data[ordinal - 1] = null;
-                    else if (column.Type == typeof(int))
-                        data[ordinal - 1] = reader.GetInt32(ordinal);
-                    else if (column.Type == typeof(string))
-                        data[ordinal - 1] = reader.GetString(ordinal);
-                    else if (column.Type == typeof(DateTime))
-                        data[ordinal - 1] = reader.GetDateTime(ordinal);
-                    else if (column.Type == typeof(decimal))
-                        data[ordinal - 1] = reader.GetDecimal(ordinal);
-                    else if (column.Type == typeof(Guid))
-                        data[ordinal - 1] = reader.GetGuid(ordinal);
-                    else if (column.Type == typeof(byte[]))
-                    {
-                        var stream = new MemoryStream();
-                        int bytesRead;
-                        int offset = 0;
-                        var buffer = new byte[4096];
-                        while ((bytesRead = (int)reader.GetBytes(ordinal, offset, buffer, 0, 4096)) > 0)
-                        {
-                            stream.Write(buffer, 0, bytesRead);
-                            offset += bytesRead;
-                        }
-                        data[ordinal - 1] = stream.ToArray();
-                    }
-                }
+                    data[column.Ordinal - 1] = ReadValue(reader, column.Type, column.Ordinal);
                 result.Add(new TableProviderRow(this, rowNumber, data));
             }
             return result;
@@ -227,8 +287,7 @@ namespace CqrsFramework.Infrastructure
         {
         }
 
-
-        public long GetMaxRowNumber()
+        public virtual int GetMaxRowNumber()
         {
             using (var conn = _connectionFactory())
             {
