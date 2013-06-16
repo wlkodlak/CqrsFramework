@@ -281,22 +281,26 @@ namespace CqrsFramework.IndexTable
 
                 while (leaf != null)
                 {
-                    if (cellIndex >= leaf.CellsCount)
-                    {
-                        cellIndex = 0;
-                        leaf = (IdxLeaf)_container.GetNode(_tree, leaf.NextLeaf);
-                    }
-                    else
+                    if (cellIndex < leaf.CellsCount)
                     {
                         var cell = leaf.GetCell(cellIndex);
                         if (cell.Key <= max)
                         {
                             result.Add(new KeyValuePair<IdxKey, byte[]>(cell.Key, ReadCellValue(cell)));
                             cellIndex++;
+                            if (cell.Key == max)
+                                leaf = null;
                         }
                         else
                             leaf = null;
                     }
+                    else if (leaf.NextLeaf != 0)
+                    {
+                        cellIndex = 0;
+                        leaf = (IdxLeaf)_container.GetNode(_tree, leaf.NextLeaf);
+                    }
+                    else
+                        leaf = null;
                 }
 
                 return result;

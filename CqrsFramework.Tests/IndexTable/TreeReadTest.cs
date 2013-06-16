@@ -13,7 +13,8 @@ namespace CqrsFramework.Tests.IndexTable
         [TestMethod]
         public void NonexistentTree()
         {
-            var mock = new Mock<IIdxContainer>();
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            mock.Setup(c => c.GetPageSize()).Returns(512);
             mock.Setup(c => c.ReadTree(3)).Returns((IIdxNode)null).Verifiable();
 
             IdxTree tree = new IdxTree(mock.Object, 3);
@@ -29,7 +30,8 @@ namespace CqrsFramework.Tests.IndexTable
             leaf.PageNumber = 47;
             leaf.Save();
 
-            var mock = new Mock<IIdxContainer>();
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            mock.Setup(c => c.GetPageSize()).Returns(512);
             mock.Setup(c => c.ReadTree(3)).Returns(leaf).Verifiable();
             mock.Setup(c => c.UnlockRead(3)).Verifiable();
 
@@ -52,7 +54,8 @@ namespace CqrsFramework.Tests.IndexTable
             root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(17), ContainerTestUtilities.CreateBytes(random, 84), 512));
             root.Save();
 
-            var mock = new Mock<IIdxContainer>();
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            mock.Setup(c => c.GetPageSize()).Returns(512);
             mock.Setup(c => c.ReadTree(3)).Returns(root);
             mock.Setup(c => c.UnlockRead(3)).Verifiable();
 
@@ -75,7 +78,8 @@ namespace CqrsFramework.Tests.IndexTable
             root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(9), ContainerTestUtilities.CreateBytes(random, 84), 512));
             root.Save();
 
-            var mock = new Mock<IIdxContainer>();
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            mock.Setup(c => c.GetPageSize()).Returns(512);
             mock.Setup(c => c.ReadTree(3)).Returns(root);
             mock.Setup(c => c.UnlockRead(3)).Verifiable();
 
@@ -84,6 +88,35 @@ namespace CqrsFramework.Tests.IndexTable
             Assert.AreEqual(2, selected.Count, "Result size");
             var expectedResult = Enumerable.Range(0, root.CellsCount).Select(i => root.GetCell(i))
                 .Where(c => c.Key >= IdxKey.FromInteger(5) && c.Key <= IdxKey.FromInteger(8))
+                .Select(c => new KeyValuePair<IdxKey, byte[]>(c.Key, c.ValueBytes))
+                .ToList();
+            CollectionAssert.AreEqual(expectedResult, selected, "Result items");
+            mock.Verify();
+        }
+
+        [TestMethod]
+        public void EndsProperlyOnNullNextLeaf()
+        {
+            var random = new Random(84324);
+            var root = new IdxLeaf(null, 512);
+            root.PageNumber = 47;
+            root.NextLeaf = 0;
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(2), ContainerTestUtilities.CreateBytes(random, 84), 512));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(5), ContainerTestUtilities.CreateBytes(random, 84), 512));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(7), ContainerTestUtilities.CreateBytes(random, 84), 512));
+            root.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(9), ContainerTestUtilities.CreateBytes(random, 84), 512));
+            root.Save();
+
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            mock.Setup(c => c.GetPageSize()).Returns(512);
+            mock.Setup(c => c.ReadTree(3)).Returns(root);
+            mock.Setup(c => c.UnlockRead(3)).Verifiable();
+
+            IdxTree tree = new IdxTree(mock.Object, 3);
+            var selected = tree.Select(IdxKey.FromInteger(7), IdxKey.FromInteger(9)).ToList();
+            Assert.AreEqual(2, selected.Count, "Result size");
+            var expectedResult = Enumerable.Range(0, root.CellsCount).Select(i => root.GetCell(i))
+                .Where(c => c.Key >= IdxKey.FromInteger(7) && c.Key <= IdxKey.FromInteger(9))
                 .Select(c => new KeyValuePair<IdxKey, byte[]>(c.Key, c.ValueBytes))
                 .ToList();
             CollectionAssert.AreEqual(expectedResult, selected, "Result items");
@@ -114,7 +147,8 @@ namespace CqrsFramework.Tests.IndexTable
         public void SearchForNonexistentKey()
         {
             var builder = CreateComplexTree();
-            var mock = new Mock<IIdxContainer>();
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            mock.Setup(c => c.GetPageSize()).Returns(512);
             mock.Setup(c => c.ReadTree(0)).Returns(builder.GetNode(2)).Verifiable();
             mock.Setup(c => c.GetNode(0, 3)).Returns(builder.GetNode(3)).Verifiable();
             mock.Setup(c => c.GetNode(0, 5)).Returns(builder.GetNode(5)).Verifiable();
@@ -130,7 +164,8 @@ namespace CqrsFramework.Tests.IndexTable
         public void SearchForRangeInSingleNode()
         {
             var builder = CreateComplexTree();
-            var mock = new Mock<IIdxContainer>();
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            mock.Setup(c => c.GetPageSize()).Returns(512);
             mock.Setup(c => c.ReadTree(0)).Returns(builder.GetNode(2)).Verifiable();
             mock.Setup(c => c.GetNode(0, 3)).Returns(builder.GetNode(3)).Verifiable();
             mock.Setup(c => c.GetNode(0, 5)).Returns(builder.GetNode(5)).Verifiable();
@@ -149,7 +184,8 @@ namespace CqrsFramework.Tests.IndexTable
         public void SearchForRangeAcrossNodes()
         {
             var builder = CreateComplexTree();
-            var mock = new Mock<IIdxContainer>();
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            mock.Setup(c => c.GetPageSize()).Returns(512);
             mock.Setup(c => c.ReadTree(0)).Returns(builder.GetNode(2)).Verifiable();
             mock.Setup(c => c.GetNode(0, 3)).Returns(builder.GetNode(3)).Verifiable();
             mock.Setup(c => c.GetNode(0, 5)).Returns(builder.GetNode(5)).Verifiable();
@@ -169,7 +205,7 @@ namespace CqrsFramework.Tests.IndexTable
         public void LoadOverflowData()
         {
             var builder = CreateComplexTree();
-            var mock = new Mock<IIdxContainer>();
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
             mock.Setup(c => c.GetPageSize()).Returns(1024);
             mock.Setup(c => c.ReadTree(0)).Returns(builder.GetNode(2)).Verifiable();
             mock.Setup(c => c.GetNode(0, 3)).Returns(builder.GetNode(3)).Verifiable();

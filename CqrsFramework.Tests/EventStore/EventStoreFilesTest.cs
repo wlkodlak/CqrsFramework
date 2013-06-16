@@ -22,7 +22,7 @@ namespace CqrsFramework.Tests.EventStore
                 _dataFileStream = new MemoryStream();
                 _dataFile = new FileEventStoreDataFile(_dataFileStream);
                 _indexFileStream = new MemoryStream();
-                _indexContainer = IdxContainer.OpenStrean(_indexFileStream);
+                _indexContainer = IdxContainer.OpenStream(_indexFileStream);
                 _indexCore = new FileEventStoreIndexCore(new IdxTree(_indexContainer, 0), new IdxTree(_indexContainer, 1));
             }
 

@@ -4,13 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using CqrsFramework.IndexTable;
 
 namespace CqrsFramework.EventStore
 {
     public class FileEventStore : IEventStore
     {
         private FileEventStoreDataFile _dataFile;
-        private Stream _indexFile;
+        private IdxContainer _indexFile;
+        private FileEventStoreIndexCore _indexCore;
         private Dictionary<string, FileEventStream> _streams;
         private List<FileEventStoreEntry> _unpublished;
         private long _clock = 0;
@@ -18,7 +20,8 @@ namespace CqrsFramework.EventStore
         public FileEventStore(Stream dataFile, Stream indexFile)
         {
             _dataFile = new FileEventStoreDataFile(dataFile);
-            _indexFile = indexFile;
+            _indexFile = IdxContainer.OpenStream(indexFile);
+            _indexCore = new FileEventStoreIndexCore(new IdxTree(_indexFile, 0), new IdxTree(_indexFile, 1));
             _streams = new Dictionary<string, FileEventStream>();
             _unpublished = new List<FileEventStoreEntry>();
 
@@ -91,6 +94,7 @@ namespace CqrsFramework.EventStore
 
         public void Dispose()
         {
+            _indexCore.Flush();
             _dataFile.Dispose();
             _indexFile.Dispose();
         }

@@ -86,7 +86,7 @@ namespace CqrsFramework.IndexTable
             }
         }
 
-        public static IdxContainer OpenStrean(System.IO.Stream stream)
+        public static IdxContainer OpenStream(System.IO.Stream stream)
         {
             return new IdxContainer(new IdxPagedFile(stream, 4096));
         }
