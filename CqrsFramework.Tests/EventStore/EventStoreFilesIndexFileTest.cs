@@ -141,7 +141,7 @@ namespace CqrsFramework.Tests.EventStore
                     AssertExtension.AreEqual(LongToBytes(85447), v, "Value");
                 }).Verifiable();
             var index = new FileEventStoreIndexCore(_headers.Object, _streams.Object);
-            index.AddRecord("Aggregate:111", 14, 85447);
+            index.AddEvent("Aggregate:111", 14, 85447);
             _streams.Verify();
         }
 

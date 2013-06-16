@@ -100,7 +100,7 @@ namespace CqrsFramework.EventStore
             return IdxKey.FromBytes(bytes);
         }
 
-        public void AddRecord(string streamKey, int version, long position)
+        public void AddEvent(string streamKey, int version, long position)
         {
             var key = StreamKey(streamKey, false, version);
             var value = WriteLong(position);
