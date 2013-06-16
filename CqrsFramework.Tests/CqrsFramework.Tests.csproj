@@ -72,6 +72,7 @@
   <ItemGroup>
     <Compile Include="AssertExtension.cs" />
     <Compile Include="DatabaseMock.cs" />
+    <Compile Include="EventStore\EventStoreFilesIndexFileTest.cs" />
     <Compile Include="EventStore\EventStoreTestBase.cs" />
     <Compile Include="IndexTable\AssertDirtyChanged.cs" />
     <Compile Include="IndexTable\CellTest.cs" />

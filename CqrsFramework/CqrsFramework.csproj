@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="Domain\AggregateBase.cs" />
     <Compile Include="EventStore\EventStore.cs" />
+    <Compile Include="EventStore\FileEventStoreIndexCore.cs" />
     <Compile Include="Infrastructure\TimeProvider.cs" />
     <Compile Include="Messaging\FileMessageInbox.cs" />
     <Compile Include="Messaging\MemoryInbox.cs" />
