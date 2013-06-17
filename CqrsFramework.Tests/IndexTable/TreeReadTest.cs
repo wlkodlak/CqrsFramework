@@ -90,7 +90,7 @@ namespace CqrsFramework.Tests.IndexTable
                 .Where(c => c.Key >= IdxKey.FromInteger(5) && c.Key <= IdxKey.FromInteger(8))
                 .Select(c => new KeyValuePair<IdxKey, byte[]>(c.Key, c.ValueBytes))
                 .ToList();
-            CollectionAssert.AreEqual(expectedResult, selected, "Result items");
+            AssertExtension.AreEqual(expectedResult, selected, "Result items");
             mock.Verify();
         }
 
@@ -119,7 +119,7 @@ namespace CqrsFramework.Tests.IndexTable
                 .Where(c => c.Key >= IdxKey.FromInteger(7) && c.Key <= IdxKey.FromInteger(9))
                 .Select(c => new KeyValuePair<IdxKey, byte[]>(c.Key, c.ValueBytes))
                 .ToList();
-            CollectionAssert.AreEqual(expectedResult, selected, "Result items");
+            AssertExtension.AreEqual(expectedResult, selected, "Result items");
             mock.Verify();
         }
 

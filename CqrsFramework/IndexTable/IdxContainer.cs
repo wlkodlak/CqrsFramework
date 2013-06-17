@@ -277,11 +277,11 @@ namespace CqrsFramework.IndexTable
                         Monitor.Wait(_lock);
                     }
                 }
-                tran.ReadersCount++;
-                tran.ReaderThreads.Add(Thread.CurrentThread);
                 int page = _header.GetTreeRoot(tree);
                 if (page == 0)
                     return null;
+                tran.ReadersCount++;
+                tran.ReaderThreads.Add(Thread.CurrentThread);
                 return ReadNode(page);
             }
         }

@@ -45,7 +45,7 @@ namespace CqrsFramework.Tests.EventStore
         private long WriteEntry(BinaryWriter writer, bool published, bool snapshot, string name, int version, long clock, string dataAsString)
         {
             var data = Encoding.ASCII.GetBytes(dataAsString);
-            byte flags = 0;
+            byte flags = 0x5C;
             if (published)
                 flags |= (byte)0x80;
             if (snapshot)
@@ -99,6 +99,45 @@ namespace CqrsFramework.Tests.EventStore
             var actualBytes = new byte[44];
             buffer.Read(actualBytes, 0, 44);
             CollectionAssert.AreEqual(expectedBytes, actualBytes);
+        }
+
+        [TestMethod]
+        public void SetCorrectAppendPosition()
+        {
+            var buffer = new MemoryStream();
+            using (var writer = new BinaryWriter(buffer, Encoding.ASCII, true))
+            {
+                WriteEntry(writer, false, false, "agg-1", 1, 3, "<agg><id>1</id></agg>");
+                WriteEntry(writer, true, true, "agg-2", 1, 9, "Help me! I'm in trouble.");
+            }
+            buffer.Seek(0, SeekOrigin.Begin);
+            using (var file = new FileEventStoreDataFile(buffer))
+            {
+                file.SetAppendPosition(92);
+            }
+        }
+
+        [TestMethod]
+        public void SetWrongAppendPosition()
+        {
+            var buffer = new MemoryStream();
+            using (var writer = new BinaryWriter(buffer, Encoding.ASCII, true))
+            {
+                WriteEntry(writer, false, false, "agg-1", 1, 3, "<agg><id>1</id></agg>");
+                WriteEntry(writer, true, true, "agg-2", 1, 9, "Help me! I'm in trouble.");
+            }
+            buffer.Seek(0, SeekOrigin.Begin);
+            using (var file = new FileEventStoreDataFile(buffer))
+            {
+                try
+                {
+                    file.SetAppendPosition(88);
+                    Assert.Fail("Expected ArgumentOutOfRangeException");
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                }
+            }
         }
 
         [TestMethod]

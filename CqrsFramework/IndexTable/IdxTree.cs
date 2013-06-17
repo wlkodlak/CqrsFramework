@@ -454,7 +454,7 @@ namespace CqrsFramework.IndexTable
         private byte[] ReadCellValue(IdxCell cell)
         {
             if (cell.OverflowPage == 0)
-                return cell.ValueBytes;
+                return cell.ValueBytes == null ? null : cell.ValueBytes.ToArray();
             var buffer = new byte[IdxOverflow.Capacity(_pageSize) * cell.OverflowLength + cell.ValueLength];
             Array.Copy(cell.ValueBytes, buffer, cell.ValueLength);
             var offset = cell.ValueLength;

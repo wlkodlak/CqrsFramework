@@ -175,9 +175,9 @@ namespace CqrsFramework.Tests.EventStore
             }
             _streams.Setup(s => s.Select(minKey, maxKey)).Returns(result).Verifiable();
             var index = new FileEventStoreIndexCore(_headers.Object, _streams.Object);
-            IEnumerable<long> eventPositions = index.FindEvents("Agg:5957", 0);
+            var eventPositions = index.FindEvents("Agg:5957", 0);
             _streams.Verify();
-            AssertExtension.AreEqual(expectedPositions.ToArray(), eventPositions.ToArray());
+            AssertExtension.AreEqual(expectedPositions.ToArray(), eventPositions.Select(e => e.Value).ToArray());
         }
 
         [TestMethod]
@@ -191,7 +191,7 @@ namespace CqrsFramework.Tests.EventStore
             result.Add(new KeyValuePair<IdxKey, byte[]>(StreamKey("Agg:5957", true, 15), LongToBytes(68521)));
             _streams.Setup(s => s.Select(minKey, maxKey)).Returns(result).Verifiable();
             var index = new FileEventStoreIndexCore(_headers.Object, _streams.Object);
-            long snapshotPosition = index.FindSnapshot("Agg:5957");
+            long snapshotPosition = index.FindSnapshot("Agg:5957").Value;
             _streams.Verify();
             Assert.AreEqual(68521, snapshotPosition);
         }
@@ -213,9 +213,9 @@ namespace CqrsFramework.Tests.EventStore
             }
             _streams.Setup(s => s.Select(minKey, maxKey)).Returns(result).Verifiable();
             var index = new FileEventStoreIndexCore(_headers.Object, _streams.Object);
-            IEnumerable<long> eventPositions = index.FindEvents("Agg:5957", 8);
+            var eventPositions = index.FindEvents("Agg:5957", 8);
             _streams.Verify();
-            AssertExtension.AreEqual(expectedPositions.ToArray(), eventPositions.ToArray());
+            AssertExtension.AreEqual(expectedPositions.ToArray(), eventPositions.Select(e => e.Value).ToArray());
         }
 
         [TestMethod]

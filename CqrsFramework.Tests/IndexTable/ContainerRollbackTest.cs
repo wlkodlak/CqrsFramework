@@ -149,5 +149,19 @@ namespace CqrsFramework.Tests.IndexTable
                 container.UnlockRead(0);
             }
         }
+
+        [TestMethod]
+        public void TestWriteAfterReadingNonexistent()
+        {
+            var file = new MemoryPagedFile(8);
+            file.Pages[0] = ContainerTestUtilities.CreateHeader(1, 8);
+            file.Pages[1] = ContainerTestUtilities.CreateFreeList(0, 7, 6, 5, 4, 3, 2);
+            using (var container = new IdxContainer(file))
+            {
+                container.ReadTree(0);
+                container.WriteTree(0);
+                container.RollbackWrite(0);
+            }
+        }
     }
 }

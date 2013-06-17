@@ -100,6 +100,21 @@ namespace CqrsFramework.EventStore
             return IdxKey.FromBytes(bytes);
         }
 
+        private int ReadVersion(IdxKey key)
+        {
+            var bytes = key.ToBytes();
+            if (bytes.Length < 7)
+                throw new ArgumentOutOfRangeException("Key from FileEventStore index must have at least 7 bytes");
+            int nameLength = (bytes[0] << 8) | bytes[1];
+            var versionOffset = nameLength + 3;
+            int version =
+                (bytes[versionOffset + 0] << 24) |
+                (bytes[versionOffset + 1] << 16) |
+                (bytes[versionOffset + 2] << 8) |
+                 bytes[versionOffset + 3];
+            return version;
+        }
+
         public void AddEvent(string streamKey, int version, long position)
         {
             var key = StreamKey(streamKey, false, version);
@@ -114,18 +129,18 @@ namespace CqrsFramework.EventStore
             _streams.Insert(key, value);
         }
 
-        private IEnumerable<long> FindInStreams(IdxKey minKey, IdxKey maxKey)
+        private IEnumerable<KeyValuePair<int, long>> FindInStreams(IdxKey minKey, IdxKey maxKey)
         {
             var pairs = _streams.Select(minKey, maxKey);
-            return pairs.Select(v => ReadLong(v.Value));
+            return pairs.Select(v => new KeyValuePair<int, long>(ReadVersion(v.Key), ReadLong(v.Value)));
         }
 
-        public IEnumerable<long> FindEvents(string streamKey, int minVersion)
+        public IEnumerable<KeyValuePair<int, long>> FindEvents(string streamKey, int minVersion)
         {
             return FindInStreams(StreamKey(streamKey, false, minVersion), StreamKey(streamKey, false, int.MaxValue));
         }
 
-        public long FindSnapshot(string streamKey)
+        public KeyValuePair<int, long> FindSnapshot(string streamKey)
         {
             return FindInStreams(StreamKey(streamKey, true, 0), StreamKey(streamKey, true, int.MaxValue)).LastOrDefault();
         }
