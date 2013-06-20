@@ -31,6 +31,7 @@ namespace CqrsFramework.Messaging
         public MessageDispatcher()
         {
             _registrations = new Dictionary<Type, Registration>();
+            this.ThrowOnUnknownHandler = true;
         }
 
         public MessageDispatcher(object container)
@@ -113,9 +114,10 @@ namespace CqrsFramework.Messaging
         {
             var type = message.Payload.GetType();
             var registration = FindHandlerByType(type);
-            if (registration == null)
+            if (registration != null)
+                registration.Handler(message.Payload, message.Headers);
+            else if (ThrowOnUnknownHandler)
                 throw new MessageDispatcherException(string.Format("There is no handler for type {0}", type.FullName));
-            registration.Handler(message.Payload, message.Headers);
         }
 
         private Registration FindHandlerByType(Type type)
@@ -129,6 +131,8 @@ namespace CqrsFramework.Messaging
             }
             return null;
         }
+
+        public bool ThrowOnUnknownHandler { get; set; }
     }
 
     [Serializable]

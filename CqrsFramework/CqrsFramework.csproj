@@ -54,6 +54,7 @@
     <Compile Include="Infrastructure\TimeProvider.cs" />
     <Compile Include="Messaging\FileMessageInbox.cs" />
     <Compile Include="Messaging\MemoryInbox.cs" />
+    <Compile Include="Messaging\ProjectionDispatcher.cs" />
     <Compile Include="Messaging\TableMessageInbox.cs" />
     <Compile Include="Messaging\Messaging.cs" />
     <Compile Include="IndexTable\IdxCell.cs" />
