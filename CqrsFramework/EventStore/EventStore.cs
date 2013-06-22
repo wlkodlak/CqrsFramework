@@ -7,12 +7,15 @@ using System.Threading.Tasks;
 
 namespace CqrsFramework.EventStore
 {
-    public interface IEventStore : IDisposable
+    public interface IEventStoreReader : IDisposable
+    {
+        IEnumerable<EventStoreEvent> GetSince(long clock);
+    }
+    public interface IEventStore : IEventStoreReader
     {
         IEnumerable<EventStoreEvent> GetUnpublishedEvents();
         IEventStream GetStream(string name, EventStreamOpenMode mode);
         void MarkAsPublished(EventStoreEvent @event);
-        IEnumerable<EventStoreEvent> GetSince(long clock);
     }
     
     public interface IEventStream

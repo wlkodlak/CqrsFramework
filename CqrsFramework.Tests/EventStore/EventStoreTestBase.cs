@@ -9,8 +9,10 @@ namespace CqrsFramework.Tests.EventStore
 {
     public interface IEventStoreTestBuilder : IDisposable
     {
-        IEventStore Build();
+        IEventStore GetFull();
+        IEventStoreReader GetReader();
         void WithStream(string name, EventStoreSnapshot snapshot, EventStoreEvent[] events);
+        void Build();
     }
 
     public abstract class EventStoreTestBase
@@ -21,7 +23,8 @@ namespace CqrsFramework.Tests.EventStore
         public void EmptyEventStoreHasNoUnpublishedEvents()
         {
             var builder = CreateBuilder();
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEnumerable<EventStoreEvent> events = store.GetUnpublishedEvents();
                 CollectionAssert.AreEqual(new EventStoreEvent[0], events.ToList());
@@ -35,7 +38,8 @@ namespace CqrsFramework.Tests.EventStore
             var event1 = new EventStoreEvent { Key = "agg-1", Version = 1, Data = new byte[] { 124, 84, 21, 36 } };
             var event2 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 244, 94, 121, 6 } };
             builder.WithStream("agg-1", null, new[] { event1, event2 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEnumerable<EventStoreEvent> events = store.GetUnpublishedEvents();
                 CollectionAssert.AreEqual(new[] { event1, event2 }, events.ToList());
@@ -47,7 +51,8 @@ namespace CqrsFramework.Tests.EventStore
         public void CreateEmptyStream()
         {
             var builder = CreateBuilder();
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEventStream stream = store.GetStream("agg-1", EventStreamOpenMode.Create);
                 Assert.AreEqual(0, stream.GetCurrentVersion());
@@ -65,7 +70,8 @@ namespace CqrsFramework.Tests.EventStore
             var event3 = new EventStoreEvent { Key = "agg-1", Version = 3, Data = new byte[] { 3, 19 } };
             var event4 = new EventStoreEvent { Key = "agg-1", Version = 4, Data = new byte[] { 4, 22 } };
             var builder = CreateBuilder();
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEventStream streamToWrite = store.GetStream("agg-1", EventStreamOpenMode.Create);
                 streamToWrite.SaveEvents(0, new[] { event1, event2, event3, event4 });
@@ -92,7 +98,8 @@ namespace CqrsFramework.Tests.EventStore
             var event3 = new EventStoreEvent { Key = "agg-1", Version = 3, Data = new byte[] { 3, 19 } };
             var event4 = new EventStoreEvent { Key = "agg-1", Version = 4, Data = new byte[] { 4, 22 } };
             var builder = CreateBuilder();
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEventStream streamToWrite = store.GetStream("agg-1", EventStreamOpenMode.Create);
                 streamToWrite.SaveEvents(0, new[] { event1, event2, event3, event4 });
@@ -116,7 +123,8 @@ namespace CqrsFramework.Tests.EventStore
             var event4 = new EventStoreEvent { Key = "agg-1", Version = 4, Data = new byte[] { 4, 22 }, Published = true };
             var builder = CreateBuilder();
             builder.WithStream("agg-1", null, new[] { event1, event2, event3, event4 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
 
                 IEventStream streamToRead = store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
@@ -142,7 +150,8 @@ namespace CqrsFramework.Tests.EventStore
             var event4 = new EventStoreEvent { Key = "agg-1", Version = 4, Data = new byte[] { 4, 22 }, Published = true };
             var builder = CreateBuilder();
             builder.WithStream("agg-1", snapshot, new[] { event1, event2, event3, event4 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEventStream streamToRead = store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
                 var actualSnapshot = streamToRead.GetSnapshot();
@@ -165,7 +174,8 @@ namespace CqrsFramework.Tests.EventStore
             try
             {
                 var builder = CreateBuilder();
-                using (var store = builder.Build())
+                builder.Build();
+                using (var store = builder.GetFull())
                     store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
                 Assert.Fail("Expected EventStoreException");
             }
@@ -178,7 +188,8 @@ namespace CqrsFramework.Tests.EventStore
         public void OpenOnNonexistentFailsSilently()
         {
             var builder = CreateBuilder();
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
                 Assert.IsNull(store.GetStream("agg-1", EventStreamOpenMode.Open));
         }
 
@@ -190,7 +201,8 @@ namespace CqrsFramework.Tests.EventStore
                 var event1 = new EventStoreEvent { Key = "agg-1", Version = 1, Data = new byte[] { 1, 15 }, Published = true };
                 var builder = CreateBuilder();
                 builder.WithStream("agg-1", null, new EventStoreEvent[] { event1 });
-                using (var store = builder.Build())
+                builder.Build();
+                using (var store = builder.GetFull())
                     store.GetStream("agg-1", EventStreamOpenMode.Create);
                 Assert.Fail("Expected EventStoreException");
             }
@@ -205,7 +217,8 @@ namespace CqrsFramework.Tests.EventStore
             var event1 = new EventStoreEvent { Key = "agg-1", Version = 1, Data = new byte[] { 1, 15 } };
             var builder = CreateBuilder();
             builder.WithStream("agg-1", null, new EventStoreEvent[0]);
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 var stream = store.GetStream("agg-1", EventStreamOpenMode.Create);
                 Assert.IsNotNull(stream);
@@ -221,7 +234,8 @@ namespace CqrsFramework.Tests.EventStore
                 var event2 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 2, 17 } };
                 var builder = CreateBuilder();
                 builder.WithStream("agg-1", null, new[] { event1 });
-                using (var store = builder.Build())
+                builder.Build();
+                using (var store = builder.GetFull())
                 {
                     IEventStream streamToWrite = store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
                     streamToWrite.SaveEvents(0, new[] { event2 });
@@ -243,7 +257,8 @@ namespace CqrsFramework.Tests.EventStore
             var builder = CreateBuilder();
             builder.WithStream("agg-1", null, new[] { event1, event2 });
             builder.WithStream("agg-2", null, new[] { event3 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 store.GetStream("agg-3", EventStreamOpenMode.Create).SaveEvents(0, new[] { event4 });
 
@@ -259,7 +274,8 @@ namespace CqrsFramework.Tests.EventStore
             var event1 = new EventStoreEvent { Key = "agg-1", Version = 1, Data = new byte[] { 1, 15 }, Published = true };
             var builder = CreateBuilder();
             builder.WithStream("agg-1", null, new[] { event1 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 CollectionAssert.AreEqual(new EventStoreEvent[0], store.GetUnpublishedEvents().ToList());
             }
@@ -272,7 +288,8 @@ namespace CqrsFramework.Tests.EventStore
             var event2 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 2, 17 } };
             var builder = CreateBuilder();
             builder.WithStream("agg-1", null, new[] { event1 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEventStream streamToWrite = store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
                 streamToWrite.SaveEvents(1, new[] { event2 });
@@ -287,7 +304,8 @@ namespace CqrsFramework.Tests.EventStore
             var event2 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 2, 17 } };
             var builder = CreateBuilder();
             builder.WithStream("agg-1", null, new[] { event1 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEventStream streamToWrite = store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
                 streamToWrite.SaveEvents(-1, new[] { event2 });
@@ -301,7 +319,8 @@ namespace CqrsFramework.Tests.EventStore
             var event2 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 2, 17 } };
             var builder = CreateBuilder();
             builder.WithStream("agg-1", null, new[] { event1 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEventStream streamToWrite = store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
                 streamToWrite.SaveEvents(1, new[] { event2 });
@@ -317,7 +336,8 @@ namespace CqrsFramework.Tests.EventStore
             var event3 = new EventStoreEvent { Key = "agg-1", Version = 3, Data = new byte[] { 3, 19 } };
             var builder = CreateBuilder();
             builder.WithStream("agg-1", null, new[] { event1 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEventStream streamToWrite = store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
                 streamToWrite.SaveEvents(1, new[] { event2, event3 });
@@ -348,7 +368,27 @@ namespace CqrsFramework.Tests.EventStore
             builder.WithStream("agg-1", null, new[] { event1 });
             builder.WithStream("agg-2", null, new[] { event2 });
             builder.WithStream("agg-1", null, new[] { event3 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
+            {
+                var expected = new[] { event2, event3 };
+                var actual = store.GetSince(event2.Clock).ToList();
+                CollectionAssert.AreEqual(expected, actual);
+            }
+        }
+
+        [TestMethod]
+        public void GetEventsSinceUsingReader()
+        {
+            var event1 = new EventStoreEvent { Key = "agg-1", Version = 1, Data = new byte[] { 1, 15 }, Published = true, Clock = 1 };
+            var event2 = new EventStoreEvent { Key = "agg-2", Version = 1, Data = new byte[] { 3, 19 }, Clock = 2 };
+            var event3 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 2, 17 }, Clock = 3 };
+            var builder = CreateBuilder();
+            builder.WithStream("agg-1", null, new[] { event1 });
+            builder.WithStream("agg-2", null, new[] { event2 });
+            builder.WithStream("agg-1", null, new[] { event3 });
+            builder.Build();
+            using (var store = builder.GetReader())
             {
                 var expected = new[] { event2, event3 };
                 var actual = store.GetSince(event2.Clock).ToList();
@@ -366,7 +406,8 @@ namespace CqrsFramework.Tests.EventStore
             var event4 = new EventStoreEvent { Key = "agg-1", Version = 4, Data = new byte[] { 4, 22 }, Published = true };
             var builder = CreateBuilder();
             builder.WithStream("agg-1", snapshot, new[] { event1, event2, event3, event4 });
-            using (var store = builder.Build())
+            builder.Build();
+            using (var store = builder.GetFull())
             {
                 IEventStream streamToRead = store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
                 var snapshotVersion = streamToRead.GetSnapshotVersion();
@@ -384,6 +425,27 @@ namespace CqrsFramework.Tests.EventStore
                 AssertEqualStoredEvents(event3, actualEvents[0]);
                 AssertEqualStoredEvents(event4, actualEvents[1]);
                 Assert.AreEqual(2, actualEvents.Count);
+            }
+        }
+
+        [TestMethod]
+        public void ReaderHandlesNewEvents()
+        {
+            var event1 = new EventStoreEvent { Key = "agg-1", Version = 1, Data = new byte[] { 1, 15 }, Published = true, Clock = 1 };
+            var event2 = new EventStoreEvent { Key = "agg-2", Version = 1, Data = new byte[] { 3, 19 }, Clock = 2 };
+            var event3 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 2, 17 }, Clock = 3 };
+            var builder = CreateBuilder();
+            builder.WithStream("agg-1", null, new[] { event1 });
+            builder.WithStream("agg-2", null, new[] { event2 });
+            builder.Build();
+            using (var reader = builder.GetReader())
+            using (var store = builder.GetFull())
+            {
+                var stream = store.GetStream("agg-1", EventStreamOpenMode.OpenExisting);
+                stream.SaveEvents(1, new EventStoreEvent[] { event3 });
+                var expected = new[] { event2, event3 };
+                var actual = reader.GetSince(event2.Clock).ToList();
+                CollectionAssert.AreEqual(expected, actual);
             }
         }
     }

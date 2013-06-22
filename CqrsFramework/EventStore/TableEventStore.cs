@@ -70,7 +70,9 @@ namespace CqrsFramework.EventStore
 
         public void Dispose()
         {
+            _tableSnapshots.Dispose();
             _tableEvents.Dispose();
+            _tableStreams.Dispose();
         }
     }
 }

@@ -16,7 +16,7 @@ namespace CqrsFramework.Tests.EventStore
         {
             private MemoryEventStore _store = new MemoryEventStore();
 
-            public IEventStore Build()
+            public IEventStore GetFull()
             {
                 return _store;
             }
@@ -29,6 +29,15 @@ namespace CqrsFramework.Tests.EventStore
             public void Dispose()
             {
                 _store.Dispose();
+            }
+
+            public IEventStoreReader GetReader()
+            {
+                return _store;
+            }
+
+            public void Build()
+            {
             }
         }
     }

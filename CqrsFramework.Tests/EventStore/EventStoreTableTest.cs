@@ -51,7 +51,7 @@ namespace CqrsFramework.Tests.EventStore
                 _tableSnapshots = new MemoryTableProvider(_dataTableSnapshots, null);
             }
 
-            public IEventStore Build()
+            public IEventStore GetFull()
             {
                 return new TableEventStore(_tableStreams, _tableEvents, _tableSnapshots);
             }
@@ -100,6 +100,16 @@ namespace CqrsFramework.Tests.EventStore
                 _tableEvents.Dispose();
                 _tableSnapshots.Dispose();
                 _tableStreams.Dispose();
+            }
+
+
+            public IEventStoreReader GetReader()
+            {
+                return new TableEventStoreReader(_tableEvents);
+            }
+
+            public void Build()
+            {
             }
         }
     }

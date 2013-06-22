@@ -51,6 +51,9 @@
     <Compile Include="Domain\AggregateBase.cs" />
     <Compile Include="EventStore\EventStore.cs" />
     <Compile Include="EventStore\FileEventStoreIndexCore.cs" />
+    <Compile Include="EventStore\FileEventStoreReader.cs" />
+    <Compile Include="EventStore\TableEventStoreReader.cs" />
+    <Compile Include="Infrastructure\SharedMemoryStream.cs" />
     <Compile Include="Infrastructure\TimeProvider.cs" />
     <Compile Include="Messaging\FileMessageInbox.cs" />
     <Compile Include="Messaging\MemoryInbox.cs" />

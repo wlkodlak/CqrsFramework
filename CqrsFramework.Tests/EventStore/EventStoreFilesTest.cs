@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CqrsFramework.EventStore;
 using CqrsFramework.IndexTable;
+using CqrsFramework.Infrastructure;
 
 namespace CqrsFramework.Tests.EventStore
 {
@@ -12,32 +13,27 @@ namespace CqrsFramework.Tests.EventStore
     {
         private class Builder : IEventStoreTestBuilder
         {
-            MemoryStream _dataFileStream, _indexFileStream;
+            SharedMemoryStreamBuffer _dataFileBuffer, _indexFileBuffer;
             FileEventStoreDataFile _dataFile;
             IIdxContainer _indexContainer;
             FileEventStoreIndexCore _indexCore;
 
             public Builder()
             {
-                _dataFileStream = new MemoryStream();
-                _dataFile = new FileEventStoreDataFile(_dataFileStream);
-                _indexFileStream = new MemoryStream();
-                _indexContainer = IdxContainer.OpenStream(_indexFileStream);
+                _dataFileBuffer = new SharedMemoryStreamBuffer(0);
+                _indexFileBuffer = new SharedMemoryStreamBuffer(0);
+                _dataFile = new FileEventStoreDataFile(new SharedMemoryStream(_dataFileBuffer));
+                _indexContainer = IdxContainer.OpenStream(new SharedMemoryStream(_indexFileBuffer));
                 _indexCore = new FileEventStoreIndexCore(new IdxTree(_indexContainer, 0), new IdxTree(_indexContainer, 1));
             }
 
-            public IEventStore Build()
+            public void Build()
             {
-                var finalFileStream = new MemoryStream();
-                var finalIndexStream = new MemoryStream();
-                _dataFileStream.WriteTo(finalFileStream);
-                finalFileStream.Seek(0, SeekOrigin.Begin);
-                _indexCore.Flush();
-                _indexContainer.Dispose();
-                var indexBytes = _indexFileStream.ToArray();
-                finalIndexStream.Write(indexBytes, 0, indexBytes.Length);
-                finalIndexStream.Seek(0, SeekOrigin.Begin);
-                return new FileEventStore(finalFileStream, finalIndexStream);
+            }
+
+            public IEventStore GetFull()
+            {
+                return new FileEventStore(new SharedMemoryStream(_dataFileBuffer), new SharedMemoryStream(_indexFileBuffer));
             }
 
             public void WithStream(string name, EventStoreSnapshot snapshot, EventStoreEvent[] events)
@@ -87,7 +83,12 @@ namespace CqrsFramework.Tests.EventStore
             public void Dispose()
             {
                 _dataFile.Dispose();
-                _dataFileStream.Dispose();
+            }
+
+
+            public IEventStoreReader GetReader()
+            {
+                return new FileEventStoreReader(new SharedMemoryStream(_dataFileBuffer));
             }
         }
 

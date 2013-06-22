@@ -24,7 +24,7 @@ namespace CqrsFramework.Tests.Infrastructure
             public void AssertContents(string name, byte[] data)
             {
                 var actual = _provider.GetContents(name);
-                CollectionAssert.AreEqual(data, actual);
+                AssertExtension.AreEqual(data, actual);
             }
 
             public void PrepareStream(string name, byte[] buffer)
