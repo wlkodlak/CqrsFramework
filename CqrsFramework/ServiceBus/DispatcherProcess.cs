@@ -58,8 +58,28 @@ namespace CqrsFramework.ServiceBus
             }
             catch (Exception ex)
             {
-                _errorPolicy.HandleException(message.Inbox, message.Message, ex);
+                var action = _errorPolicy.HandleException(message.Message.Headers.RetryNumber + 1, ex);
+                ExceptionAction(message, action);
                 return false;
+            }
+        }
+
+        private void ExceptionAction(MessageWithSource message, MessageErrorAction action)
+        {
+            if (action.IsDrop)
+                message.Inbox.Delete(message.Message);
+            else if (action.IsRedirect)
+            {
+                action.ErrorQueue.Put(message.Message);
+                message.Inbox.Delete(message.Message);
+            }
+            else if (action.IsRetry)
+            {
+                var retried = new Message(message.Message.Payload);
+                retried.Headers.CopyFrom(message.Message.Headers);
+                retried.Headers.RetryNumber++;
+                retried.Headers.DeliverOn = _time.Get().Add(action.DelayRetry);
+                message.Inbox.Put(retried);
             }
         }
     }

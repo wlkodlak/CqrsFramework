@@ -108,12 +108,17 @@ namespace CqrsFramework.Tests.Messaging
                 var inbox = builder.GetInbox();
                 writer.Put(original);
                 var received = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
-                received.Headers.RetryNumber = 1;
-                inbox.Put(received);
-                inbox.Delete(original);
+                var modified = new Message(received.Payload);
+                modified.Headers.CopyFrom(received.Headers);
+                modified.Headers.RetryNumber = 3;
+                inbox.Put(modified);
                 var retried = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
                 Assert.AreEqual("Hello", retried.Payload);
-                Assert.AreEqual(1, retried.Headers.RetryNumber);
+                Assert.AreEqual(3, retried.Headers.RetryNumber);
+                var cancel = new CancellationTokenSource();
+                var nonexisting = inbox.ReceiveAsync(cancel.Token);
+                Assert.IsFalse(nonexisting.IsCompleted, "No more messages");
+                cancel.Cancel();
             }
         }
     }

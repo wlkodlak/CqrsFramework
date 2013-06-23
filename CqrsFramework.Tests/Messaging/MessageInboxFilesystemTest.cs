@@ -308,14 +308,16 @@ namespace CqrsFramework.Tests.Messaging
             _directory.Setup(d => d.Open(streamName, FileMode.Create)).Returns<string, FileMode>(_memoryDir.Open).Verifiable();
             var inbox = CreateReader();
             var received = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
-            received.Headers.DeliverOn = received.Headers.CreatedOn.AddSeconds(40);
-            received.Headers.RetryNumber = 3;
-            inbox.Put(received);
+            var modified = new Message(received.Payload);
+            modified.Headers.CopyFrom(received.Headers);
+            modified.Headers.DeliverOn = received.Headers.CreatedOn.AddSeconds(40);
+            modified.Headers.RetryNumber = 3;
+            inbox.Put(modified);
             _repo.Verify();
             var stored = DeserializeMessage(_memoryDir.GetContents(streamName));
-            Assert.AreEqual(3, received.Headers.RetryNumber);
-            Assert.AreEqual(_time.Get().AddSeconds(40), received.Headers.DeliverOn);
-            Assert.AreEqual("Message for retry", received.Payload);
+            Assert.AreEqual(3, stored.Headers.RetryNumber);
+            Assert.AreEqual(_time.Get().AddSeconds(40), stored.Headers.DeliverOn);
+            Assert.AreEqual("Message for retry", stored.Payload);
         }
 
         [TestMethod]

@@ -41,7 +41,7 @@ namespace CqrsFramework.Tests.ServiceBus
             TestRetry(policy, 0, new Exception(), 11);
             TestRetry(policy, 1, new Exception(), 156);
             TestRetry(policy, 4, new Exception(), 1275);
-            TestRedirect(policy, 5, new Exception(), error);
+            TestRedirect(policy, 5, new Exception(), error.Object);
         }
 
         [TestMethod]
@@ -55,15 +55,13 @@ namespace CqrsFramework.Tests.ServiceBus
             policy.For<ArgumentNullException>().Retry(1).Delay(100).Drop();
             TestRetry(policy, 4, new KeyNotFoundException(), 350);
             TestRetry(policy, 1, new ArgumentOutOfRangeException(), 156);
-            TestDrop(policy, 1, new ArgumentNullException(), error);
-            TestRedirect(policy, 0, new InvalidOperationException(), error);
+            TestDrop(policy, 1, new ArgumentNullException());
+            TestRedirect(policy, 0, new InvalidOperationException(), error.Object);
         }
 
         private Mock<IMessageInboxWriter> CreateErrorQueue()
         {
-            var mock = new Mock<IMessageInboxWriter>(MockBehavior.Strict);
-            mock.Setup(w => w.Put(It.IsAny<Message>()));
-            return mock;
+            return new Mock<IMessageInboxWriter>(MockBehavior.Strict);
         }
 
         private string Comment(string message, int retry, Exception exception)
@@ -73,47 +71,23 @@ namespace CqrsFramework.Tests.ServiceBus
 
         private void TestRetry(IMessageErrorPolicy policy, int retry, Exception exception, int delay)
         {
-            var message = new Message("Hello world");
-            message.Headers.MessageId = Guid.NewGuid();
-            message.Headers.CreatedOn = _now.AddSeconds(-2);
-            if (retry > 0)
-                message.Headers.RetryNumber = retry;
-            var inbox = new Mock<IMessageInboxReader>(MockBehavior.Strict);
-            inbox.Setup(i => i.Put(message));
-            policy.HandleException(inbox.Object, message, exception);
-            Assert.AreEqual(retry + 1, message.Headers.RetryNumber, Comment("Retry number", retry, exception));
-            var realDelay = (int)(message.Headers.DeliverOn - _now).TotalMilliseconds;
-            Assert.AreEqual(delay, realDelay, Comment("Delay", retry, exception));
-            inbox.Verify(i => i.Put(message), Times.Once(), Comment("Put", retry, exception));
+            var action = policy.HandleException(retry, exception);
+            var expected = MessageErrorAction.Retry(TimeSpan.FromMilliseconds(delay));
+            Assert.AreEqual(expected, action, Comment("Action", retry, exception));
         }
 
-        private void TestDrop(IMessageErrorPolicy policy, int retry, Exception exception, params Mock<IMessageInboxWriter>[] errors)
+        private void TestDrop(IMessageErrorPolicy policy, int retry, Exception exception)
         {
-            var message = new Message("Hello world");
-            message.Headers.MessageId = Guid.NewGuid();
-            message.Headers.CreatedOn = _now.AddSeconds(-2);
-            if (retry > 0)
-                message.Headers.RetryNumber = retry;
-            var inbox = new Mock<IMessageInboxReader>(MockBehavior.Strict);
-            inbox.Setup(i => i.Delete(message));
-            policy.HandleException(inbox.Object, message, exception);
-            inbox.Verify(i => i.Delete(message), Times.Once(), Comment("Delete", retry, exception));
-            foreach (var error in errors)
-                error.Verify(i => i.Put(message), Times.Never(), Comment("Error", retry, exception));
+            var action = policy.HandleException(retry, exception);
+            var expected = MessageErrorAction.Drop();
+            Assert.AreEqual(expected, action, Comment("Action", retry, exception));
         }
 
-        private void TestRedirect(IMessageErrorPolicy policy, int retry, Exception exception, Mock<IMessageInboxWriter> error)
+        private void TestRedirect(IMessageErrorPolicy policy, int retry, Exception exception, IMessageInboxWriter error)
         {
-            var message = new Message("Hello world");
-            message.Headers.MessageId = Guid.NewGuid();
-            message.Headers.CreatedOn = _now.AddSeconds(-2);
-            if (retry > 0)
-                message.Headers.RetryNumber = retry;
-            var inbox = new Mock<IMessageInboxReader>(MockBehavior.Strict);
-            inbox.Setup(i => i.Delete(message)).Verifiable();
-            policy.HandleException(inbox.Object, message, exception);
-            inbox.Verify(i => i.Delete(message), Times.Once(), Comment("Delete inbox", retry, exception));
-            error.Verify(e => e.Put(message), Times.Once(), Comment("Error", retry, exception));
+            var action = policy.HandleException(retry, exception);
+            var expected = MessageErrorAction.Redirect(error);
+            Assert.AreEqual(expected, action, Comment("Action", retry, exception));
         }
 
     }

@@ -386,18 +386,20 @@ namespace CqrsFramework.Tests.Messaging
                 .Callback<TableProviderRow>(r => { putMessage = r; receivedMessageDropped = true; });
             var inbox = CreateReader();
             var received = inbox.ReceiveAsync(CancellationToken.None).GetAwaiter().GetResult();
-            received.Headers.DeliverOn = received.Headers.CreatedOn.AddSeconds(40);
-            received.Headers.RetryNumber = 3;
-            inbox.Put(received);
+            var modified = new Message(received.Payload);
+            modified.Headers.CopyFrom(received.Headers);
+            modified.Headers.DeliverOn = received.Headers.CreatedOn.AddSeconds(40);
+            modified.Headers.RetryNumber = 3;
+            inbox.Put(modified);
             _repo.Verify();
             Assert.IsTrue(receivedMessageDropped, "Original deleted or replaced");
             Assert.IsNotNull(putMessage, "New version of message saved");
             var stored = DeserializeMessage(putMessage.Get<byte[]>("data"));
             Assert.AreEqual(0, putMessage.Get<int>("status"), "Status");
-            Assert.AreEqual(3, received.Headers.RetryNumber, "Retry");
-            Assert.AreEqual(_time.Get().AddSeconds(40), received.Headers.DeliverOn, "DeliverOn");
+            Assert.AreEqual(3, stored.Headers.RetryNumber, "Retry");
+            Assert.AreEqual(_time.Get().AddSeconds(40), stored.Headers.DeliverOn, "DeliverOn");
             Assert.AreEqual(_time.Get().AddSeconds(40).Ticks, putMessage.Get<long>("deliveron"), "Delivery column");
-            Assert.AreEqual("Message for retry", received.Payload, "Payload");
+            Assert.AreEqual("Message for retry", stored.Payload, "Payload");
             Assert.AreEqual(received.Headers.MessageId.ToString("D"), putMessage.Get<string>("messageid"), "Table MessageId");
         }
 

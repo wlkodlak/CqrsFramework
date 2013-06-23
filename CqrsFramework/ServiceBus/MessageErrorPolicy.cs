@@ -10,7 +10,76 @@ namespace CqrsFramework.ServiceBus
 {
     public interface IMessageErrorPolicy
     {
-        void HandleException(IMessageInboxReader inbox, Message message, Exception exception);
+        MessageErrorAction HandleException(int retryNumber, Exception exception);
+    }
+
+    public struct MessageErrorAction
+    {
+        private int _action;
+        private TimeSpan _delay;
+        private IMessageInboxWriter _error;
+
+        public bool IsDrop { get { return _action == 0; } }
+        public bool IsRetry { get { return _action == 1; } }
+        public bool IsRedirect { get { return _action == 2; } }
+        public TimeSpan DelayRetry { get { return _delay; } }
+        public IMessageInboxWriter ErrorQueue { get { return _error; } }
+
+        private MessageErrorAction(int action)
+        {
+            _action = action;
+            _delay = TimeSpan.Zero;
+            _error = null;
+        }
+
+        public static MessageErrorAction Drop()
+        {
+            return new MessageErrorAction(0);
+        }
+
+        public static MessageErrorAction Retry(TimeSpan delay)
+        {
+            return new MessageErrorAction(1) { _delay = delay };
+        }
+
+        public static MessageErrorAction Redirect(IMessageInboxWriter errorQueue)
+        {
+            return new MessageErrorAction(2) { _error = errorQueue };
+        }
+
+        public override string ToString()
+        {
+            switch (_action)
+            {
+                case 0:
+                    return "Drop";
+                case 1:
+                    if (DelayRetry == TimeSpan.Zero)
+                        return "Retry immediately";
+                    else
+                    return string.Format("Retry after {0} ms", DelayRetry.TotalMilliseconds);
+                case 2:
+                    return "Redirect";
+                default:
+                    return "Invalid action";
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            return _action;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is MessageErrorAction)
+            {
+                var oth = (MessageErrorAction)obj;
+                return _action == oth._action && DelayRetry == oth.DelayRetry && ErrorQueue == oth.ErrorQueue;
+            }
+            else
+                return false;
+        }
     }
 
     public class MessageErrorPolicy : IMessageErrorPolicy
@@ -61,23 +130,18 @@ namespace CqrsFramework.ServiceBus
             return new MessageErrorPolicySettings(type);
         }
 
-        public void HandleException(IMessageInboxReader inbox, Message message, Exception exception)
+        public MessageErrorAction HandleException(int retryNumber, Exception exception)
         {
             var settings = FindSettings(exception.GetType());
-            var retryNumber = message.Headers.RetryNumber;
             if (retryNumber < settings.RetryCount)
             {
                 int delay = ComputeDelay(retryNumber + 1, settings.DelayFactors);
-                message.Headers.RetryNumber = retryNumber + 1;
-                message.Headers.DeliverOn = _time.Get().AddMilliseconds(delay);
-                inbox.Put(message);
+                return MessageErrorAction.Retry(TimeSpan.FromMilliseconds(delay));
             }
+            else if (settings.ErrorQueueWriter != null)
+                return MessageErrorAction.Redirect(settings.ErrorQueueWriter);
             else
-            {
-                if (settings.ErrorQueueWriter != null)
-                    settings.ErrorQueueWriter.Put(message);
-                inbox.Delete(message);
-            }
+                return MessageErrorAction.Drop();
         }
 
         private int ComputeDelay(int retryNumber, int[] factors)

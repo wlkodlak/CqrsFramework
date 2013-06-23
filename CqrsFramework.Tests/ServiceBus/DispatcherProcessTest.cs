@@ -20,6 +20,7 @@ namespace CqrsFramework.Tests.ServiceBus
         private MockRepository _repo;
         private Mock<ITimeProvider> _time;
         private Mock<IMessageInboxReader> _inbox;
+        private Mock<IMessageInboxWriter> _dead;
         private Mock<IPrioritizedInboxesReceiver> _receiver;
         private Mock<IMessageErrorPolicy> _errors;
         private Mock<IMessageDispatcher> _dispatcher;
@@ -34,6 +35,7 @@ namespace CqrsFramework.Tests.ServiceBus
             _inbox = _repo.Create<IMessageInboxReader>();
             _receiver = _repo.Create<IPrioritizedInboxesReceiver>();
             _errors = _repo.Create<IMessageErrorPolicy>();
+            _dead = _repo.Create<IMessageInboxWriter>();
             _dispatcher = _repo.Create<IMessageDispatcher>();
             _dup = _repo.Create<IMessageDeduplicator>();
             _cancel = new CancellationTokenSource();
@@ -62,7 +64,7 @@ namespace CqrsFramework.Tests.ServiceBus
         }
 
         [TestMethod]
-        public void HandlesDispatchErrors()
+        public void HandlesDispatchErrorsDrop()
         {
             var message = BuildMessage();
             var msgsrc = new MessageWithSource(0, _inbox.Object, message);
@@ -70,7 +72,46 @@ namespace CqrsFramework.Tests.ServiceBus
             _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(Task.FromResult(msgsrc)).Verifiable();
             _dup.Setup(d => d.IsDuplicate(message)).Returns(false).Verifiable();
             _dispatcher.Setup(d => d.Dispatch(message)).Throws(exception).Verifiable();
-            _errors.Setup(e => e.HandleException(_inbox.Object, message, exception)).Verifiable();
+            _errors.Setup(e => e.HandleException(1, exception)).Returns(MessageErrorAction.Drop()).Verifiable();
+            _inbox.Setup(i => i.Delete(message)).Verifiable();
+            ProcessSingle();
+        }
+
+        [TestMethod]
+        public void HandlesDispatchErrorsRetry()
+        {
+            var message = BuildMessage();
+            var msgsrc = new MessageWithSource(0, _inbox.Object, message);
+            var exception = new ArgumentOutOfRangeException();
+            _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(Task.FromResult(msgsrc)).Verifiable();
+            _dup.Setup(d => d.IsDuplicate(message)).Returns(false).Verifiable();
+            _dispatcher.Setup(d => d.Dispatch(message)).Throws(exception).Verifiable();
+            _errors.Setup(e => e.HandleException(1, exception)).Returns(MessageErrorAction.Retry(TimeSpan.FromMilliseconds(100))).Verifiable();
+            _inbox.Setup(i => i.Put(It.IsAny<Message>())).Callback<Message>(m => {
+                AssertExtension.AreEqual(message.Payload, m.Payload, "Payload");
+                Assert.AreEqual(message.Headers.MessageId, m.Headers.MessageId, "MessageId");
+                Assert.AreEqual(1, m.Headers.RetryNumber, "Retry number");
+                var delay = m.Headers.DeliverOn - _now;
+                Assert.AreEqual(TimeSpan.FromMilliseconds(100), delay, "Delay");
+                foreach (var header in message.Headers)
+                    if (header.Name != "DeliverOn" && header.Name != "RetryNumber")
+                        Assert.AreEqual(header.Value, m.Headers[header.Name], "Header {0}", header.Name);
+            }).Verifiable();
+            ProcessSingle();
+        }
+
+        [TestMethod]
+        public void HandlesDispatchErrorsRedirect()
+        {
+            var message = BuildMessage();
+            var msgsrc = new MessageWithSource(0, _inbox.Object, message);
+            var exception = new ArgumentOutOfRangeException();
+            _receiver.Setup(i => i.ReceiveAsync(_cancel.Token)).Returns(Task.FromResult(msgsrc)).Verifiable();
+            _dup.Setup(d => d.IsDuplicate(message)).Returns(false).Verifiable();
+            _dispatcher.Setup(d => d.Dispatch(message)).Throws(exception).Verifiable();
+            _errors.Setup(e => e.HandleException(1, exception)).Returns(MessageErrorAction.Redirect(_dead.Object)).Verifiable();
+            _inbox.Setup(i => i.Delete(message)).Verifiable();
+            _dead.Setup(i => i.Put(message)).Verifiable();
             ProcessSingle();
         }
 
