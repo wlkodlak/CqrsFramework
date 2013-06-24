@@ -23,8 +23,11 @@ namespace CqrsFramework.EventStore
                 yield break;
             while (entry != null)
             {
+                if (maxCount == 0)
+                    yield break;
                 if (entry.IsEvent)
                 {
+                    maxCount--;
                     yield return new EventStoreEvent
                     {
                         Published = entry.Published,

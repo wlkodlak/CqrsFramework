@@ -397,6 +397,29 @@ namespace CqrsFramework.Tests.EventStore
         }
 
         [TestMethod]
+        public void GetEventsSinceUsingReaderWithLimit()
+        {
+            var event1 = new EventStoreEvent { Key = "agg-1", Version = 1, Data = new byte[] { 1, 15 }, Published = true, Clock = 1 };
+            var event2 = new EventStoreEvent { Key = "agg-2", Version = 1, Data = new byte[] { 3, 19 }, Clock = 2 };
+            var event3 = new EventStoreEvent { Key = "agg-1", Version = 2, Data = new byte[] { 2, 17 }, Clock = 3 };
+            var event4 = new EventStoreEvent { Key = "agg-1", Version = 3, Data = new byte[] { 2, 22 }, Clock = 4 };
+            var event5 = new EventStoreEvent { Key = "agg-2", Version = 2, Data = new byte[] { 5, 11 }, Clock = 5 };
+            var event6 = new EventStoreEvent { Key = "agg-2", Version = 3, Data = new byte[] { 4, 33 }, Clock = 6 };
+            var builder = CreateBuilder();
+            builder.WithStream("agg-1", null, new[] { event1 });
+            builder.WithStream("agg-2", null, new[] { event2 });
+            builder.WithStream("agg-1", null, new[] { event3, event4 });
+            builder.WithStream("agg-2", null, new[] { event5, event6 });
+            builder.Build();
+            using (var store = builder.GetReader())
+            {
+                var expected = new[] { event2, event3, event4 };
+                var actual = store.GetSince(event2.Clock, 3).ToList();
+                CollectionAssert.AreEqual(expected, actual);
+            }
+        }
+
+        [TestMethod]
         public void VersionsAndExistenceCanPotentiallyBeOptimized()
         {
             var snapshot = new EventStoreSnapshot { Key = "agg-1", Version = 2, Data = new byte[] { 2, 15, 17 } };

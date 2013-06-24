@@ -46,7 +46,7 @@ namespace CqrsFramework.Tests.Messaging
             Assert.AreEqual("2013-06-01 14:10:00.0000", headers["ValidUntil"]);
             Assert.AreEqual("218", headers["PayloadLength"]);
             Assert.AreEqual("Subtype", headers["PayloadType"]);
-            Assert.AreEqual("EventClock", headers["EventClock"]);
+            Assert.AreEqual("5472", headers["EventClock"]);
         }
 
         [TestMethod]

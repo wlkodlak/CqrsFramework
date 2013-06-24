@@ -20,7 +20,11 @@ namespace CqrsFramework.EventStore
 
         public void SetupStream(string name, EventStoreSnapshot snapshot, EventStoreEvent[] events)
         {
-            _streams[name] = new MemoryEventStream(this, name, snapshot, events);
+            MemoryEventStream stream;
+            if (!_streams.TryGetValue(name, out stream))
+                _streams[name] = stream = new MemoryEventStream(this, name, snapshot, events);
+            else
+                stream.InternalSetup(snapshot, events);
             _unpublished.AddRange(events.Where(e => !e.Published));
             if (events.Length > 0)
                 UpdateClock(events.Max(e => e.Clock));
@@ -84,6 +88,7 @@ namespace CqrsFramework.EventStore
             return _streams
                 .SelectMany(e => e.Value.GetSince(clock))
                 .OrderBy(e => e.Clock)
+                .Take(maxCount)
                 .ToList();
         }
 

@@ -21,6 +21,12 @@ namespace CqrsFramework.EventStore
             _events.AddRange(events);
         }
 
+        public void InternalSetup(EventStoreSnapshot snapshot, EventStoreEvent[] events)
+        {
+            _snapshot = snapshot ?? _snapshot;
+            _events.AddRange(events);
+        }
+
         public int GetCurrentVersion()
         {
             return _events.Count;
@@ -55,7 +61,6 @@ namespace CqrsFramework.EventStore
             }
             _store.UpdateClock(clock);
             _store.AddToUnpublished(events.Where(e => !e.Published));
-            _store.UpdateClock(events.Max(e => e.Clock));
         }
 
         public void SaveSnapshot(EventStoreSnapshot snapshot)
