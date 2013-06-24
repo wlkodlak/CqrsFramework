@@ -104,6 +104,7 @@
     <Compile Include="Infrastructure\MemoryStreamProvider.cs" />
     <Compile Include="Infrastructure\TableProvider.cs" />
     <Compile Include="Infrastructure\MemoryTableProvider.cs" />
+    <Compile Include="ServiceBus\ProjectionProcess.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

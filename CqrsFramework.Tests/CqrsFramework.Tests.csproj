@@ -127,6 +127,7 @@
     <Compile Include="Serialization\MessageSerializerTextTest.cs" />
     <Compile Include="Serialization\MessageTypeResolverTest.cs" />
     <Compile Include="Serialization\UniversalMessageBodySerializerTest.cs" />
+    <Compile Include="ServiceBus\ProjectionProcessTest.cs" />
     <Compile Include="TestTimeProvider.cs" />
   </ItemGroup>
   <ItemGroup>

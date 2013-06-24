@@ -51,7 +51,7 @@ namespace CqrsFramework.EventStore
             @event.Published = true;
         }
 
-        public IEnumerable<EventStoreEvent> GetSince(long clock)
+        public IEnumerable<EventStoreEvent> GetSince(long clock, int maxCount)
         {
             var events = new List<EventStoreEvent>();
             var table = _tableEvents.GetRows().Where("clock").IsAtLeast((int)clock).OrderBy(r => r.Get<int>("clock")).ToList();

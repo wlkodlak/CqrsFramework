@@ -9,7 +9,7 @@ namespace CqrsFramework.EventStore
 {
     public interface IEventStoreReader : IDisposable
     {
-        IEnumerable<EventStoreEvent> GetSince(long clock);
+        IEnumerable<EventStoreEvent> GetSince(long clock, int maxCount = int.MaxValue);
     }
     public interface IEventStore : IEventStoreReader
     {

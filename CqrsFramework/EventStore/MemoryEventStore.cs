@@ -79,7 +79,7 @@ namespace CqrsFramework.EventStore
         }
 
 
-        public IEnumerable<EventStoreEvent> GetSince(long clock)
+        public IEnumerable<EventStoreEvent> GetSince(long clock, int maxCount)
         {
             return _streams
                 .SelectMany(e => e.Value.GetSince(clock))

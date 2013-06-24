@@ -47,6 +47,7 @@ namespace CqrsFramework.Messaging
         public string PayloadFormat { get; set; }
         public int PayloadLength { get; set; }
         public string PayloadType { get; set; }
+        public long EventClock { get; set; }
 
         private void SetHeader(string name, string value)
         {
@@ -84,6 +85,9 @@ namespace CqrsFramework.Messaging
                     break;
                 case "PayloadType":
                     this.PayloadType = value;
+                    break;
+                case "EventClock":
+                    this.EventClock = TryParseInt(value);
                     break;
                 default:
                     _headers[name] = value;
@@ -135,6 +139,8 @@ namespace CqrsFramework.Messaging
                     return this.PayloadLength.ToString();
                 case "PayloadType":
                     return this.PayloadType;
+                case "EventClock":
+                    return this.EventClock.ToString();
                 default:
                     _headers.TryGetValue(name, out value);
                     return value;
@@ -155,6 +161,7 @@ namespace CqrsFramework.Messaging
             AddNamedToList(list, true, "PayloadFormat", false);
             AddNamedToList(list, PayloadLength != 0, "PayloadLength", false);
             AddNamedToList(list, true, "PayloadType", false);
+            AddNamedToList(list, EventClock != 0, "EventClock", false);
             foreach (var item in _headers)
                 if (!string.IsNullOrEmpty(item.Value))
                     list.Add(new MessageHeader(item.Key, item.Value, true));
@@ -189,10 +196,10 @@ namespace CqrsFramework.Messaging
             PayloadFormat = headers.PayloadFormat;
             PayloadLength = headers.PayloadLength;
             PayloadType = headers.PayloadType;
+            EventClock = headers.EventClock;
             foreach (var header in headers._headers)
                 _headers[header.Key] = header.Value;
         }
-
     }
 
     public class MessageHeader

@@ -21,7 +21,7 @@ namespace CqrsFramework.Serialization
         {
             _nameToType = new Dictionary<string, TypeInfo>(StringComparer.Ordinal);
             _typeToName = new Dictionary<Type, string>();
-            _namesByTag = new Dictionary<string, List<string>>();
+            _namesByTag = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         }
 
         public void RegisterType(Type type, string name, params string[] tags)

@@ -38,6 +38,7 @@ namespace CqrsFramework.Tests.Messaging
             headers.PayloadFormat = "json";
             headers.PayloadLength = 218;
             headers.PayloadType = "Subtype";
+            headers.EventClock = 5472;
 
             Assert.AreEqual(msgId.ToString("D"), headers["MessageId"]);
             Assert.AreEqual("2", headers["RetryNumber"]);
@@ -45,6 +46,7 @@ namespace CqrsFramework.Tests.Messaging
             Assert.AreEqual("2013-06-01 14:10:00.0000", headers["ValidUntil"]);
             Assert.AreEqual("218", headers["PayloadLength"]);
             Assert.AreEqual("Subtype", headers["PayloadType"]);
+            Assert.AreEqual("EventClock", headers["EventClock"]);
         }
 
         [TestMethod]

@@ -16,7 +16,7 @@ namespace CqrsFramework.EventStore
             _dataFile = new FileEventStoreDataFile(dataFile);
         }
 
-        public IEnumerable<EventStoreEvent> GetSince(long clock)
+        public IEnumerable<EventStoreEvent> GetSince(long clock, int maxCount)
         {
             var entry = _dataFile.ReadEntry(clock);
             if (entry == null)
