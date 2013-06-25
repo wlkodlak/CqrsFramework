@@ -100,6 +100,7 @@
     <Compile Include="KeyValueStore\KeyValueStoreTestBase.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreTestFilesystem.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreTestMemory.cs" />
+    <Compile Include="KeyValueStore\KeyValueStoreTestTable.cs" />
     <Compile Include="Messaging\MessageInboxFilesystemTest.cs" />
     <Compile Include="Messaging\MessageInboxMemoryTest.cs" />
     <Compile Include="Messaging\MessageInboxTableTest.cs" />

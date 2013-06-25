@@ -58,6 +58,7 @@
     <Compile Include="KeyValueStore\FilesystemKeyValueStore.cs" />
     <Compile Include="KeyValueStore\KeyValueInterfaces.cs" />
     <Compile Include="KeyValueStore\MemoryKeyValueStore.cs" />
+    <Compile Include="KeyValueStore\TableKeyValueStore.cs" />
     <Compile Include="Messaging\FileMessageInbox.cs" />
     <Compile Include="Messaging\KeyValueProjection.cs" />
     <Compile Include="Messaging\MemoryInbox.cs" />
