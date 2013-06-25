@@ -11,14 +11,14 @@ using CqrsFramework.Serialization;
 
 namespace CqrsFramework.Messaging
 {
-    public class FileMessageInboxWriter : IMessageInboxWriter
+    public class FilesystemMessageInboxWriter : IMessageInboxWriter
     {
         private IStreamProvider _directory;
         private IMessageSerializer _serializer;
         private ITimeProvider _time;
         private int _sequenceId = 0;
 
-        public FileMessageInboxWriter(IStreamProvider directory, IMessageSerializer serializer, ITimeProvider time)
+        public FilesystemMessageInboxWriter(IStreamProvider directory, IMessageSerializer serializer, ITimeProvider time)
         {
             _directory = directory;
             _serializer = serializer;
@@ -31,7 +31,7 @@ namespace CqrsFramework.Messaging
                 message.Headers.CreatedOn = _time.Get();
             if (message.Headers.MessageId == Guid.Empty)
                 message.Headers.MessageId = Guid.NewGuid();
-            var name = FileMessageInboxReader.CreateQueueName(message, _sequenceId);
+            var name = FilesystemMessageInboxReader.CreateQueueName(message, _sequenceId);
             _sequenceId = _sequenceId >= 999 ? 0 : _sequenceId + 1;
             using (var stream = _directory.Open(name, FileMode.CreateNew))
             {
@@ -42,7 +42,7 @@ namespace CqrsFramework.Messaging
 
     }
 
-    public class FileMessageInboxReader : IMessageInboxReader
+    public class FilesystemMessageInboxReader : IMessageInboxReader
     {
         private IStreamProvider _directory;
         private IMessageSerializer _serializer;
@@ -55,7 +55,7 @@ namespace CqrsFramework.Messaging
         private CancellationTokenRegistration _cancelRegistration;
         private HashSet<string> _unconfirmedStreamNames;
         private Dictionary<Guid, string> _unconfirmedMessages;
-        private FileMessageInboxWriter _inboxWriter;
+        private FilesystemMessageInboxWriter _inboxWriter;
         private Queue<string> _cachedStreamNames;
 
         private string GetNextStreamName()
@@ -86,7 +86,7 @@ namespace CqrsFramework.Messaging
             return string.Concat(date, order, ".", id, ".queuemessage");
         }
 
-        public FileMessageInboxReader(IStreamProvider directory, IMessageSerializer serializer, ITimeProvider time)
+        public FilesystemMessageInboxReader(IStreamProvider directory, IMessageSerializer serializer, ITimeProvider time)
         {
             _directory = directory;
             _serializer = serializer;
@@ -94,7 +94,7 @@ namespace CqrsFramework.Messaging
             _unconfirmedStreamNames = new HashSet<string>();
             _unconfirmedMessages = new Dictionary<Guid, string>();
             _cachedStreamNames = new Queue<string>();
-            _inboxWriter = new FileMessageInboxWriter(_directory, _serializer, _time);
+            _inboxWriter = new FilesystemMessageInboxWriter(_directory, _serializer, _time);
         }
 
         public void Delete(Message message)
