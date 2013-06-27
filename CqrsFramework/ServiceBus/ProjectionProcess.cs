@@ -144,11 +144,40 @@ namespace CqrsFramework.ServiceBus
 
                 if (projection.Status == ProjectionStatus.Updating || projection.Status == ProjectionStatus.UpdateFinished)
                 {
-                    projection.Handler.Dispatch(message);
-                    // TODO: error policy
+                    DispatchMessage(message, projection);
                 }
             }
             return Task.FromResult<object>(null);
+        }
+
+        private void DispatchMessage(Message message, ProjectionInfo projection)
+        {
+            bool shouldDispatch = true;
+            int retryNumber = 0;
+            while (shouldDispatch)
+            {
+                shouldDispatch = false;
+                try
+                {
+                    message.Headers.RetryNumber = retryNumber;
+                    projection.Handler.Dispatch(message);
+                }
+                catch (Exception ex)
+                {
+                    retryNumber++;
+                    var action = _error.HandleException(retryNumber, ex);
+                    if (action.IsRetry)
+                        shouldDispatch = true;
+                    else
+                    {
+                        if (action.IsRedirect)
+                            action.ErrorQueue.Put(message);
+                        if (projection.Status == ProjectionStatus.Updating)
+                            projection.Handler.EndUpdate();
+                        projection.Status = ProjectionStatus.Failed;
+                    }
+                }
+            }
         }
 
         private EventStoreEvent GetNextEvent()

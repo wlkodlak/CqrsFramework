@@ -168,16 +168,77 @@ namespace CqrsFramework.Tests.ServiceBus
             FinishTest();
         }
 
-        [TestMethod, Ignore]
+        [TestMethod]
         public void SuccessAfterRetry()
         {
-            
+            for (int i = 0; i < 8; i++)
+                _store.Add();
+            _store.CurrentPosition = 8;
+            _projection1.SetupClock = 3;
+            _projection2.SetupClock = 5;
+            _projection1.FailMessage = SuccessAfterRetryFailMessage;
+            _storeMock.Setup(s => s.GetSince(3, 3)).Returns<long, int>(_store.GetSince).Verifiable();
+            _storeMock.Setup(s => s.GetSince(6, 3)).Returns<long, int>(_store.GetSince).Verifiable();
+            _storeMock.Setup(s => s.GetSince(8, 3)).Returns<long, int>(_store.GetSince).Verifiable();
+            _errorMock
+                .Setup(s => s.HandleException(1, It.IsAny<Exception>()))
+                .Returns(MessageErrorAction.Retry(TimeSpan.Zero))
+                .Verifiable();
+            PrepareTest();
+            ReceiveEvents(3, 5, 0);
+            WaitsForCancel();
+            FinishTest();
+            ExpectMessages(_projection1, 3, 5, "Projection1");
+            ExpectMessages(_projection2, 5, 3, "Projection2");
         }
 
-        [TestMethod, Ignore]
+        private void SuccessAfterRetryFailMessage(Message m)
+        {
+            if (m.Headers.EventClock == 6)
+            {
+                if (_projection1.FailStatus == 0)
+                {
+                    _projection1.FailStatus = 1;
+                    throw new KeyNotFoundException("This should be retried");
+                }
+                else
+                    _projection1.FailStatus = 2;
+            }
+        }
+
+        [TestMethod]
         public void OneProjectionFailsOtherCompletesAndGetsNewMessages()
         {
-            
+            for (int i = 0; i < 8; i++)
+                _store.Add();
+            _store.CurrentPosition = 7;
+            _projection1.SetupClock = 3;
+            _projection2.SetupClock = 5;
+            _projection1.FailMessage = OneProjectionFailsOtherCompletesAndGetsNewMessagesFailMessage;
+            _storeMock.Setup(s => s.GetSince(3, 3)).Returns<long, int>(_store.GetSince).Verifiable();
+            _storeMock.Setup(s => s.GetSince(6, 3)).Returns<long, int>(_store.GetSince).Verifiable();
+            _storeMock.Setup(s => s.GetSince(7, 3)).Returns<long, int>(_store.GetSince).Verifiable();
+            _storeMock.Setup(s => s.GetSince(8, 3)).Returns<long, int>(_store.GetSince).Verifiable();
+            var redirectMock = _repo.Create<IMessageInboxWriter>();
+            _errorMock.Setup(s => s.HandleException(1, It.IsAny<Exception>())).Returns(MessageErrorAction.Retry(TimeSpan.Zero)).Verifiable();
+            _errorMock.Setup(s => s.HandleException(2, It.IsAny<Exception>())).Returns(MessageErrorAction.Retry(TimeSpan.Zero)).Verifiable();
+            _errorMock.Setup(s => s.HandleException(3, It.IsAny<Exception>())).Returns(MessageErrorAction.Redirect(redirectMock.Object)).Verifiable();
+            redirectMock.Setup(w => w.Put(It.IsAny<Message>())).Verifiable();
+            PrepareTest();
+            ReceiveEvents(3, 5, 1);
+            WaitsForCancel();
+            FinishTest();
+            ExpectMessages(_projection1, 3, 2, "Projection1");
+            ExpectMessages(_projection2, 5, 3, "Projection2");
+        }
+
+        private void OneProjectionFailsOtherCompletesAndGetsNewMessagesFailMessage(Message m)
+        {
+            if (m.Headers.EventClock == 5)
+            {
+                _projection1.FailStatus++;
+                throw new KeyNotFoundException("This should be retried");
+            }
         }
 
         private void PrepareTest()
@@ -199,7 +260,8 @@ namespace CqrsFramework.Tests.ServiceBus
             _projection2Mock.Setup(p => p.NeedsRebuild()).Returns(_projection2.NeedsRebuild).Verifiable();
             _projection2Mock.Setup(p => p.Reset()).Callback(_projection2.Reset);
 
-            _process = new ProjectionProcess(_storeMock.Object, _cancel.Token, _time, _serializerMock.Object).WithBlockSize(3);
+            _process = new ProjectionProcess(_storeMock.Object, _cancel.Token, _time, _serializerMock.Object)
+                .WithBlockSize(3).WithErrorPolicy(_errorMock.Object);
             _process.Register(_projection1Mock.Object);
             _process.Register(_projection2Mock.Object);
         }
@@ -251,7 +313,7 @@ namespace CqrsFramework.Tests.ServiceBus
                 Assert.IsTrue(actualMessages.Count == 0, "{0}: Expected empty", note);
                 return;
             }
-            Assert.AreEqual(projection.SetupClock, expectedStored.Max(e => e.Clock + 1), "{0}: end clock", note);
+            Assert.AreEqual(expectedStored.Max(e => e.Clock + 1), projection.SetupClock, "{0}: end clock", note);
             Assert.IsFalse(projection.IsInUpdate, "{0}: in update", note);
             for (int i = 0; i < Math.Min(expectedStored.Count, actualMessages.Count); i++)
             {
@@ -315,6 +377,8 @@ namespace CqrsFramework.Tests.ServiceBus
             public long SetupClock;
             public bool IsInUpdate;
             public List<Message> Contents = new List<Message>();
+            public Action<Message> FailMessage;
+            public int FailStatus;
 
             public void BeginUpdate()
             {
@@ -350,6 +414,8 @@ namespace CqrsFramework.Tests.ServiceBus
 
             public void Dispatch(Message message)
             {
+                if (FailMessage != null)
+                    FailMessage(message);
                 Contents.Add(message);
                 SetupClock = message.Headers.EventClock + 1;
             }
