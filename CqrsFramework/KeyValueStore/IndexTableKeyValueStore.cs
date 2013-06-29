@@ -21,36 +21,37 @@ namespace CqrsFramework.KeyValueStore
 
         public KeyValueDocument Get(string key)
         {
-            var idxKey = IdxKey.FromBytes(ByteArrayUtils.Utf8Text(key));
-            return _tree.Select(idxKey, idxKey).Select(CreateDocument).FirstOrDefault();
+            var minKey = new IndexTableKeyValueStoreCompositeKey(key, 0).IdxKey;
+            var maxKey = new IndexTableKeyValueStoreCompositeKey(key, int.MaxValue).IdxKey;
+            return _tree.Select(minKey, maxKey).Select(CreateDocument).FirstOrDefault();
         }
 
         private static KeyValueDocument CreateDocument(KeyValuePair<IdxKey, byte[]> p)
         {
-            var key = ByteArrayUtils.Utf8Text(p.Key.ToBytes());
-            var version = ByteArrayUtils.BinaryInt(p.Value);
-            var data = p.Value.Skip(4).ToArray();
-            return new KeyValueDocument(key, version, data);
+            var composite = new IndexTableKeyValueStoreCompositeKey(p.Key);
+            return new KeyValueDocument(composite.Key, composite.Version, p.Value);
         }
 
         public int Set(string key, int expectedVersion, byte[] data)
         {
-            var idxKey = IdxKey.FromBytes(ByteArrayUtils.Utf8Text(key));
-            var found = _tree.Select(idxKey, idxKey).Take(1).Select(CreateDocument).FirstOrDefault();
-            var foundVersion = found == null ? 0 : found.Version;
+            var minKey = new IndexTableKeyValueStoreCompositeKey(key, 0).IdxKey;
+            var maxKey = new IndexTableKeyValueStoreCompositeKey(key, int.MaxValue).IdxKey;
+            var found = _tree.Select(minKey, maxKey).Take(1)
+                .Select(p => new { p.Key, Document = CreateDocument(p) }).FirstOrDefault();
+            var foundVersion = found == null ? 0 : found.Document.Version;
             if (expectedVersion != -1 && expectedVersion != foundVersion)
                 throw KeyValueStoreException.BadVersion(key, expectedVersion, foundVersion);
-            var newContents = ByteArrayUtils.BinaryInt(foundVersion + 1).Concat(data).ToArray();
-            if (found == null)
-                _tree.Insert(idxKey, newContents);
-            else
-                _tree.Update(idxKey, newContents);
-            return foundVersion + 1;
+            var finalKey = new IndexTableKeyValueStoreCompositeKey(key, foundVersion + 1);
+            if (found != null)
+                _tree.Delete(found.Key);
+            _tree.Insert(finalKey.IdxKey, data);
+            return finalKey.Version;
         }
 
         public IEnumerable<string> Enumerate()
         {
-            return _tree.Select(IdxKey.MinValue, IdxKey.MaxValue).Select(p => ByteArrayUtils.Utf8Text(p.Key.ToBytes())).ToList();
+            return _tree.Select(IdxKey.MinValue, IdxKey.MaxValue)
+                .Select(p => new IndexTableKeyValueStoreCompositeKey(p.Key).Key).ToList();
         }
 
         public void Flush()

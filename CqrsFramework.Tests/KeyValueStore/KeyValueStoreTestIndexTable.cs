@@ -35,8 +35,8 @@ namespace CqrsFramework.Tests.KeyValueStore
             public void With(KeyValueDocument document)
             {
                 _tree.Insert(
-                    IdxKey.FromBytes(ByteArrayUtils.Utf8Text(document.Key)),
-                    ByteArrayUtils.BinaryInt(document.Version).Concat(document.Data).ToArray());
+                    new IndexTableKeyValueStoreCompositeKey(document.Key, document.Version).IdxKey,
+                    document.Data);
             }
 
             public List<KeyValueDocument> GetAll()
@@ -50,10 +50,8 @@ namespace CqrsFramework.Tests.KeyValueStore
                 var list = new List<KeyValueDocument>();
                 foreach (var pair in values)
                 {
-                    var key = ByteArrayUtils.Utf8Text(pair.Key.ToBytes());
-                    var version = ByteArrayUtils.BinaryInt(pair.Value);
-                    var data = pair.Value.Skip(4).ToArray();
-                    list.Add(new KeyValueDocument(key, version, data));
+                    var composite = new IndexTableKeyValueStoreCompositeKey(pair.Key);
+                    list.Add(new KeyValueDocument(composite.Key, composite.Version, pair.Value));
                 }
                 return list;
             }

@@ -46,8 +46,8 @@ namespace CqrsFramework.KeyValueStore
         public override string ToString()
         {
             if (Data == null)
-                return string.Join(Key, " = null");
-            return string.Join(Key, " = (", Data.Length.ToString(), "B@", Version.ToString(), ")");
+                return string.Concat(Key, " = null");
+            return string.Concat(Key, " = (", Data.Length.ToString(), "B@", Version.ToString(), ")");
         }
     }
 
