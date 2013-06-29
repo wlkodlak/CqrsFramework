@@ -36,22 +36,22 @@ namespace CqrsFramework.KeyValueStore
         {
             var minKey = new IndexTableKeyValueStoreCompositeKey(key, 0).IdxKey;
             var maxKey = new IndexTableKeyValueStoreCompositeKey(key, int.MaxValue).IdxKey;
-            var found = _tree.Select(minKey, maxKey).Take(1)
-                .Select(p => new { p.Key, Document = CreateDocument(p) }).FirstOrDefault();
-            var foundVersion = found == null ? 0 : found.Document.Version;
+            var found = _tree.SelectKeys(minKey, maxKey).Take(1)
+                .Select(p => new IndexTableKeyValueStoreCompositeKey(p)).FirstOrDefault();
+            var foundVersion = found == null ? 0 : found.Version;
             if (expectedVersion != -1 && expectedVersion != foundVersion)
                 throw KeyValueStoreException.BadVersion(key, expectedVersion, foundVersion);
             var finalKey = new IndexTableKeyValueStoreCompositeKey(key, foundVersion + 1);
             if (found != null)
-                _tree.Delete(found.Key);
+                _tree.Delete(found.IdxKey);
             _tree.Insert(finalKey.IdxKey, data);
             return finalKey.Version;
         }
 
         public IEnumerable<string> Enumerate()
         {
-            return _tree.Select(IdxKey.MinValue, IdxKey.MaxValue)
-                .Select(p => new IndexTableKeyValueStoreCompositeKey(p.Key).Key).ToList();
+            return _tree.SelectKeys(IdxKey.MinValue, IdxKey.MaxValue)
+                .Select(p => new IndexTableKeyValueStoreCompositeKey(p).Key).ToList();
         }
 
         public void Flush()
@@ -60,9 +60,7 @@ namespace CqrsFramework.KeyValueStore
 
         public void Purge()
         {
-            var keys = _tree.Select(IdxKey.MinValue, IdxKey.MaxValue).Select(p => p.Key).ToList();
-            foreach (var key in keys)
-                _tree.Delete(key);
+            _tree.Purge();
         }
 
         public void Dispose()
