@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CqrsFramework.IndexTable;
+using CqrsFramework.Serialization;
 
 namespace CqrsFramework.EventStore
 {
@@ -70,17 +71,12 @@ namespace CqrsFramework.EventStore
 
         private long ReadLong(byte[] bytes)
         {
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(bytes);
-            return BitConverter.ToInt64(bytes, 0);
+            return ByteArrayUtils.BinaryLong(bytes);
         }
 
         private byte[] WriteLong(long value)
         {
-            var bytes = BitConverter.GetBytes(value);
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(bytes);
-            return bytes;
+            return ByteArrayUtils.BinaryLong(value);
         }
 
         private IdxKey StreamKey(string streamId, bool snapshot, int version)

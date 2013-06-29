@@ -38,6 +38,17 @@ namespace CqrsFramework.Serialization
                 ((long)bytes[6] << 8) |
                 (long)bytes[7];
         }
+        public static byte[] BinaryShort(short value)
+        {
+            var data = new byte[2];
+            data[0] = (byte)((value >> 8) & 0xff);
+            data[1] = (byte)(value & 0xff);
+            return data;
+        }
+        public static short BinaryShort(byte[] bytes)
+        {
+            return (short)((bytes[0] << 8) | bytes[1]);
+        }
 
         static ByteArrayUtils()
         {

@@ -61,6 +61,7 @@
     <Compile Include="KeyValueStore\TableKeyValueStore.cs" />
     <Compile Include="Messaging\FilesystemMessageInbox.cs" />
     <Compile Include="Messaging\KeyValueProjection.cs" />
+    <Compile Include="Messaging\KeyValueProjectionAutoRegister.cs" />
     <Compile Include="Messaging\KeyValueProjectionStrategy.cs" />
     <Compile Include="Messaging\MemoryInbox.cs" />
     <Compile Include="Messaging\ProjectionDispatcher.cs" />

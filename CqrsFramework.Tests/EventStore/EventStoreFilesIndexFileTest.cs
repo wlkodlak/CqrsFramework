@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using CqrsFramework.IndexTable;
 using CqrsFramework.EventStore;
+using CqrsFramework.Serialization;
 using Moq;
 
 namespace CqrsFramework.Tests.EventStore
@@ -71,23 +72,15 @@ namespace CqrsFramework.Tests.EventStore
 
         private byte[] LongToBytes(long value)
         {
-            var bytes = BitConverter.GetBytes(value);
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(bytes);
-            return bytes;
+            return ByteArrayUtils.BinaryLong(value);
         }
 
         private IdxKey StreamKey(string streamId, bool snapshot, int version)
         {
             var stringBytes = Encoding.ASCII.GetBytes(streamId);
-            var lengthBytes = BitConverter.GetBytes((short)stringBytes.Length);
+            var lengthBytes = ByteArrayUtils.BinaryShort((short)stringBytes.Length);
             var typeBytes = new byte[1] { snapshot ? (byte)0 : (byte)1 };
-            var versionBytes = BitConverter.GetBytes(version);
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(lengthBytes);
-                Array.Reverse(versionBytes);
-            }
+            var versionBytes = ByteArrayUtils.BinaryInt(version);
             var bytes = lengthBytes.Concat(stringBytes).Concat(typeBytes).Concat(versionBytes).ToArray();
             return IdxKey.FromBytes(bytes);
         }

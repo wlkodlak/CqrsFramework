@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CqrsFramework.KeyValueStore;
 using CqrsFramework.Infrastructure;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using CqrsFramework.Serialization;
 
 namespace CqrsFramework.Tests.KeyValueStore
 {
@@ -41,19 +42,12 @@ namespace CqrsFramework.Tests.KeyValueStore
 
             private int GetVersion(byte[] buffer)
             {
-                var local = new byte[4];
-                Array.Copy(buffer, local, 4);
-                if (BitConverter.IsLittleEndian)
-                    Array.Reverse(local);
-                return BitConverter.ToInt32(local, 0);
+                return ByteArrayUtils.BinaryInt(buffer);
             }
 
             private byte[] GetVersionBytes(int version)
             {
-                var local = BitConverter.GetBytes(version);
-                if (BitConverter.IsLittleEndian)
-                    Array.Reverse(local);
-                return local;
+                return ByteArrayUtils.BinaryInt(version);
             }
 
             public IKeyValueStore Build()

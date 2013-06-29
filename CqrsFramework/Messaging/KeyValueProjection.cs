@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Reflection;
 using System.Threading.Tasks;
 using CqrsFramework.KeyValueStore;
 using CqrsFramework.Serialization;
@@ -210,8 +211,8 @@ namespace CqrsFramework.Messaging
         {
             RegisterRaw(typeof(TEvent),
                 e => key((TEvent)e),
-                add != null, 
-                update != null, 
+                add != null,
+                update != null,
                 (e, h) => add((TEvent)e, h),
                 (e, h, v) => update((TEvent)e, h, v));
         }
@@ -237,5 +238,23 @@ namespace CqrsFramework.Messaging
                 (e, h) => { var v = new TView(); addOrUpdate((TEvent)e, v); return v; },
                 (e, h, v) => { addOrUpdate((TEvent)e, v); return v; });
         }
+
+        public void AutoRegister(object dispatcher)
+        {
+            var registrator = new KeyValueProjectionAutoRegister<TView>(dispatcher);
+            var foundItems = registrator.FindMethods();
+            foreach (var item in foundItems)
+            {
+                var add = registrator.MakeAdd(item);
+                var update = registrator.MakeUpdate(item);
+                RegisterRaw(
+                    item.Type,
+                    registrator.MakeGetKey(item),
+                    add != null, update != null, 
+                    add, update
+                    );
+            }
+        }
+
     }
 }

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using CqrsFramework.Infrastructure;
 using System.IO;
+using CqrsFramework.Serialization;
 
 namespace CqrsFramework.KeyValueStore
 {
@@ -46,21 +47,12 @@ namespace CqrsFramework.KeyValueStore
 
         private int ParseVersionBytes(byte[] bytes)
         {
-            if (BitConverter.IsLittleEndian)
-            {
-                var local = bytes.Take(4).Reverse().ToArray();
-                return BitConverter.ToInt32(local, 0);
-            }
-            else
-                return BitConverter.ToInt32(bytes, 0);
+            return ByteArrayUtils.BinaryInt(bytes);
         }
 
         private byte[] GenerateVersionBytes(int version)
         {
-            var raw = BitConverter.GetBytes(version);
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(raw);
-            return raw;
+            return ByteArrayUtils.BinaryInt(version);
         }
 
         public int Set(string key, int expectedVersion, byte[] data)
