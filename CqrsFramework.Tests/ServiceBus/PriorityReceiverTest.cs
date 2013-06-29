@@ -12,6 +12,7 @@ using CqrsFramework.Messaging;
 namespace CqrsFramework.Tests.ServiceBus
 {
     [TestClass]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
     public class PriorityReceiverTest
     {
         private MockRepository _repo;

@@ -11,6 +11,7 @@ using CqrsFramework.Messaging;
 
 namespace CqrsFramework.Tests.ServiceBus
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
     [TestClass]
     public class DelayedMessagesTest
     {

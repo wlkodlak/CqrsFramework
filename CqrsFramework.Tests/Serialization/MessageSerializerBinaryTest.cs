@@ -145,6 +145,7 @@ namespace CqrsFramework.Tests.Serialization
             AssertExtension.AreEqual(_message2, deserialized);
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
         private class TestWriter
         {
             MemoryStream _stream;

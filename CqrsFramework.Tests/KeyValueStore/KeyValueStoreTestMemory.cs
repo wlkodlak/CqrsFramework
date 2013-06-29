@@ -16,6 +16,7 @@ namespace CqrsFramework.Tests.KeyValueStore
             return new Builder();
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
         private class Builder : IBuildStore
         {
             private List<KeyValueDocument> _initial = new List<KeyValueDocument>();

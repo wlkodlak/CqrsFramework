@@ -14,6 +14,7 @@ using CqrsFramework.Messaging;
 namespace CqrsFramework.Tests.ServiceBus
 {
     [TestClass]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
     public class DispatcherProcessTest
     {
         private CancellationTokenSource _cancel;

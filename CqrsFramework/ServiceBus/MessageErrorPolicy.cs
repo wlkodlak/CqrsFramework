@@ -73,13 +73,21 @@ namespace CqrsFramework.ServiceBus
         public override bool Equals(object obj)
         {
             if (obj is MessageErrorAction)
-            {
-                var oth = (MessageErrorAction)obj;
-                return _action == oth._action && DelayRetry == oth.DelayRetry && ErrorQueue == oth.ErrorQueue;
-            }
+                return this == (MessageErrorAction)obj;
             else
                 return false;
         }
+
+        public static bool operator ==(MessageErrorAction a, MessageErrorAction b)
+        {
+            return a._action == b._action && a.DelayRetry == b.DelayRetry && a.ErrorQueue == b.ErrorQueue;
+        }
+
+        public static bool operator !=(MessageErrorAction a, MessageErrorAction b)
+        {
+            return !(a == b);
+        }
+
     }
 
     public class MessageErrorPolicy : IMessageErrorPolicy

@@ -16,6 +16,7 @@ using CqrsFramework.Serialization;
 namespace CqrsFramework.Tests.ServiceBus
 {
     [TestClass]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
     public class ProjectionProcessTest
     {
         private MockRepository _repo;

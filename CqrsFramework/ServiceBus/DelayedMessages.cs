@@ -15,7 +15,7 @@ namespace CqrsFramework.ServiceBus
         void Add(DateTime time, Message message);
     }
 
-    public class DelayedMessages : IDelayedMessages
+    public class DelayedMessages : IDelayedMessages, IDisposable
     {
         private enum State { Nowait, EmptyWait, TimerWait };
 
@@ -133,7 +133,7 @@ namespace CqrsFramework.ServiceBus
                 else if (_state == State.TimerWait)
                 {
                     cancelReceiveTask = _receiveTask;
-                    _timerTaskCancel.Cancel();
+                    _timerTaskCancel.Dispose();
                     _receiveTask = null;
                     _timerTask = null;
                     _timerTaskCancel = null;
@@ -220,14 +220,14 @@ namespace CqrsFramework.ServiceBus
                     if (isCurrent)
                     {
                         _state = State.Nowait;
-                        _timerTaskCancel.Cancel();
+                        _timerTaskCancel.Dispose();
                         _receiveCancelRegistration.Dispose();
                         taskForResult = _receiveTask;
                     }
                     else if (time < _timerTaskTime)
                     {
                         _future.Add(new ScheduledMessage(time, message));
-                        _timerTaskCancel.Cancel();
+                        _timerTaskCancel.Dispose();
                         _timerTaskCancel = new CancellationTokenSource();
                         _timerTaskTime = time;
                         SetupTimerTask();
@@ -245,6 +245,11 @@ namespace CqrsFramework.ServiceBus
             var scheduler = TaskScheduler.Current;
             _timerTask = _time.WaitUntil(_timerTaskTime, _timerTaskCancel.Token);
             _timerTask.ContinueWith(TimerFinished, _timerTaskCancel.Token, TaskContinuationOptions.ExecuteSynchronously, scheduler);
+        }
+
+        public void Dispose()
+        {
+            _timerTaskCancel.Dispose();
         }
     }
 }
