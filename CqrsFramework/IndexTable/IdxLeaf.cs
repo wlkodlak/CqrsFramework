@@ -114,6 +114,8 @@ namespace CqrsFramework.IndexTable
             _cellsCount--;
             _size -= cell.CellSize;
             _cells.RemoveAt(index);
+            for (int i = 0; i < _cellsCount; i++)
+                _cells[i].Ordinal = i;
             SetDirty(true);
         }
 

@@ -9,15 +9,17 @@ namespace CqrsFramework.IndexTable
     public class IdxKey
     {
         private byte[] _bytes;
+        private bool _isMaxValue;
 
-        private IdxKey(byte[] bytes)
+        private IdxKey(byte[] bytes, bool isMaxValue)
         {
             _bytes = bytes;
+            _isMaxValue = isMaxValue;
         }
 
         public static IdxKey FromString(string s)
         {
-            return new IdxKey(Encoding.ASCII.GetBytes(s));
+            return new IdxKey(Encoding.ASCII.GetBytes(s), false);
         }
 
         public static IdxKey FromInteger(int i)
@@ -28,12 +30,12 @@ namespace CqrsFramework.IndexTable
             result[1] = (byte)((moved >> 16) & 0xff);
             result[2] = (byte)((moved >> 8) & 0xff);
             result[3] = (byte)((moved >> 0) & 0xff);
-            return new IdxKey(result);
+            return new IdxKey(result, false);
         }
 
         public static IdxKey FromBytes(byte[] bytes)
         {
-            return new IdxKey(bytes ?? new byte[0]);
+            return new IdxKey(bytes ?? new byte[0], false);
         }
 
         public byte[] ToBytes()
@@ -59,6 +61,8 @@ namespace CqrsFramework.IndexTable
 
         public override string ToString()
         {
+            if (_isMaxValue)
+                return "MAX";
             var sb = new StringBuilder(_bytes.Length * 3);
             for (int i = 0; i < _bytes.Length; i++)
             {
@@ -76,6 +80,14 @@ namespace CqrsFramework.IndexTable
             byte[] arrB = ReferenceEquals(b, null) ? new byte[0] : b._bytes;
             int lenA = arrA.Length;
             int lenB = arrB.Length;
+            bool maxA = !ReferenceEquals(a, null) && a._isMaxValue;
+            bool maxB = !ReferenceEquals(b, null) && b._isMaxValue;
+
+            if (maxA)
+                return maxB ? 0 : 1;
+            else if (maxB)
+                return -1;
+
             while (lenA > 0 && lenB > 0)
             {
                 byte valA = arrA[idx];
@@ -121,5 +133,13 @@ namespace CqrsFramework.IndexTable
             return Compare(a, b) > 0;
         }
 
+        public static IdxKey MinValue
+        {
+            get { return new IdxKey(new byte[0], false); }
+        }
+        public static IdxKey MaxValue
+        {
+            get { return new IdxKey(new byte[1], true); }
+        }
     }
 }

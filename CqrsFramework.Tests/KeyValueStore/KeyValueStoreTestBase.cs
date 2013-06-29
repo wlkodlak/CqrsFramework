@@ -92,17 +92,18 @@ namespace CqrsFramework.Tests.KeyValueStore
         {
             SetupDefaultDocuments();
             var bytes = _encoding.GetBytes("New document");
+            int storedVersion;
             using (var store = _builder.Build())
             {
-                var storedVersion = store.Set("doc9", -1, bytes);
+                storedVersion = store.Set("doc9", -1, bytes);
                 store.Flush();
-                var storedDocument = _builder.GetAll().Where(a => !_defaultDocs.Any(d => a.Key == d.Key)).FirstOrDefault();
-                Assert.AreEqual(1, storedVersion, "Returned version");
-                Assert.IsNotNull(storedDocument, "Created");
-                Assert.AreEqual("doc9", storedDocument.Key, "Key");
-                Assert.AreEqual(1, storedDocument.Version, "Version");
-                AssertExtension.AreEqual(bytes, storedDocument.Data, "Data");
             }
+            var storedDocument = _builder.GetAll().Where(a => !_defaultDocs.Any(d => a.Key == d.Key)).FirstOrDefault();
+            Assert.AreEqual(1, storedVersion, "Returned version");
+            Assert.IsNotNull(storedDocument, "Created");
+            Assert.AreEqual("doc9", storedDocument.Key, "Key");
+            Assert.AreEqual(1, storedDocument.Version, "Version");
+            AssertExtension.AreEqual(bytes, storedDocument.Data, "Data");
         }
 
         [TestMethod]
@@ -110,17 +111,18 @@ namespace CqrsFramework.Tests.KeyValueStore
         {
             SetupDefaultDocuments();
             var bytes = _encoding.GetBytes("New document");
+            int storedVersion;
             using (var store = _builder.Build())
             {
-                var storedVersion = store.Set("doc9", 0, bytes);
+                storedVersion = store.Set("doc9", 0, bytes);
                 store.Flush();
-                var storedDocument = _builder.GetAll().Where(a => !_defaultDocs.Any(d => a.Key == d.Key)).FirstOrDefault();
-                Assert.AreEqual(1, storedVersion, "Returned version");
-                Assert.IsNotNull(storedDocument, "Created");
-                Assert.AreEqual("doc9", storedDocument.Key, "Key");
-                Assert.AreEqual(1, storedDocument.Version, "Version");
-                AssertExtension.AreEqual(bytes, storedDocument.Data, "Data");
             }
+            var storedDocument = _builder.GetAll().Where(a => !_defaultDocs.Any(d => a.Key == d.Key)).FirstOrDefault();
+            Assert.AreEqual(1, storedVersion, "Returned version");
+            Assert.IsNotNull(storedDocument, "Created");
+            Assert.AreEqual("doc9", storedDocument.Key, "Key");
+            Assert.AreEqual(1, storedDocument.Version, "Version");
+            AssertExtension.AreEqual(bytes, storedDocument.Data, "Data");
         }
 
         [TestMethod, ExpectedException(typeof(KeyValueStoreException))]
@@ -177,8 +179,8 @@ namespace CqrsFramework.Tests.KeyValueStore
                 store.Purge();
                 var keys = store.Enumerate().ToList();
                 Assert.AreEqual(0, keys.Count, "Reported");
-                Assert.AreEqual(0, _builder.GetAll().Count, "Real");
             }
+            Assert.AreEqual(0, _builder.GetAll().Count, "Real");
         }
 
         [TestMethod]

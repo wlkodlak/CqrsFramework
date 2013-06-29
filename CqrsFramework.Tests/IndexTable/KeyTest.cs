@@ -102,6 +102,22 @@ namespace CqrsFramework.Tests.IndexTable
             Assert.IsFalse(d <= c);
         }
 
+        [TestMethod]
+        public void MaxValue()
+        {
+            var a = IdxKey.MinValue;
+            var b = IdxKey.FromString("ZZZZZZZ");
+            var c = IdxKey.FromBytes(new byte[4] { 0xff, 0xff, 0xff, 0xff });
+            var d = IdxKey.MaxValue;
+
+            Assert.AreEqual(-1, IdxKey.Compare(a, b));
+            Assert.AreEqual(-1, IdxKey.Compare(b, c));
+            Assert.AreEqual(-1, IdxKey.Compare(c, d));
+            Assert.AreEqual(1, IdxKey.Compare(b, a));
+            Assert.AreEqual(1, IdxKey.Compare(c, b));
+            Assert.AreEqual(1, IdxKey.Compare(d, c));
+        }
+
         private void AssertKeyBytes(IdxKey key, params byte[] bytes)
         {
             CollectionAssert.AreEqual(bytes, key.ToBytes());

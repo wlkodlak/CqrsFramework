@@ -120,6 +120,20 @@ namespace CqrsFramework.Tests.IndexTable
         }
 
         [TestMethod]
+        public void RemovingUpdatesOrdinal()
+        {
+            IdxLeaf node = new IdxLeaf(null, 4096);
+            var dirty = new AssertDirtyChanged(node);
+            node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(44), null, 4096));
+            node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(48), null, 4096));
+            node.AddCell(IdxCell.CreateLeafCell(IdxKey.FromInteger(52), null, 4096));
+            node.Save();
+            node.RemoveCell(1);
+            for (int i = 0; i < 2; i++)
+                Assert.AreEqual(i, node.GetCell(i).Ordinal, "Ordinal");
+        }
+
+        [TestMethod]
         public void DirtyFlagSetByChangingNextPage()
         {
             IdxLeaf node = new IdxLeaf(null, 4096);

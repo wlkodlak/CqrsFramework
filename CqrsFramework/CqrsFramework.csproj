@@ -56,6 +56,7 @@
     <Compile Include="Infrastructure\SharedMemoryStream.cs" />
     <Compile Include="Infrastructure\TimeProvider.cs" />
     <Compile Include="KeyValueStore\FilesystemKeyValueStore.cs" />
+    <Compile Include="KeyValueStore\IndexTableKeyValueStore.cs" />
     <Compile Include="KeyValueStore\KeyValueInterfaces.cs" />
     <Compile Include="KeyValueStore\MemoryKeyValueStore.cs" />
     <Compile Include="KeyValueStore\TableKeyValueStore.cs" />
