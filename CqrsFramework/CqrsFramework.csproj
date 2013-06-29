@@ -61,6 +61,7 @@
     <Compile Include="KeyValueStore\TableKeyValueStore.cs" />
     <Compile Include="Messaging\FilesystemMessageInbox.cs" />
     <Compile Include="Messaging\KeyValueProjection.cs" />
+    <Compile Include="Messaging\KeyValueProjectionStrategy.cs" />
     <Compile Include="Messaging\MemoryInbox.cs" />
     <Compile Include="Messaging\ProjectionDispatcher.cs" />
     <Compile Include="Messaging\TableMessageInbox.cs" />
@@ -99,6 +100,7 @@
     <Compile Include="Serialization\Serialization.cs" />
     <Compile Include="Serialization\TextMessageSerializer.cs" />
     <Compile Include="Serialization\UniversalMessageBodySerializer.cs" />
+    <Compile Include="Serialization\Utils.cs" />
     <Compile Include="ServiceBus\Deduplicator.cs" />
     <Compile Include="ServiceBus\DelayedMessages.cs" />
     <Compile Include="ServiceBus\DispatcherProcess.cs" />
