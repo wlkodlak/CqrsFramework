@@ -106,6 +106,7 @@
     <Compile Include="Messaging\MessageInboxMemoryTest.cs" />
     <Compile Include="Messaging\MessageInboxTableTest.cs" />
     <Compile Include="Messaging\ProjectionDispatcherTest.cs" />
+    <Compile Include="MissingTests.cs" />
     <Compile Include="ServiceBus\DelayedMessagesTest.cs" />
     <Compile Include="ServiceBus\DispatcherProcessTest.cs" />
     <Compile Include="Messaging\MessageDispatcherTest.cs" />
