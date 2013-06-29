@@ -133,6 +133,7 @@ namespace CqrsFramework.ServiceBus
                 else if (_state == State.TimerWait)
                 {
                     cancelReceiveTask = _receiveTask;
+                    _timerTaskCancel.Cancel();
                     _timerTaskCancel.Dispose();
                     _receiveTask = null;
                     _timerTask = null;
@@ -220,6 +221,7 @@ namespace CqrsFramework.ServiceBus
                     if (isCurrent)
                     {
                         _state = State.Nowait;
+                        _timerTaskCancel.Cancel();
                         _timerTaskCancel.Dispose();
                         _receiveCancelRegistration.Dispose();
                         taskForResult = _receiveTask;
@@ -227,6 +229,7 @@ namespace CqrsFramework.ServiceBus
                     else if (time < _timerTaskTime)
                     {
                         _future.Add(new ScheduledMessage(time, message));
+                        _timerTaskCancel.Cancel();
                         _timerTaskCancel.Dispose();
                         _timerTaskCancel = new CancellationTokenSource();
                         _timerTaskTime = time;
