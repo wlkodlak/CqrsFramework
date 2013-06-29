@@ -280,5 +280,73 @@ namespace CqrsFramework.Tests.IndexTable
             }
 
         }
+
+        [TestMethod]
+        public void Purge()
+        {
+            var builder = new TestTreeBuilder(1024, 56);
+            {
+                var root = builder.Interior(2);
+                var lf1 = builder.Leaf(3);
+                var lf2 = builder.Leaf(4);
+                root.AddContents(lf1, 100, lf2);
+                lf1.AddContents(
+                    builder.LongCell(10, builder.CreateValue(820), 5),
+                    builder.LongCell(20, builder.CreateValue(1520), 6, 7),
+                    builder.LongCell(30, builder.CreateValue(750), 8),
+                    builder.LongCell(40, builder.CreateValue(50)),
+                    builder.LongCell(50, builder.CreateValue(60)),
+                    builder.LongCell(60, builder.CreateValue(50)),
+                    builder.LongCell(70, builder.CreateValue(55)),
+                    builder.LongCell(80, builder.CreateValue(44)));
+                lf2.AddContents(
+                    builder.LongCell(100, builder.CreateValue(33)),
+                    builder.LongCell(110, builder.CreateValue(62)),
+                    builder.LongCell(130, builder.CreateValue(57)),
+                    builder.LongCell(140, builder.CreateValue(550), 9),
+                    builder.LongCell(150, builder.CreateValue(330), 10),
+                    builder.LongCell(160, builder.CreateValue(60)),
+                    builder.LongCell(170, builder.CreateValue(1424), 11, 12),
+                    builder.LongCell(180, builder.CreateValue(33)));
+                builder.Build();
+            }
+
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            {
+                mock.Setup(c => c.GetPageSize()).Returns(1024);
+                mock.Setup(c => c.WriteTree(0)).Returns(builder.GetNode(2)).Verifiable();
+                mock.Setup(c => c.GetNode(0, 3)).Returns(builder.GetNode(3)).Verifiable();
+                mock.Setup(c => c.GetNode(0, 4)).Returns(builder.GetNode(4)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 5)).Returns(builder.GetOverflow(5)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 6)).Returns(builder.GetOverflow(6)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 7)).Returns(builder.GetOverflow(7)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 8)).Returns(builder.GetOverflow(8)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 9)).Returns(builder.GetOverflow(9)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 10)).Returns(builder.GetOverflow(10)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 11)).Returns(builder.GetOverflow(11)).Verifiable();
+                mock.Setup(c => c.GetOverflow(0, 12)).Returns(builder.GetOverflow(12)).Verifiable();
+                mock.Setup(c => c.Delete(0, 2)).Verifiable();
+                mock.Setup(c => c.Delete(0, 4)).Verifiable();
+                mock.Setup(c => c.Delete(0, 5)).Verifiable();
+                mock.Setup(c => c.Delete(0, 6)).Verifiable();
+                mock.Setup(c => c.Delete(0, 7)).Verifiable();
+                mock.Setup(c => c.Delete(0, 8)).Verifiable();
+                mock.Setup(c => c.Delete(0, 9)).Verifiable();
+                mock.Setup(c => c.Delete(0, 10)).Verifiable();
+                mock.Setup(c => c.Delete(0, 11)).Verifiable();
+                mock.Setup(c => c.Delete(0, 12)).Verifiable();
+                mock.Setup(c => c.SetTreeRoot(0, builder.GetNode(3))).Verifiable();
+                mock.Setup(c => c.CommitWrite(0)).Verifiable();
+            }
+
+            var tree = new IdxTree(mock.Object, 0);
+            tree.Purge();
+            mock.Verify();
+
+            {
+                var lf = (IdxLeaf)builder.GetNode(3);
+                Assert.AreEqual(0, lf.CellsCount);
+            }            
+        }
     }
 }

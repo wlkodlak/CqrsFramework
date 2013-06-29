@@ -212,13 +212,32 @@ namespace CqrsFramework.Tests.IndexTable
             mock.Setup(c => c.GetNode(0, 4)).Returns(builder.GetNode(4)).Verifiable();
             mock.Setup(c => c.GetOverflow(0, 10)).Returns(builder.GetOverflow(10)).Verifiable();
             mock.Setup(c => c.GetOverflow(0, 11)).Returns(builder.GetOverflow(11)).Verifiable();
-            mock.Setup(c => c.UnlockRead(0));
+            mock.Setup(c => c.UnlockRead(0)).Verifiable();
             var tree = new IdxTree(mock.Object, 0);
             var selected = tree.Select(builder.BuildKey(51), builder.BuildKey(51)).FirstOrDefault();
             Assert.IsNotNull(selected, "Found");
             Assert.AreEqual(builder.BuildKey(51), selected.Key, "Key");
             CollectionAssert.AreEqual(builder.GetNamedValue("key51.value"), selected.Value, "Contents");
             mock.Verify();
+        }
+
+        [TestMethod]
+        public void ReadOnlyKeys()
+        {
+            var builder = CreateComplexTree();
+            var mock = new Mock<IIdxContainer>(MockBehavior.Strict);
+            mock.Setup(c => c.GetPageSize()).Returns(1024);
+            mock.Setup(c => c.ReadTree(0)).Returns(builder.GetNode(2)).Verifiable();
+            mock.Setup(c => c.GetNode(0, 3)).Returns(builder.GetNode(3)).Verifiable();
+            mock.Setup(c => c.GetNode(0, 4)).Returns(builder.GetNode(4)).Verifiable();
+            mock.Setup(c => c.GetNode(0, 5)).Returns(builder.GetNode(5)).Verifiable();
+            mock.Setup(c => c.UnlockRead(0)).Verifiable();
+            var tree = new IdxTree(mock.Object, 0);
+            var selected = tree.SelectKeys(builder.BuildKey(50), builder.BuildKey(56)).ToList();
+            Assert.IsNotNull(selected, "Found");
+            var expected = new[] { 50, 51, 54, 56 }.Select(builder.BuildKey).ToList();
+            mock.Verify();
+            AssertExtension.AreEqual(expected, selected);
         }
     }
 }

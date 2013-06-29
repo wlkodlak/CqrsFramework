@@ -264,7 +264,65 @@ namespace CqrsFramework.IndexTable
             }
         }
 
+        public void Purge()
+        {
+            var root = _container.WriteTree(_tree);
+            if (root != null)
+            {
+                var newRoot = PurgeNode(root, true);
+                _container.SetTreeRoot(_tree, newRoot);
+            }
+            _container.CommitWrite(_tree);
+        }
+
+        private IdxLeaf PurgeNode(IIdxNode node, bool preserveLeaf)
+        {
+            if (node.IsLeaf)
+            {
+                var leaf = node as IdxLeaf;
+                for (int i = leaf.CellsCount - 1; i >= 0; i--)
+                    DeleteCell(leaf, i);
+
+                if (preserveLeaf)
+                    return leaf;
+                else
+                {
+                    _container.Delete(_tree, leaf.PageNumber);
+                    return null;
+                }
+            }
+            else
+            {
+                IdxLeaf firstLeaf = null;
+                var interior = node as IdxInterior;
+                {
+                    var child = _container.GetNode(_tree, interior.LeftmostPage);
+                    firstLeaf = PurgeNode(child, preserveLeaf);
+                }
+
+                for (int i = 0; i < node.CellsCount; i++)
+                {
+                    var cell = node.GetCell(i);
+                    var child = _container.GetNode(_tree, cell.ChildPage);
+                    PurgeNode(child, false);
+                }
+
+                _container.Delete(_tree, node.PageNumber);
+                return firstLeaf;
+            }
+        }
+
         public IEnumerable<KeyValuePair<IdxKey, byte[]>> Select(IdxKey min, IdxKey max)
+        {
+            return SelectInternal(min, max, true);
+        }
+
+        public IEnumerable<IdxKey> SelectKeys(IdxKey min, IdxKey max)
+        {
+            return SelectInternal(min, max, false).Select(p => p.Key);
+        }
+
+        private IEnumerable<KeyValuePair<IdxKey, byte[]>> SelectInternal(IdxKey min, IdxKey max, bool readValues)
         {
             var result = new List<KeyValuePair<IdxKey, byte[]>>();
             var node = _container.ReadTree(_tree);
@@ -286,7 +344,7 @@ namespace CqrsFramework.IndexTable
                         var cell = leaf.GetCell(cellIndex);
                         if (cell.Key <= max)
                         {
-                            result.Add(new KeyValuePair<IdxKey, byte[]>(cell.Key, ReadCellValue(cell)));
+                            result.Add(new KeyValuePair<IdxKey, byte[]>(cell.Key, readValues ? ReadCellValue(cell) : null));
                             cellIndex++;
                             if (cell.Key == max)
                                 leaf = null;
