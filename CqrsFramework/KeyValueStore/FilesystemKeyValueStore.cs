@@ -45,16 +45,6 @@ namespace CqrsFramework.KeyValueStore
             return offset;
         }
 
-        private int ParseVersionBytes(byte[] bytes)
-        {
-            return ByteArrayUtils.BinaryInt(bytes);
-        }
-
-        private byte[] GenerateVersionBytes(int version)
-        {
-            return ByteArrayUtils.BinaryInt(version);
-        }
-
         public int Set(string key, int expectedVersion, byte[] data)
         {
             using (var stream = _streams.Open(key, FileMode.OpenOrCreate))
@@ -76,21 +66,23 @@ namespace CqrsFramework.KeyValueStore
 
         private void Write(Stream stream, string key, int version, byte[] data)
         {
-            var versionBytes = GenerateVersionBytes(version);
+            var versionBytes = ByteArrayUtils.HexInt(version);
             stream.Write(versionBytes, 0, versionBytes.Length);
+            stream.Write(new byte[2] { 0x0d, 0x0a }, 0, 2);
             stream.Write(data, 0, data.Length);
         }
 
         private KeyValueDocument ReadExisting(string key, Stream stream)
         {
-            if (stream.Length < 4)
+            if (stream.Length < 10)
                 return null;
-            var contentLength = (int)(stream.Length - 4);
-            var versionBytes = new byte[4];
+            var contentLength = (int)(stream.Length - 10);
+            var versionBytes = new byte[10];
             var contentBytes = new byte[contentLength];
-            ReadWhole(stream, versionBytes, 4);
+            ReadWhole(stream, versionBytes, 10);
             ReadWhole(stream, contentBytes, contentLength);
-            return new KeyValueDocument(key, ParseVersionBytes(versionBytes), contentBytes);
+            var version = ByteArrayUtils.HexInt(versionBytes);
+            return new KeyValueDocument(key, version, contentBytes);
         }
 
         public IEnumerable<string> Enumerate()

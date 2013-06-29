@@ -24,7 +24,8 @@ namespace CqrsFramework.Tests.KeyValueStore
 
             public void With(KeyValueDocument document)
             {
-                _streams.SetContents(document.Key, GetVersionBytes(document.Version).Concat(document.Data).ToArray());
+                var contents = ByteArrayUtils.HexInt(document.Version).Concat(new byte[2] { 0x0d, 0x0a }).Concat(document.Data).ToArray();
+                _streams.SetContents(document.Key, contents);
             }
 
             public List<KeyValueDocument> GetAll()
@@ -33,21 +34,11 @@ namespace CqrsFramework.Tests.KeyValueStore
                 foreach (var name in _streams.GetStreams())
                 {
                     var allBytes = _streams.GetContents(name);
-                    var version = GetVersion(allBytes);
-                    var contents = allBytes.Skip(4).ToArray();
+                    var version = ByteArrayUtils.HexInt(allBytes);
+                    var contents = allBytes.Skip(10).ToArray();
                     list.Add(new KeyValueDocument(name, version, contents));
                 }
                 return list;
-            }
-
-            private int GetVersion(byte[] buffer)
-            {
-                return ByteArrayUtils.BinaryInt(buffer);
-            }
-
-            private byte[] GetVersionBytes(int version)
-            {
-                return ByteArrayUtils.BinaryInt(version);
             }
 
             public IKeyValueStore Build()
