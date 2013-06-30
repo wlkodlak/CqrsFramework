@@ -100,6 +100,7 @@
     <Compile Include="Infrastructure\BaseTypeMappingTest.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreIndexTableCompositeKeyTest.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreTestIndexTable.cs" />
+    <Compile Include="Messaging\KeyValueProjectionAutoRegisterTest.cs" />
     <Compile Include="Messaging\KeyValueProjectionStrategyTest.cs" />
     <Compile Include="Messaging\KeyValueProjectionTest.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreTestBase.cs" />

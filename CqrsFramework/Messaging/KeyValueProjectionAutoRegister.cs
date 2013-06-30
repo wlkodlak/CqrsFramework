@@ -102,7 +102,14 @@ namespace CqrsFramework.Messaging
                 if (parameters.Length == 3)
                 {
                     if (parameters[1].ParameterType == typeof(MessageHeaders) && parameters[2].ParameterType == typeof(TView))
-                        return AutoRegisterTemplate.FullUpdate;
+                    {
+                        if (method.ReturnType == typeof(TView))
+                            return AutoRegisterTemplate.FullUpdate;
+                        else if (method.ReturnType == typeof(void))
+                            return AutoRegisterTemplate.FullVoid;
+                        else
+                            return AutoRegisterTemplate.None;
+                    }
                     else
                         return AutoRegisterTemplate.None;
                 }
@@ -184,6 +191,7 @@ namespace CqrsFramework.Messaging
             var param2 = Expression.Parameter(typeof(MessageHeaders));
             var newView = Expression.New(typeof(TView).GetConstructor(Type.EmptyTypes));
             var varView = Expression.Variable(typeof(TView));
+            var assignView = Expression.Assign(varView, newView);
             var callParams = new List<Expression>();
             callParams.Add(Expression.Convert(param1, type));
             if (template == AutoRegisterTemplate.FullAdd || template == AutoRegisterTemplate.FullUpdate || template == AutoRegisterTemplate.FullVoid)
@@ -195,7 +203,7 @@ namespace CqrsFramework.Messaging
             var call = Expression.Call(Expression.Constant(dispatcher), method, callParams.ToArray());
             Expression body;
             if (template == AutoRegisterTemplate.FullVoid || template == AutoRegisterTemplate.ShortVoid)
-                body = Expression.Block(typeof(TView), new[] { varView }, new Expression[] { call, varView });
+                body = Expression.Block(typeof(TView), new[] { varView }, new Expression[] { assignView, call, varView });
             else
                 body = call;
             var lambda = Expression.Lambda<Func<object, MessageHeaders, TView>>(body, param1, param2);

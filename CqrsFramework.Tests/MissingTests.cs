@@ -11,12 +11,6 @@ namespace CqrsFramework.Tests
     public class MissingTests
     {
         [TestMethod]
-        public void KeyValueProjectionAutoRegister()
-        {
-            Missing(typeof(CqrsFramework.Messaging.KeyValueProjectionAutoRegister<>));
-        }
-
-        [TestMethod]
         public void HashsetMessageDeduplicator()
         {
             Missing(typeof(CqrsFramework.ServiceBus.HashsetMessageDeduplicator));
