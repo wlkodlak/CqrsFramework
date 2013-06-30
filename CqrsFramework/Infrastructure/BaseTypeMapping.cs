@@ -15,13 +15,18 @@ namespace CqrsFramework.Infrastructure
             public T Target;
         }
 
+        private struct SearchInfo
+        {
+            public List<Registration> All, Near;
+        }
+
         private Dictionary<Type, Registration> _registrations;
-        private Dictionary<Type, List<T>> _search;
+        private Dictionary<Type, SearchInfo> _search;
 
         public BaseTypeMapping()
         {
             _registrations = new Dictionary<Type, Registration>();
-            _search = new Dictionary<Type, List<T>>();
+            _search = new Dictionary<Type, SearchInfo>();
         }
 
         public void Add(Type type, T target)
@@ -37,7 +42,9 @@ namespace CqrsFramework.Infrastructure
             {
                 if (type.IsAssignableFrom(knownType.Key))
                 {
-                    knownType.Value.Add(target);
+                    knownType.Value.All.Add(reg);
+                    knownType.Value.Near.Clear();
+                    knownType.Value.Near.Add(reg);
                     reg.KnownTypes.Add(knownType.Key);
                     if (type == knownType.Key)
                         foundInKnownTypes = true;
@@ -49,30 +56,67 @@ namespace CqrsFramework.Infrastructure
 
         public T Get(Type type)
         {
-            return GetAll(type).SingleOrDefault();
+            var results = GetInternal(type);
+            return results.Near.Select(r => r.Target).SingleOrDefault();
         }
 
         public IEnumerable<T> GetAll(Type type)
         {
-            List<T> knownTypes;
-            if (_search.TryGetValue(type, out knownTypes))
-                return knownTypes;
+            return GetInternal(type).All.Select(r => r.Target).ToList();
+        }
 
-            knownTypes = CreateSearchEntry(type);
+        public IEnumerable<T> GetNearests(Type type)
+        {
+            return GetInternal(type).Near.Select(r => r.Target).ToList();
+        }
+
+        private SearchInfo GetInternal(Type type)
+        {
+            SearchInfo knownTypes;
+            if (!_search.TryGetValue(type, out knownTypes))
+                knownTypes = CreateSearchEntry(type);
             return knownTypes;
         }
 
-        private List<T> CreateSearchEntry(Type type)
+        private SearchInfo CreateSearchEntry(Type type)
         {
-            var knownTypes = new List<T>();
+            var knownTypes = new SearchInfo();
+            knownTypes.All = new List<Registration>();
+            knownTypes.Near = new List<Registration>();
+
+            bool directNear = false;
             foreach (var registration in _registrations.Values)
             {
-                if (registration.RegisteredType.IsAssignableFrom(type))
+                if (registration.RegisteredType == type)
                 {
                     registration.KnownTypes.Add(type);
-                    knownTypes.Add(registration.Target);
+                    knownTypes.All.Add(registration);
+                    knownTypes.Near.Add(registration);
+                    directNear = true;
+                }
+                else if (registration.RegisteredType.IsAssignableFrom(type))
+                {
+                    registration.KnownTypes.Add(type);
+                    knownTypes.All.Add(registration);
                 }
             }
+
+            if (!directNear)
+            {
+                var allowedTypes = new HashSet<Type>(knownTypes.All.Select(r => r.RegisteredType));
+
+                foreach (var registration in knownTypes.All.Where(r => r.RegisteredType != type))
+                {
+                    var typesToRemove = GetInternal(registration.RegisteredType).All
+                        .Where(r => registration.RegisteredType != r.RegisteredType)
+                        .Select(r => r.RegisteredType).ToList();
+                    foreach (var t in typesToRemove)
+                        allowedTypes.Remove(t);
+                }
+
+                knownTypes.Near.AddRange(knownTypes.All.Where(r => allowedTypes.Contains(r.RegisteredType)));
+            }
+
             _search.Add(type, knownTypes);
             return knownTypes;
         }

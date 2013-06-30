@@ -93,12 +93,12 @@ namespace CqrsFramework.ServiceBus
     public class MessageErrorPolicy : IMessageErrorPolicy
     {
         private ITimeProvider _time;
-        private Dictionary<Type, MessageErrorPolicySettings> _settings;
+        private BaseTypeMapping<MessageErrorPolicySettings> _settings;
 
         public MessageErrorPolicy(ITimeProvider time)
         {
             _time = time;
-            _settings = new Dictionary<Type, MessageErrorPolicySettings>();
+            _settings = new BaseTypeMapping<MessageErrorPolicySettings>();
         }
 
         public MessageErrorPolicySetup Default
@@ -113,35 +113,29 @@ namespace CqrsFramework.ServiceBus
 
         public MessageErrorPolicySettings GetSettingsForSetup(Type type)
         {
-            MessageErrorPolicySettings settings;
-            if (!_settings.TryGetValue(type, out settings))
+            var settings = _settings.Get(type);
+            if (settings == null)
             {
-                settings = FindSettings(type).CloneFor(type);
-                _settings[type] = settings;
+                settings = new MessageErrorPolicySettings(type);
+                _settings.Add(type, settings);
+                return settings;
             }
-            return settings;
-        }
-
-        private MessageErrorPolicySettings FindSettings(Type type)
-        {
-            MessageErrorPolicySettings settings;
-            var searchedType = type;
-            while (searchedType != typeof(object))
+            else if (settings.Type != type)
             {
-                if (_settings.TryGetValue(searchedType, out settings))
-                    return settings;
-                if (searchedType == typeof(Exception))
-                    break;
-                else
-                    searchedType = searchedType.BaseType;
+                settings = settings.CloneFor(type);
+                _settings.Add(type, settings);
+                return settings;
             }
-            return new MessageErrorPolicySettings(type);
+            else
+                return settings;
         }
 
         public MessageErrorAction HandleException(int retryNumber, Exception exception)
         {
-            var settings = FindSettings(exception.GetType());
-            if (retryNumber < settings.RetryCount)
+            var settings = _settings.Get(exception.GetType());
+            if (settings == null)
+                return MessageErrorAction.Drop();
+            else if (retryNumber < settings.RetryCount)
             {
                 int delay = ComputeDelay(retryNumber + 1, settings.DelayFactors);
                 return MessageErrorAction.Retry(TimeSpan.FromMilliseconds(delay));

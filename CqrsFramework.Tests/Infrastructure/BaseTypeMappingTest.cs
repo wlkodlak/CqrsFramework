@@ -59,6 +59,13 @@ namespace CqrsFramework.Tests.Infrastructure
             AssertExtension.AreEqual(names, results);
         }
 
+        private void VerifyNearests<T>(params Type[] expected)
+        {
+            var results = _map.GetNearests(typeof(T)).OrderBy(s => s).ToList();
+            var names = expected.Select(t => t.Name).OrderBy(s => s).ToList();
+            AssertExtension.AreEqual(names, results);
+        }
+
         private void VerifyException<T>()
         {
             try
@@ -151,5 +158,40 @@ namespace CqrsFramework.Tests.Infrastructure
             Add<ISupportInitialize>();
             AddThrows<IEnumerable>();
         }
+
+        [TestMethod]
+        public void GetNearestsD()
+        {
+            Add<HierA>();
+            Add<HierB>();
+            Add<HierC>();
+            Add<HierD>();
+            VerifyNearests<HierD>(typeof(HierD));
+            VerifyNearests<HierE>(typeof(HierD));
+            VerifyNearests<HierF>(typeof(HierD), typeof(HierC));
+            VerifyNearests<HierG>(typeof(HierD), typeof(HierC));
+        }
+
+        [TestMethod]
+        public void GetNearestsEF()
+        {
+            Add<HierA>();
+            Add<HierB>();
+            Add<HierC>();
+            Add<HierE>();
+            Add<HierF>();
+            VerifyNearests<HierD>(typeof(HierA), typeof(HierB));
+            VerifyNearests<HierE>(typeof(HierE));
+            VerifyNearests<HierF>(typeof(HierF));
+            VerifyNearests<HierG>(typeof(HierF));
+        }
+
+        private interface HierA { }
+        private interface HierB { }
+        private interface HierC { }
+        private class HierD : HierA, HierB { }
+        private class HierE : HierD { }
+        private class HierF : HierD, HierC { }
+        private class HierG : HierF { }
     }
 }
