@@ -97,6 +97,7 @@
     <Compile Include="IndexTable\TreeInsertTest.cs" />
     <Compile Include="IndexTable\TreeReadTest.cs" />
     <Compile Include="IndexTable\TreeUpdateTest.cs" />
+    <Compile Include="Infrastructure\BaseTypeMappingTest.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreIndexTableCompositeKeyTest.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreTestIndexTable.cs" />
     <Compile Include="Messaging\KeyValueProjectionTest.cs" />

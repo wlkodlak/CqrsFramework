@@ -55,6 +55,7 @@
     <Compile Include="EventStore\TableEventStoreReader.cs" />
     <Compile Include="Infrastructure\SharedMemoryStream.cs" />
     <Compile Include="Infrastructure\TimeProvider.cs" />
+    <Compile Include="Infrastructure\BaseTypeMapping.cs" />
     <Compile Include="KeyValueStore\FilesystemKeyValueStore.cs" />
     <Compile Include="KeyValueStore\IndexTableKeyValueStore.cs" />
     <Compile Include="KeyValueStore\IndexTableKeyValueStoreCompositeKey.cs" />
