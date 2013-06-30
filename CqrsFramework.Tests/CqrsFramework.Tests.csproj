@@ -100,6 +100,7 @@
     <Compile Include="Infrastructure\BaseTypeMappingTest.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreIndexTableCompositeKeyTest.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreTestIndexTable.cs" />
+    <Compile Include="Messaging\KeyValueProjectionStrategyTest.cs" />
     <Compile Include="Messaging\KeyValueProjectionTest.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreTestBase.cs" />
     <Compile Include="KeyValueStore\KeyValueStoreTestFilesystem.cs" />
@@ -110,6 +111,7 @@
     <Compile Include="Messaging\MessageInboxTableTest.cs" />
     <Compile Include="Messaging\ProjectionDispatcherTest.cs" />
     <Compile Include="MissingTests.cs" />
+    <Compile Include="Serialization\ByteArrayUtilsTest.cs" />
     <Compile Include="ServiceBus\DelayedMessagesTest.cs" />
     <Compile Include="ServiceBus\DispatcherProcessTest.cs" />
     <Compile Include="Messaging\MessageDispatcherTest.cs" />

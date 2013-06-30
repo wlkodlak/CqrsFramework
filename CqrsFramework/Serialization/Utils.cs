@@ -67,6 +67,16 @@ namespace CqrsFramework.Serialization
             0x41, 0x42, 0x43, 0x44, 0x45, 0x46 };
         private static byte[] _fromHex;
 
+        public static byte[] HexShort(short value)
+        {
+            var raw = BinaryShort(value);
+            var result = new byte[4];
+            result[0] = _toHex[(raw[0] & 0xf0) >> 4];
+            result[1] = _toHex[(raw[0] & 0x0f)];
+            result[2] = _toHex[(raw[1] & 0xf0) >> 4];
+            result[3] = _toHex[(raw[1] & 0x0f)];
+            return result;
+        }
         public static byte[] HexInt(int value)
         {
             var raw = BinaryInt(value);
@@ -103,6 +113,14 @@ namespace CqrsFramework.Serialization
             result[15] = _toHex[(raw[7] & 0x0f)];
             return result;
         }
+        public static short HexShort(byte[] bytes)
+        {
+            return (short)(
+                _fromHex[bytes[0]] << 12 |
+                _fromHex[bytes[1]] << 8 |
+                _fromHex[bytes[2]] << 4 |
+                _fromHex[bytes[3]]);
+        }
         public static int HexInt(byte[] bytes)
         {
             return
@@ -136,6 +154,10 @@ namespace CqrsFramework.Serialization
                 ((long)_fromHex[bytes[15]]);
         }
 
+        public static byte[] TextShort(short value)
+        {
+            return Encoding.ASCII.GetBytes(value.ToString());
+        }
         public static byte[] TextInt(int value)
         {
             return Encoding.ASCII.GetBytes(value.ToString());
@@ -143,6 +165,13 @@ namespace CqrsFramework.Serialization
         public static byte[] TextLong(long value)
         {
             return Encoding.ASCII.GetBytes(value.ToString());
+        }
+        public static short TextShort(byte[] bytes)
+        {
+            short result;
+            var s = Encoding.ASCII.GetString(bytes);
+            short.TryParse(s, out result);
+            return result;
         }
         public static int TextInt(byte[] bytes)
         {

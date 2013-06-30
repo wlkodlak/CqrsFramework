@@ -11,21 +11,9 @@ namespace CqrsFramework.Tests
     public class MissingTests
     {
         [TestMethod]
-        public void ByteArrayUtils()
-        {
-            Missing(typeof(CqrsFramework.Serialization.ByteArrayUtils));
-        }
-
-        [TestMethod]
         public void KeyValueProjectionAutoRegister()
         {
             Missing(typeof(CqrsFramework.Messaging.KeyValueProjectionAutoRegister<>));
-        }
-
-        [TestMethod]
-        public void KeyValueProjectionStrategy()
-        {
-            Missing(typeof(CqrsFramework.Messaging.KeyValueProjectionStrategy));
         }
 
         [TestMethod]
