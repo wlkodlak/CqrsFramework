@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using CqrsFramework.KeyValueStore;
 using CqrsFramework.Serialization;
+using CqrsFramework.Infrastructure;
 using System.Linq.Expressions;
 
 namespace CqrsFramework.Messaging
@@ -17,7 +18,7 @@ namespace CqrsFramework.Messaging
         private string _typename;
         private string _metadataPrefix;
         private byte[] _rebuildHash;
-        private Dictionary<Type, Registration> _registrations;
+        private BaseTypeMapping<Registration> _registrations;
 
         private bool _bulkMode, _purgeBeforeFlush;
         private long _bulkClock = 0;
@@ -27,7 +28,6 @@ namespace CqrsFramework.Messaging
 
         private class Registration
         {
-            public Type Type;
             public Func<object, string> GetKey;
             public Func<object, MessageHeaders, TView> AddFunc;
             public Func<object, MessageHeaders, TView, TView> UpdateFunc;
@@ -48,7 +48,7 @@ namespace CqrsFramework.Messaging
             _typename = strategy.GetTypename(typeof(TView));
             _metadataPrefix = metadataPrefix;
             _rebuildHash = rebuildHash;
-            _registrations = new Dictionary<Type, Registration>();
+            _registrations = new BaseTypeMapping<Registration>();
             _cache = new Dictionary<string, CacheItem>(StringComparer.Ordinal);
         }
 
@@ -123,8 +123,8 @@ namespace CqrsFramework.Messaging
 
         public void Dispatch(Message message)
         {
-            Registration registration;
-            if (!_registrations.TryGetValue(message.Payload.GetType(), out registration))
+            var registration = _registrations.Get(message.Payload.GetType());
+            if (registration == null)
                 return;
             var key = registration.GetKey(message.Payload);
             if (_bulkMode)
@@ -199,11 +199,10 @@ namespace CqrsFramework.Messaging
         public void RegisterRaw(Type type, Func<object, string> key, bool hasAdd, bool hasUpdate, Func<object, MessageHeaders, TView> add, Func<object, MessageHeaders, TView, TView> update)
         {
             var registration = new Registration();
-            registration.Type = type;
             registration.GetKey = key;
             registration.AddFunc = hasAdd ? add : null;
             registration.UpdateFunc = hasUpdate ? update : null;
-            _registrations[registration.Type] = registration;
+            _registrations.Add(type, registration);
         }
 
         [System.Diagnostics.DebuggerNonUserCode]

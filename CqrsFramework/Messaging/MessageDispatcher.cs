@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.Serialization;
+using CqrsFramework.Infrastructure;
 
 namespace CqrsFramework.Messaging
 {
@@ -15,22 +16,11 @@ namespace CqrsFramework.Messaging
     }
     public class MessageDispatcher : IMessageDispatcher
     {
-        private Dictionary<Type, Registration> _registrations;
-
-        private class Registration
-        {
-            public Type Type;
-            public Action<object, MessageHeaders> Handler;
-            public Registration(Type type, Action<object, MessageHeaders> handler)
-            {
-                this.Type = type;
-                this.Handler = handler;
-            }
-        }
+        private BaseTypeMapping<Action<object, MessageHeaders>> _registrations;
 
         public MessageDispatcher()
         {
-            _registrations = new Dictionary<Type, Registration>();
+            _registrations = new BaseTypeMapping<Action<object, MessageHeaders>>();
             this.ThrowOnUnknownHandler = true;
         }
 
@@ -53,7 +43,7 @@ namespace CqrsFramework.Messaging
             var lambda = Expression.Lambda<Action<object, MessageHeaders>>(
                 Expression.Invoke(Expression.Constant(handler), Expression.Convert(paramObject, typeof(T))),
                 paramObject, paramHeaders).Compile();
-            RegisterInternal(new Registration(typeof(T), lambda));
+            _registrations.Add(typeof(T), lambda);
         }
 
         public void Register<T>(Action<T, MessageHeaders> handler)
@@ -63,7 +53,7 @@ namespace CqrsFramework.Messaging
             var lambda = Expression.Lambda<Action<object, MessageHeaders>>(
                 Expression.Invoke(Expression.Constant(handler), Expression.Convert(paramObject, typeof(T)), paramHeaders),
                 paramObject, paramHeaders).Compile();
-            RegisterInternal(new Registration(typeof(T), lambda));
+            _registrations.Add(typeof(T), lambda);
         }
 
         public void UseRegistrator(IMessageDispatcherRegistrator registrator)
@@ -92,7 +82,7 @@ namespace CqrsFramework.Messaging
                     ? Expression.Call(Expression.Constant(container), method, convertedObject)
                     : Expression.Call(Expression.Constant(container), method, convertedObject, paramHeaders);
                 var lambda = Expression.Lambda<Action<object, MessageHeaders>>(body, paramObject, paramHeaders).Compile();
-                RegisterInternal(new Registration(parameterType, lambda));
+                _registrations.Add(parameterType, lambda);
             }
         }
 
@@ -105,31 +95,14 @@ namespace CqrsFramework.Messaging
             return false;
         }
 
-        private void RegisterInternal(Registration registration)
-        {
-            _registrations[registration.Type] = registration;
-        }
-
         public void Dispatch(Message message)
         {
             var type = message.Payload.GetType();
-            var registration = FindHandlerByType(type);
-            if (registration != null)
-                registration.Handler(message.Payload, message.Headers);
+            var handler = _registrations.Get(type);
+            if (handler != null)
+                handler(message.Payload, message.Headers);
             else if (ThrowOnUnknownHandler)
                 throw new MessageDispatcherException(string.Format("There is no handler for type {0}", type.FullName));
-        }
-
-        private Registration FindHandlerByType(Type type)
-        {
-            Registration registration;
-            while (type != typeof(object))
-            {
-                if (_registrations.TryGetValue(type, out registration))
-                    return registration;
-                type = type.BaseType;
-            }
-            return null;
         }
 
         public bool ThrowOnUnknownHandler { get; set; }

@@ -8,6 +8,7 @@ using CqrsFramework.EventStore;
 using System.Threading.Tasks;
 using Moq;
 using System.Xml.Linq;
+using System.Xml.Serialization;
 
 namespace CqrsFramework.Tests.Messaging
 {
@@ -52,6 +53,11 @@ namespace CqrsFramework.Tests.Messaging
             }
 
             public void Handle(XElement elem, MessageHeaders hdr)
+            {
+                ElementEvents.Add(new XElement("Event", new XAttribute("MessageId", hdr.MessageId), elem));
+            }
+
+            public void Handle(IXmlSerializable elem, MessageHeaders hdr)
             {
                 ElementEvents.Add(new XElement("Event", new XAttribute("MessageId", hdr.MessageId), elem));
             }
@@ -131,6 +137,21 @@ namespace CqrsFramework.Tests.Messaging
         {
             var dispatcher = new ProjectionDispatcher(testProjection);
             dispatcher.Register<XElement>(testProjection.Handle);
+            var element = new XElement("TestEvent", "Test contents");
+            var messageId = Guid.NewGuid();
+            var expected = new XElement("Event", new XAttribute("MessageId", messageId.ToString("D")), element);
+            var message = new Message(element);
+            message.Headers.MessageId = messageId;
+            dispatcher.Dispatch(message);
+            Assert.AreEqual(1, testProjection.ElementEvents.Count);
+            AssertExtension.AreEqual(expected, testProjection.ElementEvents[0], "Contents");
+        }
+
+        [TestMethod]
+        public void RegisterInterface()
+        {
+            var dispatcher = new ProjectionDispatcher(testProjection);
+            dispatcher.Register<IXmlSerializable>(testProjection.Handle);
             var element = new XElement("TestEvent", "Test contents");
             var messageId = Guid.NewGuid();
             var expected = new XElement("Event", new XAttribute("MessageId", messageId.ToString("D")), element);

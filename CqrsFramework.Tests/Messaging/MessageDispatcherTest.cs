@@ -16,7 +16,7 @@ namespace CqrsFramework.Tests.Messaging
     {
         private MessageDispatcher _dispatcher;
         private SimpleRegistrationClass _handler1, _handler2;
-        private Message _message1, _message2;
+        private Message _message1, _message2, _message3;
 
         private class SimpleRegistrationClass
         {
@@ -32,7 +32,14 @@ namespace CqrsFramework.Tests.Messaging
             {
                 CallsElement.Add(new Tuple<XElement, MessageHeaders>(elem, headers));
             }
+        }
 
+        private class MyElement : XElement
+        {
+            public MyElement(params object[] contents)
+                : base("MyElement", contents)
+            {
+            }
         }
 
         [TestInitialize]
@@ -44,6 +51,8 @@ namespace CqrsFramework.Tests.Messaging
             _message1 = new Message("Hello world");
             _message2 = new Message(new XElement("Root", "Hello"));
             _message2.Headers.RetryNumber = 3;
+            _message3 = new Message(new MyElement("Hello"));
+            _message3.Headers.RetryNumber = 3;
         }
 
         [TestMethod]
@@ -70,6 +79,16 @@ namespace CqrsFramework.Tests.Messaging
             _dispatcher.Dispatch(_message2);
             var call = _handler1.CallsElement.Single();
             Assert.AreEqual(_message2.Payload, call.Item1);
+            Assert.AreEqual(3, call.Item2.RetryNumber);
+        }
+
+        [TestMethod]
+        public void RegisterLongSubtype()
+        {
+            _dispatcher.Register<XElement>(_handler1.When);
+            _dispatcher.Dispatch(_message3);
+            var call = _handler1.CallsElement.Single();
+            Assert.AreEqual(_message3.Payload, call.Item1);
             Assert.AreEqual(3, call.Item2.RetryNumber);
         }
 

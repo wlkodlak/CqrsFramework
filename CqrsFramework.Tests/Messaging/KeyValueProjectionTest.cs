@@ -413,6 +413,20 @@ namespace CqrsFramework.Tests.Messaging
         }
 
         [TestMethod]
+        public void CreateIndividualDocumentUsingInterfaceHandler()
+        {
+            var ev1 = new TestEvent1 { AggregateId = 584 };
+            var test = new TestBuilder();
+            test.WithRegistrations(p => p.Register<ITestEvent>(
+                e => "TestAggregate:" + e.AggregateId,
+                (e, h) => new TestView().WithEvent((TestEvent1)e), null));
+            test.SendIndividual(CreateMessage(ev1, 48));
+            test.ExpectDocument("TestAggregate:584", 1, new TestView().WithEvent(ev1));
+            test.ExpectClock(49);
+            test.RunTest();
+        }
+
+        [TestMethod]
         public void UpdateIndividualDocument()
         {
             var ev1 = new TestEvent1 { AggregateId = 584 };
