@@ -82,5 +82,10 @@ namespace CqrsFramework.Tests
             var realCount = _verifiable.Count(t => t.Time == dateTime && t.Cancelled);
             Assert.AreEqual(count, realCount, "Cancelled tasks count for {0}", dateTime);
         }
+
+        public void AdvanceTime(TimeSpan timeSpan)
+        {
+            ChangeTime(_now.Add(timeSpan));
+        }
     }
 }
