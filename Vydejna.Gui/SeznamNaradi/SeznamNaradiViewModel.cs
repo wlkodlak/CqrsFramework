@@ -5,12 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using Vydejna.Contracts;
 
 namespace Vydejna.Gui.SeznamNaradi
 {
     public class SeznamNaradiViewModel
     {
-        private ISeznamNaradiService _service;
+        private ISeznamPouzivanehoNaradiService _service;
         private ObservableCollection<PolozkaSeznamuNaradiViewModel> _seznam;
 
         private SeznamNaradiViewModel()
@@ -23,7 +24,7 @@ namespace Vydejna.Gui.SeznamNaradi
             _seznam.Add(new PolozkaSeznamuNaradiViewModel(Guid.Empty, "2487-5448", "defektni", "Spacek"));
         }
 
-        public SeznamNaradiViewModel(ISeznamNaradiService service)
+        public SeznamNaradiViewModel(ISeznamPouzivanehoNaradiService service)
         {
             _seznam = new ObservableCollection<PolozkaSeznamuNaradiViewModel>();
             _service = service;
@@ -53,10 +54,4 @@ namespace Vydejna.Gui.SeznamNaradi
         }
 
     }
-
-    public interface ISeznamNaradiService
-    {
-
-    }
-        
 }
