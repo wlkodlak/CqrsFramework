@@ -11,7 +11,12 @@ using System.Linq.Expressions;
 
 namespace CqrsFramework.Messaging
 {
-    public class KeyValueProjection<TView> : IProjectionDispatcher where TView : new()
+    public interface IKeyValueProjectionReader<TView> where TView : new()
+    {
+        TView Get(string key);
+    }
+
+    public class KeyValueProjection<TView> : IProjectionDispatcher, IKeyValueProjectionReader<TView> where TView : new()
     {
         private IKeyValueStore _store;
         private IKeyValueProjectionStrategy _strategy;
@@ -255,5 +260,13 @@ namespace CqrsFramework.Messaging
             }
         }
 
+        public TView Get(string key)
+        {
+            var oldDoc = _store.Get(key);
+            if (oldDoc == null)
+                return default(TView);
+            else
+                return (TView)_strategy.DeserializeView(typeof(TView), oldDoc.Data);
+        }
     }
 }

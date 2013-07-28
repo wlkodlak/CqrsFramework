@@ -202,10 +202,15 @@ namespace CqrsFramework.Tests.Messaging
                 return this;
             }
 
+            public KeyValueProjection<TestView> GetProjection()
+            {
+                return new KeyValueProjection<TestView>(_store.Object,
+                    _strategy.Object, "TestProjection", Encoding.ASCII.GetBytes("OK"));
+            }
+
             public void RunTest()
             {
-                var projection = new KeyValueProjection<TestView>(_store.Object,
-                    _strategy.Object, "TestProjection", Encoding.ASCII.GetBytes("OK"));
+                var projection = GetProjection();
                 if (_info.RegisterHandlers != null)
                     _info.RegisterHandlers(projection);
                 var rebuildFromProjection = projection.NeedsRebuild();
@@ -561,6 +566,17 @@ namespace CqrsFramework.Tests.Messaging
                 e => "TestAggregate:" + e.AggregateId,
                 (e, h) => new TestView().WithEvent(e),
                 (e, h, v) => v.WithEvent(e));
+        }
+
+        [TestMethod]
+        public void CanReadView()
+        {
+            var doc = new TestView().WithEvent(new TestEvent1() { AggregateId = 43 });
+            var builder = new TestBuilder();
+            builder.WithDocument("doc-1", 1, doc);
+            var proj = builder.GetProjection();
+            AssertExtension.AreEqual(doc, proj.Get("doc-1"), "doc-1");
+            AssertExtension.AreEqual(null, proj.Get("doc-2"), "doc-2");
         }
 
     }

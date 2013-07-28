@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Vydejna.Contracts;
+using System.Threading;
 
 namespace Vydejna.Gui.SeznamNaradi
 {
@@ -14,6 +15,13 @@ namespace Vydejna.Gui.SeznamNaradi
         private ISeznamPouzivanehoNaradiService _service;
         private ObservableCollection<PolozkaSeznamuNaradiViewModel> _seznam;
 
+        public SeznamNaradiViewModel(ISeznamPouzivanehoNaradiService service)
+        {
+            _seznam = new ObservableCollection<PolozkaSeznamuNaradiViewModel>();
+            _service = service;
+        }
+
+        public static SeznamNaradiViewModel DesignData { get { return new SeznamNaradiViewModel(); } }
         private SeznamNaradiViewModel()
         {
             _seznam = new ObservableCollection<PolozkaSeznamuNaradiViewModel>();
@@ -24,15 +32,15 @@ namespace Vydejna.Gui.SeznamNaradi
             _seznam.Add(new PolozkaSeznamuNaradiViewModel(Guid.Empty, "2487-5448", "defektni", "Spacek"));
         }
 
-        public SeznamNaradiViewModel(ISeznamPouzivanehoNaradiService service)
-        {
-            _seznam = new ObservableCollection<PolozkaSeznamuNaradiViewModel>();
-            _service = service;
-        }
-
-        public static SeznamNaradiViewModel DesignData { get { return new SeznamNaradiViewModel(); } }
-
         public IEnumerable<PolozkaSeznamuNaradiViewModel> SeznamNaradi { get { return _seznam; } }
+
+        public async Task NacistData()
+        {
+            var data = await _service.ZiskatSeznam();
+            _seznam.Clear();
+            foreach (var item in data.Seznam)
+                _seznam.Add(new PolozkaSeznamuNaradiViewModel(item.Id, item.Vykres, item.Rozmer, item.Druh));
+        }
     }
 
     public class PolozkaSeznamuNaradiViewModel

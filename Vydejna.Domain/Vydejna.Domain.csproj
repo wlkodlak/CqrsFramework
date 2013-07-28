@@ -40,6 +40,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SeznamPouzivanehoNaradiService.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CqrsFramework\CqrsFramework.csproj">
+      <Project>{d4e82e0e-ca2d-469b-a01f-4e919bbc2795}</Project>
+      <Name>CqrsFramework</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Vydejna.Contracts\Vydejna.Contracts.csproj">
+      <Project>{1179af67-e0ae-4345-b454-0cb396587270}</Project>
+      <Name>Vydejna.Contracts</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

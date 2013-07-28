@@ -54,15 +54,25 @@
   </Choose>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SeznamPouzivanehoNaradiTests\SeznamNaradiViewModelTest.cs" />
+    <Compile Include="SeznamPouzivanehoNaradiTests\SeznamPouzivanehoNaradiServiceTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqrsFramework\CqrsFramework.csproj">
       <Project>{d4e82e0e-ca2d-469b-a01f-4e919bbc2795}</Project>
       <Name>CqrsFramework</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Vydejna.Runner\Vydejna.Runner.csproj">
-      <Project>{c305c185-5191-4fd1-bcc1-4519120ab08a}</Project>
-      <Name>Vydejna.Runner</Name>
+    <ProjectReference Include="..\Vydejna.Contracts\Vydejna.Contracts.csproj">
+      <Project>{1179af67-e0ae-4345-b454-0cb396587270}</Project>
+      <Name>Vydejna.Contracts</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Vydejna.Domain\Vydejna.Domain.csproj">
+      <Project>{e7f219e1-6d36-496c-a78e-318ae2b374b1}</Project>
+      <Name>Vydejna.Domain</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Vydejna.Gui\Vydejna.Gui.csproj">
+      <Project>{bfc8555c-d36e-4dae-a79f-909c68378e8a}</Project>
+      <Name>Vydejna.Gui</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
