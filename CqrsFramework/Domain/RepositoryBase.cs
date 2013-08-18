@@ -9,7 +9,14 @@ using System.Threading.Tasks;
 
 namespace CqrsFramework.Domain
 {
-    public abstract class RepositoryBase<TKey, TAgg>
+    public interface IRepository<TKey, TAgg>
+        where TAgg : class, IAggregate, new()
+    {
+        TAgg Get(TKey key);
+        void Save(TAgg aggregate, object context, RepositorySaveFlags repositorySaveFlags);
+    }
+
+    public abstract class RepositoryBase<TKey, TAgg> : IRepository<TKey, TAgg>
         where TAgg : class, IAggregate, new()
     {
         private IEventStore _store;

@@ -53,9 +53,10 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="PouzivaneNaradiTests\ProjectionTests.cs" />
+    <Compile Include="PouzivaneNaradiTests\ReadServiceTests.cs" />
+    <Compile Include="PouzivaneNaradiTests\WriteServiceTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SeznamPouzivanehoNaradiTests\SeznamNaradiViewModelTest.cs" />
-    <Compile Include="SeznamPouzivanehoNaradiTests\SeznamPouzivanehoNaradiServiceTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqrsFramework\CqrsFramework.csproj">

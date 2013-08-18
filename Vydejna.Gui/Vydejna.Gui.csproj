@@ -57,10 +57,6 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SeznamNaradi\SeznamNaradiView.xaml.cs">
-      <DependentUpon>SeznamNaradiView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SeznamNaradi\SeznamNaradiViewModel.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -88,12 +84,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Include="SeznamNaradi\SeznamNaradiView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vydejna.Contracts\Vydejna.Contracts.csproj">

@@ -40,8 +40,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Dodavatele.cs" />
+    <Compile Include="PouzivaneNaradi.cs" />
+    <Compile Include="PresunyNaradi.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SeznamPouzivanehoNaradiService.cs" />
+    <Compile Include="Serialization.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CqrsFramework\CqrsFramework.csproj">
+      <Project>{d4e82e0e-ca2d-469b-a01f-4e919bbc2795}</Project>
+      <Name>CqrsFramework</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

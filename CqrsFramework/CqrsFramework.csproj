@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Domain\AggregateBase.cs" />
+    <Compile Include="Domain\CommandValidator.cs" />
     <Compile Include="EventStore\EventStore.cs" />
     <Compile Include="EventStore\FileEventStoreIndexCore.cs" />
     <Compile Include="EventStore\FileEventStoreReader.cs" />

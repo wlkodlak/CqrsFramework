@@ -39,8 +39,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DomainErrorException.cs" />
+    <Compile Include="Naradi.cs" />
+    <Compile Include="PouzivaneNaradiProjection.cs" />
+    <Compile Include="PouzivaneNaradiReadService.cs" />
+    <Compile Include="PouzivaneNaradiWriteService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SeznamPouzivanehoNaradiService.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqrsFramework\CqrsFramework.csproj">
