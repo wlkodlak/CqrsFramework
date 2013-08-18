@@ -21,6 +21,11 @@ namespace Vydejna.Domain
         public long ProjectionClock { get; set; }
         [DataMember(Order = 2)]
         public List<PouzivaneNaradiDto> SeznamNaradi { get; set; }
+
+        public PrehledNaradiView()
+        {
+            SeznamNaradi = new List<PouzivaneNaradiDto>();
+        }
     }
 
     public class PrehledNaradiReadService : IPrehledNaradiReadService, IProjectionDispatcher
@@ -41,7 +46,10 @@ namespace Vydejna.Domain
             var doc = _store.Get("prehlednaradi");
             var headers = new MessageHeaders();
             headers.PayloadType = "PrehledNaradiDto";
-            _view = _serializer.Deserialize(doc.Data, headers) as PrehledNaradiView;
+            if (doc == null)
+                _view = new PrehledNaradiView();
+            else
+                _view = _serializer.Deserialize(doc.Data, headers) as PrehledNaradiView;
 
             _indexPodleId = _view.SeznamNaradi.ToDictionary(n => n.Id);
 
@@ -115,7 +123,7 @@ namespace Vydejna.Domain
                 Druh = ev.Druh
             };
             _indexPodleId[ev.Id] = dto;
-            int pozice = 0;
+            int pozice = _view.SeznamNaradi.Count;
             for (int i = 0; i < _view.SeznamNaradi.Count; i++)
             {
                 var comparison = Compare(dto, _view.SeznamNaradi[i]);

@@ -53,9 +53,11 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="PouzivaneNaradiTests\ProjectionTests.cs" />
-    <Compile Include="PouzivaneNaradiTests\ReadServiceTests.cs" />
-    <Compile Include="PouzivaneNaradiTests\WriteServiceTests.cs" />
+    <Compile Include="NaradiValidatorsTests\DefinovatNaradiTest.cs" />
+    <Compile Include="NaradiValidatorsTests\UpravitStavNaSklade.cs" />
+    <Compile Include="PouzivaneNaradiWriteServiceTests\UpravitStavNaSkladeTest.cs" />
+    <Compile Include="PrehledNaradiReadServiceTests.cs" />
+    <Compile Include="PouzivaneNaradiWriteServiceTests\DefinovatNaradiTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
