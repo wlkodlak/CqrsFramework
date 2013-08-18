@@ -41,8 +41,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Dodavatele.cs" />
-    <Compile Include="PouzivaneNaradi.cs" />
-    <Compile Include="PresunyNaradi.cs" />
+    <Compile Include="NaradiCommands.cs" />
+    <Compile Include="NaradiEvents.cs" />
+    <Compile Include="NaradiDtos.cs" />
+    <Compile Include="NaradiValidators.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Serialization.cs" />
   </ItemGroup>

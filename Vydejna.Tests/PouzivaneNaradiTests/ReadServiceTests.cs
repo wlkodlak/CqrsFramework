@@ -19,7 +19,7 @@ namespace Vydejna.Tests.PouzivaneNaradiTests
             var zaklad = new SeznamPouzivanehoNaradiDto() { SeznamNaradi = new List<PouzivaneNaradiDto>() };
             var docs = new Mock<CqrsFramework.Messaging.IKeyValueProjectionReader<SeznamPouzivanehoNaradiDto>>();
             docs.Setup(s => s.Get("prehlednaradi-vsechno")).Returns(zaklad).Verifiable();
-            var svc = new PouzivaneNaradiReadService(docs.Object);
+            var svc = new PrehledNaradiReadService(docs.Object);
             var seznam = svc.ZiskatSeznam(0, int.MaxValue);
             docs.Verify();
             Assert.AreEqual(0, seznam.PocetVsechPrvku, "Pocet vsech prvku");
@@ -32,7 +32,7 @@ namespace Vydejna.Tests.PouzivaneNaradiTests
             var zaklad = VygenerovatZakladSeznamuVsehoNaradi();
             var docs = new Mock<CqrsFramework.Messaging.IKeyValueProjectionReader<SeznamPouzivanehoNaradiDto>>();
             docs.Setup(s => s.Get("prehlednaradi-vsechno")).Returns(zaklad).Verifiable();
-            var svc = new PouzivaneNaradiReadService(docs.Object);
+            var svc = new PrehledNaradiReadService(docs.Object);
             var seznam = svc.ZiskatSeznam(0, int.MaxValue);
             docs.Verify();
             Assert.AreEqual(5, seznam.PocetVsechPrvku, "Pocet vsech prvku");
@@ -88,7 +88,7 @@ namespace Vydejna.Tests.PouzivaneNaradiTests
             var zaklad = VygenerovatZakladSeznamuVsehoNaradi();
             var docs = new Mock<CqrsFramework.Messaging.IKeyValueProjectionReader<SeznamPouzivanehoNaradiDto>>();
             docs.Setup(s => s.Get("prehlednaradi-vsechno")).Returns(zaklad).Verifiable();
-            var svc = new PouzivaneNaradiReadService(docs.Object);
+            var svc = new PrehledNaradiReadService(docs.Object);
             var seznam = svc.ZiskatSeznam(1, 2);
             docs.Verify();
             Assert.AreEqual(5, seznam.PocetVsechPrvku, "Pocet vsech prvku");
@@ -104,13 +104,25 @@ namespace Vydejna.Tests.PouzivaneNaradiTests
             var zaklad = VygenerovatZakladSeznamuVsehoNaradi();
             var docs = new Mock<CqrsFramework.Messaging.IKeyValueProjectionReader<SeznamPouzivanehoNaradiDto>>();
             docs.Setup(s => s.Get("prehlednaradi-vsechno")).Returns(zaklad).Verifiable();
-            var svc = new PouzivaneNaradiReadService(docs.Object);
+            var svc = new PresunyNaradiReadService(docs.Object);
             var nalezenyVykres0 = svc.NajitPodleVykresu("vykres-0", "rozmer-0a");
             var nalezenyVykres2 = svc.NajitPodleVykresu("vykres-2", "rozmer-2b");
             docs.Verify();
             Assert.IsNull(nalezenyVykres0, "vykres-0");
             Assert.IsNotNull(nalezenyVykres2, "vykres-2");
             Assert.AreEqual(Guid.Parse("CAC7FF44-E669-4B81-B9F9-79DD830C0250"), nalezenyVykres2.Id, "vykres-2: id");
+        }
+
+        [TestMethod]
+        public void NajitPodleId()
+        {
+            var zaklad = VygenerovatZakladSeznamuVsehoNaradi();
+            var docs = new Mock<CqrsFramework.Messaging.IKeyValueProjectionReader<SeznamPouzivanehoNaradiDto>>();
+            docs.Setup(s => s.Get("prehlednaradi-vsechno")).Returns(zaklad).Verifiable();
+            var svc = new PresunyNaradiReadService(docs.Object);
+            var nalezenyVykres0 = svc.NajitPodleId(new Guid("EAFFD9B6-E30A-44EF-A762-73082ADFD1D2"));
+            Assert.IsNotNull(nalezenyVykres0);
+            Assert.AreEqual("vykres-4", nalezenyVykres0.Vykres);
         }
     }
 }

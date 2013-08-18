@@ -15,5 +15,16 @@ namespace Vydejna.Tests.PouzivaneNaradiTests
     [TestClass]
     public class ProjectionTests
     {
+        [TestMethod]
+        public void ZpracovaniDefinicePouzivanehoNaradi()
+        {
+            Assert.Inconclusive();
+        }
+
+        [TestMethod]
+        public void ZmenaPoctuNaradiNaSklade()
+        {
+            Assert.Inconclusive();
+        }
     }
 }

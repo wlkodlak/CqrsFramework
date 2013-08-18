@@ -10,9 +10,13 @@ namespace Vydejna.Domain
 {
     public class Naradi : AggregateBase
     {
+        private Guid _id;
+        private int _pocetNaSklade;
+
         public Naradi()
         {
             Register<DefinovanoPouzivaneNaradiEvent>(Apply);
+            Register<UpravenPocetNaradiNaSkladeEvent>(Apply);
         }
 
         public void Definovat(Guid id, string vykres, string rozmer, string druh)
@@ -28,6 +32,23 @@ namespace Vydejna.Domain
 
         private void Apply(DefinovanoPouzivaneNaradiEvent ev)
         {
+            _id = ev.Id;
+        }
+
+        public void UpravitPocetNaSklade(TypUpravyPoctuNaradiNaSklade typ, int pocet)
+        {
+            Publish(new UpravenPocetNaradiNaSkladeEvent()
+            {
+                Id = _id,
+                TypUpravy = typ,
+                ZmenaMnozstvi = pocet,
+                NoveMnozstvi = _pocetNaSklade + pocet
+            });
+        }
+
+        private void Apply(UpravenPocetNaradiNaSkladeEvent ev)
+        {
+            _pocetNaSklade = ev.NoveMnozstvi;
         }
     }
 }

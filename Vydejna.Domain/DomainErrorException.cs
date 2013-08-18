@@ -15,7 +15,7 @@ namespace Vydejna.Domain
         {
         }
 
-        public static void ThrowFromValidation(IValidationResult<DefinovatPouzivaneNaradiCommand> validation)
+        public static void ThrowFromValidation<TCommand>(IValidationResult<TCommand> validation)
         {
             if (validation.Severity <= ValidationRuleSeverity.Warning)
                 return;

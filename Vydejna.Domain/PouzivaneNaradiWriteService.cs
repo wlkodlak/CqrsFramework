@@ -8,7 +8,7 @@ using Vydejna.Contracts;
 
 namespace Vydejna.Domain
 {
-    public class PouzivaneNaradiWriteService : IPouzivaneNaradiWriteService
+    public class PouzivaneNaradiWriteService : INaradiWriteService
     {
         private IRepository<Guid, Naradi> _repo;
 
@@ -28,7 +28,11 @@ namespace Vydejna.Domain
 
         public void UpravitPocetNaradiNaSklade(UpravitPocetNaradiNaSkladeCommand cmd)
         {
-            throw new NotImplementedException();
+            var validation = new UpravitPocetNaradiNaSkladeCommandValidator().Validate(cmd);
+            DomainErrorException.ThrowFromValidation(validation);
+            var naradi = _repo.Get(cmd.Id);
+            naradi.UpravitPocetNaSklade(cmd.TypUpravy, cmd.ZmenaMnozstvi);
+            _repo.Save(naradi, null, RepositorySaveFlags.Append);
         }
     }
 }

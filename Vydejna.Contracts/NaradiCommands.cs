@@ -4,9 +4,34 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.Serialization;
+using CqrsFramework.Domain;
 
 namespace Vydejna.Contracts
 {
+    [DataContract(Namespace = Serialization.Namespace)]
+    public class DefinovatPouzivaneNaradiCommand
+    {
+        [DataMember(Order = 0)]
+        public Guid Id { get; set; }
+        [DataMember(Order = 1)]
+        public string Vykres { get; set; }
+        [DataMember(Order = 2)]
+        public string Rozmer { get; set; }
+        [DataMember(Order = 3)]
+        public string Druh { get; set; }
+    }
+
+    [DataContract(Namespace = Serialization.Namespace)]
+    public class UpravitPocetNaradiNaSkladeCommand
+    {
+        [DataMember(Order = 0)]
+        public Guid Id { get; set; }
+        [DataMember(Order = 1)]
+        public int ZmenaMnozstvi { get; set; }
+        [DataMember(Order = 2)]
+        public TypUpravyPoctuNaradiNaSklade TypUpravy { get; set; }
+    }
+
     [DataContract(Namespace = Serialization.Namespace)]
     public class PrijmoutNaradiZeSkladuCommand
     {
@@ -99,58 +124,16 @@ namespace Vydejna.Contracts
         public int Mnozstvi { get; set; }
     }
 
-    [DataContract(Namespace = Serialization.Namespace)]
-    public enum StavPrijatehoNaradi
+    public interface INaradiWriteService
     {
-        ProVyrobu,
-        ProOpravu,
-        ProSrot
+        void DefinovatPouzivaneNaradi(DefinovatPouzivaneNaradiCommand cmd);
+        void UpravitPocetNaradiNaSklade(UpravitPocetNaradiNaSkladeCommand cmd);
+        //void PrijmoutNaradiZeSkladuCommand(PrijmoutNaradiZeSkladuCommand cmd);
+        //void PrijmoutNaradiZVyrobyCommand(PrijmoutNaradiZVyrobyCommand cmd);
+        //void PrijmoutNaradiZOpravyCommand(PrijmoutNaradiZOpravyCommand cmd);
+        //void VydatNaradiDoVyrobyCommand(VydatNaradiDoVyrobyCommand cmd);
+        //void VydatNaradiNaOpravuCommand(VydatNaradiNaOpravuCommand cmd);
+        //void VydatNaradiDoSrotuCommand(VydatNaradiDoSrotuCommand cmd);
     }
 
-    [DataContract(Namespace = Serialization.Namespace)]
-    public enum OblastUmisteniNaradi
-    {
-        ProVyrobu, ProOpravu, ProSrot,
-        VeVyrobe, VOprave
-    }
-
-    [DataContract(Namespace = Serialization.Namespace)]
-    public class UmisteniNaradi
-    {
-        [DataMember(Order = 0)]
-        public OblastUmisteniNaradi Oblast { get; set; }
-        [DataMember(Order = 1, EmitDefaultValue = false)]
-        public Guid Pracoviste { get; set; }
-        [DataMember(Order = 2, EmitDefaultValue = false)]
-        public string CisloObjednavky { get; set; }
-    }
-
-    [DataContract(Namespace = Serialization.Namespace)]
-    public class InformaceOObjednavce
-    {
-        [DataMember(Order = 0)]
-        public string CisloObjednavky { get; set; }
-        [DataMember(Order = 1)]
-        public Guid Dodavatel { get; set; }
-        [DataMember(Order = 2)]
-        public DateTime? DatumDodani { get; set; }
-        [DataMember(Order = 3)]
-        public bool Otevrena { get; set; }
-    }
-
-    public interface IPresunyNaradiReadService
-    {
-        int PocetKDispozici(UmisteniNaradi umisteni);
-        InformaceOObjednavce NajitObjednavku(string cisloObjednavky);
-    }
-
-    public interface IPresunyNaradiWriteService
-    {
-        void PrijmoutNaradiZeSkladuCommand(PrijmoutNaradiZeSkladuCommand cmd);
-        void PrijmoutNaradiZVyrobyCommand(PrijmoutNaradiZVyrobyCommand cmd);
-        void PrijmoutNaradiZOpravyCommand(PrijmoutNaradiZOpravyCommand cmd);
-        void VydatNaradiDoVyrobyCommand(VydatNaradiDoVyrobyCommand cmd);
-        void VydatNaradiNaOpravuCommand(VydatNaradiNaOpravuCommand cmd);
-        void VydatNaradiDoSrotuCommand(VydatNaradiDoSrotuCommand cmd);
-    }
 }
