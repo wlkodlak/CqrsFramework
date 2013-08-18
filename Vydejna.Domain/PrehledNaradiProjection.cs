@@ -28,7 +28,7 @@ namespace Vydejna.Domain
         }
     }
 
-    public class PrehledNaradiReadService : IPrehledNaradiReadService, IProjectionDispatcher
+    public class PrehledNaradiProjection : IPrehledNaradiReadService, IProjectionDispatcher
     {
         private static readonly byte[] _projectionHash = new byte[] { 0x00, 0x00, 0x00, 0x00 };
         private IKeyValueStore _store;
@@ -37,8 +37,9 @@ namespace Vydejna.Domain
         private bool _bulkUpdate = false;
         private Dictionary<Guid, PouzivaneNaradiDto> _indexPodleId;
         private MessageDispatcher _dispatcher;
+        private HashSet<string> _existujiciVykresy;
 
-        public PrehledNaradiReadService(IKeyValueStore store, IMessageBodySerializer serializer)
+        public PrehledNaradiProjection(IKeyValueStore store, IMessageBodySerializer serializer)
         {
             _store = store;
             _serializer = serializer;
@@ -52,6 +53,7 @@ namespace Vydejna.Domain
                 _view = _serializer.Deserialize(doc.Data, headers) as PrehledNaradiView;
 
             _indexPodleId = _view.SeznamNaradi.ToDictionary(n => n.Id);
+            _existujiciVykresy = new HashSet<string>(_view.SeznamNaradi.Select(n => ZkombinovatVykresARozmer(n.Vykres, n.Rozmer)));
 
             _dispatcher = new MessageDispatcher();
             _dispatcher.ThrowOnUnknownHandler = false;
@@ -66,6 +68,11 @@ namespace Vydejna.Domain
             dto.OffsetPrvnihoPrvku = offset;
             dto.PocetVsechPrvku = _view.SeznamNaradi.Count;
             return dto;
+        }
+
+        public bool ExistujeVykresARozmer(string vykres, string rozmer)
+        {
+            return _existujiciVykresy.Contains(ZkombinovatVykresARozmer(vykres, rozmer));
         }
 
         public void BeginUpdate()
@@ -134,6 +141,7 @@ namespace Vydejna.Domain
                 }
             }
             _view.SeznamNaradi.Insert(pozice, dto);
+            _existujiciVykresy.Add(ZkombinovatVykresARozmer(ev.Vykres, ev.Rozmer));
         }
 
         private int Compare(PouzivaneNaradiDto a, PouzivaneNaradiDto b)
@@ -147,6 +155,11 @@ namespace Vydejna.Domain
             if (compareRozmer != 0)
                 return compareRozmer;
             return 0;
+        }
+
+        private string ZkombinovatVykresARozmer(string vykres, string rozmer)
+        {
+            return string.Concat(vykres, " :: ", rozmer);
         }
 
         private void Handle(UpravenPocetNaradiNaSkladeEvent ev)

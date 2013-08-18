@@ -42,9 +42,8 @@
   <ItemGroup>
     <Compile Include="DomainErrorException.cs" />
     <Compile Include="Naradi.cs" />
-    <Compile Include="PrehledNaradiReadService.cs" />
+    <Compile Include="PrehledNaradiProjection.cs" />
     <Compile Include="PouzivaneNaradiWriteService.cs" />
-    <Compile Include="PresunyNaradiReadService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -10,10 +10,15 @@ namespace Vydejna.Contracts
 {
     public class DefinovatPouzivaneNaradiCommandValidator : CommandValidator<DefinovatPouzivaneNaradiCommand>
     {
-        public DefinovatPouzivaneNaradiCommandValidator()
+        public DefinovatPouzivaneNaradiCommandValidator(IPrehledNaradiReadService readSvc = null)
         {
             AddRule(ValidationRuleSeverity.Required, "REQ:Vykres", "Výkres je nutné zadat", c => !string.IsNullOrEmpty(c.Vykres));
             AddRule(ValidationRuleSeverity.Required, "REQ:Rozmer", "Rozměr je nutné zadat", c => !string.IsNullOrEmpty(c.Rozmer));
+            if (readSvc != null)
+            {
+                AddRule(ValidationRuleSeverity.Error, "CONFLICT:Vykres+Rozmer", "Nářadí již existuje",
+                    c => !readSvc.ExistujeVykresARozmer(c.Vykres, c.Rozmer));
+            }
         }
     }
 

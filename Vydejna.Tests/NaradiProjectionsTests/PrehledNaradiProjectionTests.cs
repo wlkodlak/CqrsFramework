@@ -12,12 +12,12 @@ using CqrsFramework.Domain;
 using CqrsFramework.Messaging;
 using CqrsFramework.Serialization;
 
-namespace Vydejna.Tests.PouzivaneNaradiTests
+namespace Vydejna.Tests.NaradiProjectionsTests
 {
     [TestClass]
-    public class PrehledNaradiReadServiceTests
+    public class PrehledNaradiProjectionTests
     {
-        private IPrehledNaradiReadService _service;
+        private PrehledNaradiProjection _service;
 
         private void PripravitService(IEnumerable<IEvent> events)
         {
@@ -26,7 +26,7 @@ namespace Vydejna.Tests.PouzivaneNaradiTests
             var resolver = new MessageTypeResolver();
             foreach (var type in knownTypes)
                 resolver.RegisterType(type, type.FullName);
-            var svc = new PrehledNaradiReadService(new MemoryKeyValueStore(), new JsonMessageBodySerializer(knownTypes, resolver));
+            var svc = new PrehledNaradiProjection(new MemoryKeyValueStore(), new JsonMessageBodySerializer(knownTypes, resolver));
             svc.Reset();
             svc.BeginUpdate();
             long clock = 1;
@@ -112,6 +112,16 @@ namespace Vydejna.Tests.PouzivaneNaradiTests
             Assert.AreEqual(1, seznam.OffsetPrvnihoPrvku, "Offset");
             Assert.AreEqual((events[1] as DefinovanoPouzivaneNaradiEvent).Id, seznam.SeznamNaradi[0].Id, "Id[0]");
             Assert.AreEqual((events[2] as DefinovanoPouzivaneNaradiEvent).Id, seznam.SeznamNaradi[1].Id, "Id[1]");
+        }
+
+        [TestMethod]
+        public void ExistenceVykresuARozmeru()
+        {
+            var events = UdalostiDefinicNaradi();
+            PripravitService(events);
+            Assert.IsTrue(_service.ExistujeVykresARozmer("vykres-4", "rozmer-4a"));
+            Assert.IsFalse(_service.ExistujeVykresARozmer("vykres-4", "rozmer-3c"));
+            Assert.IsFalse(_service.ExistujeVykresARozmer("vykres-0", "zakladni"));
         }
     }
 }

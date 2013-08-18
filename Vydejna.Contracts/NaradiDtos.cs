@@ -79,12 +79,12 @@ namespace Vydejna.Contracts
     {
         SeznamPouzivanehoNaradiDto ZiskatSeznam(int offset, int pocet);
         // SeznamPouzivanehoNaradiDto HledatVSeznamu(string hledanyVykres, int pocet, int pocetPredNalezenym);
+        bool ExistujeVykresARozmer(string vykres, string rozmer);
     }
 
     public interface IPresunyNaradiReadService
     {
         int PocetKDispozici(UmisteniNaradi umisteni);
-        PouzivaneNaradiDto NajitPodleVykresu(string vykres, string rozmer);
         InformaceOObjednavce NajitObjednavku(string cisloObjednavky);
         PouzivaneNaradiDto NajitPodleId(Guid id);
     }
