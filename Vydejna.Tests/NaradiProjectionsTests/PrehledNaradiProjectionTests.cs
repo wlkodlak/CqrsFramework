@@ -123,5 +123,61 @@ namespace Vydejna.Tests.NaradiProjectionsTests
             Assert.IsFalse(_service.ExistujeVykresARozmer("vykres-4", "rozmer-3c"));
             Assert.IsFalse(_service.ExistujeVykresARozmer("vykres-0", "zakladni"));
         }
+
+        [TestMethod]
+        public void UpravyStavuNaradiNaSkladePrimo()
+        {
+            var events = new List<IEvent>()
+            {
+                new DefinovanoPouzivaneNaradiEvent
+                {
+                    Vykres = "vykres-3",
+                    Rozmer = "rozmer-3c",
+                    Druh = "kategorie06",
+                    Id = new Guid("B65C9239-DEE8-4E05-8650-EF95160DE36F")
+                },
+                new DefinovanoPouzivaneNaradiEvent
+                {
+                    Vykres = "vykres-4",
+                    Rozmer = "rozmer-4a",
+                    Druh = "kategorie00",
+                    Id = new Guid("EAFFD9B6-E30A-44EF-A762-73082ADFD1D2")
+                },
+                new UpravenPocetNaradiNaSkladeEvent
+                {
+                    Id = new Guid("EAFFD9B6-E30A-44EF-A762-73082ADFD1D2"),
+                    TypUpravy = TypUpravyPoctuNaradiNaSklade.PevnyPocet, 
+                    ZmenaMnozstvi = 2, 
+                    NoveMnozstvi = 2
+                },
+                new UpravenPocetNaradiNaSkladeEvent
+                {
+                    Id = new Guid("EAFFD9B6-E30A-44EF-A762-73082ADFD1D2"),
+                    TypUpravy = TypUpravyPoctuNaradiNaSklade.ZvysitOMnozstvi, 
+                    ZmenaMnozstvi = 3, 
+                    NoveMnozstvi = 5
+                },
+                new UpravenPocetNaradiNaSkladeEvent
+                {
+                    Id = new Guid("EAFFD9B6-E30A-44EF-A762-73082ADFD1D2"),
+                    TypUpravy = TypUpravyPoctuNaradiNaSklade.SnizitOMnozstvi, 
+                    ZmenaMnozstvi = 1, 
+                    NoveMnozstvi = 4
+                },
+                new UpravenPocetNaradiNaSkladeEvent
+                {
+                    Id = new Guid("B65C9239-DEE8-4E05-8650-EF95160DE36F"),
+                    TypUpravy = TypUpravyPoctuNaradiNaSklade.PevnyPocet, 
+                    ZmenaMnozstvi = 8, 
+                    NoveMnozstvi = 8
+                },
+            };
+            PripravitService(events);
+            var dtos = _service.ZiskatSeznam(0, int.MaxValue).SeznamNaradi;
+            var vykres3 = dtos.Single(n => n.Id == new Guid("B65C9239-DEE8-4E05-8650-EF95160DE36F"));
+            var vykres4 = dtos.Single(n => n.Id == new Guid("EAFFD9B6-E30A-44EF-A762-73082ADFD1D2"));
+            Assert.AreEqual(8, vykres3.PocetNaSklade, "vykres-3");
+            Assert.AreEqual(4, vykres4.PocetNaSklade, "vykres-4");
+        }
     }
 }
