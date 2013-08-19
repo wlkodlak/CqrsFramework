@@ -12,27 +12,23 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Vydejna.Tests.PouzivaneNaradiWriteServiceTests
 {
     [TestClass]
-    public class DefinovatNaradiTest
+    public class DefinovatNaradiTest : NaradiTestBase
     {
         [TestMethod]
         public void UspesneDefinovatNaradi()
         {
-            var repo = new Mock<IRepository<Guid, Naradi>>();
-            Naradi naradi = null;
-            repo.Setup(r => r.Save(It.IsAny<Naradi>(), It.IsAny<object>(), It.IsAny<RepositorySaveFlags>()))
-                .Callback<Naradi, object, RepositorySaveFlags>((n, c, f) => naradi = n);
-            var cmd = new DefinovatPouzivaneNaradiCommand();
-            cmd.Id = new Guid("C3DD077F-3260-4780-B477-F9282540204E");
-            cmd.Vykres = "vykres-01";
-            cmd.Rozmer = "rozmer-01.a";
-            cmd.Druh = "A-kategorie";
-            var svc = new PouzivaneNaradiWriteService(repo.Object);
-            svc.DefinovatPouzivaneNaradi(cmd);
-            Assert.IsNotNull(naradi, "Naradi nebylo ulozeno");
-            var events = (naradi as IAggregate).GetEvents().ToArray();
-            Assert.AreEqual(1, events.Length, "Pocet eventu");
-            Assert.IsInstanceOfType(events[0], typeof(DefinovanoPouzivaneNaradiEvent), "Typ eventu");
-            var event0 = (DefinovanoPouzivaneNaradiEvent)events[0];
+            var cmd = new DefinovatPouzivaneNaradiCommand()
+            {
+                Id = new Guid("C3DD077F-3260-4780-B477-F9282540204E"),
+                Vykres = "vykres-01",
+                Rozmer = "rozmer-01.a",
+                Druh = "A-kategorie"
+            };
+            PripravitService(null);
+            Service.DefinovatPouzivaneNaradi(cmd);
+            Assert.AreEqual(1, UlozeneUdalosti.Count, "Pocet eventu");
+            Assert.IsInstanceOfType(UlozeneUdalosti[0], typeof(DefinovanoPouzivaneNaradiEvent), "Typ eventu");
+            var event0 = (DefinovanoPouzivaneNaradiEvent)UlozeneUdalosti[0];
             Assert.AreEqual(cmd.Id, event0.Id, "event.Id");
             Assert.AreEqual(cmd.Vykres, event0.Vykres, "event.Vykres");
             Assert.AreEqual(cmd.Rozmer, event0.Rozmer, "event.Rozmer");
@@ -42,23 +38,21 @@ namespace Vydejna.Tests.PouzivaneNaradiWriteServiceTests
         [TestMethod]
         public void ChybaValidacePrikazuDefiniceNaradi()
         {
-            var repo = new Mock<IRepository<Guid, Naradi>>();
-            Naradi naradi = null;
-            repo.Setup(r => r.Save(It.IsAny<Naradi>(), It.IsAny<object>(), It.IsAny<RepositorySaveFlags>()))
-                .Callback<Naradi, object, RepositorySaveFlags>((n, c, f) => naradi = n);
-            var cmd = new DefinovatPouzivaneNaradiCommand();
-            cmd.Vykres = "";
-            cmd.Rozmer = "rozmer-01.a";
-            cmd.Druh = "";
-            var svc = new PouzivaneNaradiWriteService(repo.Object);
+            var cmd = new DefinovatPouzivaneNaradiCommand()
+            {
+                Vykres = "",
+                Rozmer = "rozmer-01.a",
+                Druh = ""
+            };
             try
             {
-                svc.DefinovatPouzivaneNaradi(cmd);
+                PripravitService(null);
+                Service.DefinovatPouzivaneNaradi(cmd);
                 Assert.Fail("Ocekavana vyjimka DomainErrorException");
             }
             catch (DomainErrorException)
             {
-                Assert.IsNull(naradi);
+                Assert.AreEqual(0, UlozeneUdalosti.Count);
             }
         }
 

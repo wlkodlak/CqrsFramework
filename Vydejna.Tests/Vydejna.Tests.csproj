@@ -55,6 +55,8 @@
   <ItemGroup>
     <Compile Include="NaradiValidatorsTests\DefinovatNaradiTest.cs" />
     <Compile Include="NaradiValidatorsTests\UpravitStavNaSklade.cs" />
+    <Compile Include="PouzivaneNaradiWriteServiceTests\NaradiTestBase.cs" />
+    <Compile Include="PouzivaneNaradiWriteServiceTests\PrijmoutNaradiZeSkladuTest.cs" />
     <Compile Include="PouzivaneNaradiWriteServiceTests\UpravitStavNaSkladeTest.cs" />
     <Compile Include="NaradiProjectionsTests\PrehledNaradiProjectionTests.cs" />
     <Compile Include="PouzivaneNaradiWriteServiceTests\DefinovatNaradiTest.cs" />
