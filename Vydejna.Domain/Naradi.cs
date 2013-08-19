@@ -11,12 +11,13 @@ namespace Vydejna.Domain
     public class Naradi : AggregateBase
     {
         private Guid _id;
-        private int _pocetNaSklade;
+        private int _pocetNaSklade, _pocetProVyrobu;
 
         public Naradi()
         {
             Register<DefinovanoPouzivaneNaradiEvent>(Apply);
             Register<UpravenPocetNaradiNaSkladeEvent>(Apply);
+            Register<PrijatoNaradiZeSkladuEvent>(Apply);
         }
 
         public void Definovat(Guid id, string vykres, string rozmer, string druh)
@@ -49,6 +50,25 @@ namespace Vydejna.Domain
         private void Apply(UpravenPocetNaradiNaSkladeEvent ev)
         {
             _pocetNaSklade = ev.NoveMnozstvi;
+        }
+
+        public void PrijmoutNaradiZeSkladu(int pocet, Guid dodavatel, decimal cena)
+        {
+            if (pocet > _pocetNaSklade)
+                throw new DomainErrorException("Nedostatek na skladě");
+            Publish(new PrijatoNaradiZeSkladuEvent
+            {
+                Id = _id,
+                Mnozstvi = pocet,
+                Dodavatel = dodavatel,
+                Cena = cena
+            });
+        }
+
+        private void Apply(PrijatoNaradiZeSkladuEvent ev)
+        {
+            _pocetProVyrobu += ev.Mnozstvi;
+            _pocetNaSklade -= ev.Mnozstvi;
         }
     }
 }

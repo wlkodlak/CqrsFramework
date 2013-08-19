@@ -35,7 +35,7 @@ namespace Vydejna.Contracts
     }
 
     [DataContract(Namespace = Serialization.Namespace)]
-    public class PrijatoNaradiZeSkladuCommand : IEvent
+    public class PrijatoNaradiZeSkladuEvent : IEvent
     {
         [DataMember(Order = 0)]
         public Guid Id { get; set; }
@@ -48,7 +48,7 @@ namespace Vydejna.Contracts
     }
 
     [DataContract(Namespace = Serialization.Namespace)]
-    public class VydanoNaradiDoVyrobyCommand : IEvent
+    public class VydanoNaradiDoVyrobyEvent : IEvent
     {
         [DataMember(Order = 0)]
         public Guid Id { get; set; }
@@ -63,7 +63,7 @@ namespace Vydejna.Contracts
     }
 
     [DataContract(Namespace = Serialization.Namespace)]
-    public class PrijatoNaradiZVyrobyCommand
+    public class PrijatoNaradiZVyrobyEvent : IEvent
     {
         [DataMember(Order = 0)]
         public Guid Id { get; set; }
@@ -78,7 +78,7 @@ namespace Vydejna.Contracts
     }
 
     [DataContract(Namespace = Serialization.Namespace)]
-    public class VydanoNaradiNaOpravuCommand
+    public class VydanoNaradiNaOpravuEvent : IEvent
     {
         [DataMember(Order = 0)]
         public Guid Id { get; set; }
@@ -97,7 +97,7 @@ namespace Vydejna.Contracts
     }
 
     [DataContract(Namespace = Serialization.Namespace)]
-    public class PrijatoNaradiZOpravyCommand
+    public class PrijatoNaradiZOpravyEvent : IEvent
     {
         [DataMember(Order = 0)]
         public Guid Id { get; set; }
@@ -118,7 +118,7 @@ namespace Vydejna.Contracts
     }
 
     [DataContract(Namespace = Serialization.Namespace)]
-    public class VydanoNaradiDoSrotuCommand
+    public class VydanoNaradiDoSrotuEvent : IEvent
     {
         [DataMember(Order = 0)]
         public Guid Id { get; set; }

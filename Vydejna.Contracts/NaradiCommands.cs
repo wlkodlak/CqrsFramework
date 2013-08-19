@@ -128,12 +128,12 @@ namespace Vydejna.Contracts
     {
         void DefinovatPouzivaneNaradi(DefinovatPouzivaneNaradiCommand cmd);
         void UpravitPocetNaradiNaSklade(UpravitPocetNaradiNaSkladeCommand cmd);
-        //void PrijmoutNaradiZeSkladuCommand(PrijmoutNaradiZeSkladuCommand cmd);
-        //void PrijmoutNaradiZVyrobyCommand(PrijmoutNaradiZVyrobyCommand cmd);
-        //void PrijmoutNaradiZOpravyCommand(PrijmoutNaradiZOpravyCommand cmd);
-        //void VydatNaradiDoVyrobyCommand(VydatNaradiDoVyrobyCommand cmd);
-        //void VydatNaradiNaOpravuCommand(VydatNaradiNaOpravuCommand cmd);
-        //void VydatNaradiDoSrotuCommand(VydatNaradiDoSrotuCommand cmd);
+        void PrijmoutNaradiZeSkladu(PrijmoutNaradiZeSkladuCommand cmd);
+        //void PrijmoutNaradiZVyroby(PrijmoutNaradiZVyrobyCommand cmd);
+        //void PrijmoutNaradiZOpravy(PrijmoutNaradiZOpravyCommand cmd);
+        //void VydatNaradiDoVyroby(VydatNaradiDoVyrobyCommand cmd);
+        //void VydatNaradiNaOpravu(VydatNaradiNaOpravuCommand cmd);
+        //void VydatNaradiDoSrotu(VydatNaradiDoSrotuCommand cmd);
     }
 
 }

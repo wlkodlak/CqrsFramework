@@ -34,5 +34,12 @@ namespace Vydejna.Domain
             naradi.UpravitPocetNaSklade(cmd.TypUpravy, cmd.ZmenaMnozstvi);
             _repo.Save(naradi, null, RepositorySaveFlags.Append);
         }
+
+        public void PrijmoutNaradiZeSkladu(PrijmoutNaradiZeSkladuCommand cmd)
+        {
+            var naradi = _repo.Get(cmd.Id);
+            naradi.PrijmoutNaradiZeSkladu(cmd.Mnozstvi, cmd.Dodavatel, cmd.Cena);
+            _repo.Save(naradi, null, RepositorySaveFlags.Append);
+        }
     }
 }
