@@ -50,7 +50,7 @@ namespace Vydejna.Tests.PouzivaneNaradiWriteServiceTests
                 Service.DefinovatPouzivaneNaradi(cmd);
                 Assert.Fail("Ocekavana vyjimka DomainErrorException");
             }
-            catch (DomainErrorException)
+            catch (ValidationErrorException)
             {
                 Assert.AreEqual(0, UlozeneUdalosti.Count);
             }

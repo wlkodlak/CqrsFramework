@@ -45,4 +45,12 @@ namespace Vydejna.Contracts
             }
         }
     }
+
+    public class PrijmoutNaradiZeSkladuCommandValidator : CommandValidator<PrijmoutNaradiZeSkladuCommand>
+    {
+        public PrijmoutNaradiZeSkladuCommandValidator()
+        {
+            AddRule(ValidationRuleSeverity.Error, "RANGE:Mnozstvi", "Množství nesmí být záporné", c => c.Mnozstvi > 0);
+        }
+    }
 }

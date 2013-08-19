@@ -10,27 +10,27 @@ namespace Vydejna.Domain
 {
     public class DomainErrorException : ApplicationException
     {
-        public DomainErrorException(string message)
-            : base(message)
+        public string ErrorCode { get; private set; }
+        private string _message;
+
+        public DomainErrorException(string errorCode, string message)
         {
+            this.ErrorCode = errorCode;
+            this._message = message;
         }
 
-        public static void ThrowFromValidation<TCommand>(IValidationResult<TCommand> validation)
+        public override string Message
         {
-            if (validation.Severity <= ValidationRuleSeverity.Warning)
-                return;
-            var sb = new StringBuilder();
-            sb.Append("Validation rules were broken: ");
-            bool isFirst = true;
-            foreach (var rule in validation.BrokenRules)
-            {
-                if (isFirst)
-                    isFirst = false;
-                else
-                    sb.Append(", ");
-                sb.Append(rule.ErrorCode);
-            }
-            throw new DomainErrorException(sb.ToString());
+            get { return _message; }
+        }
+    }
+
+    public class ValidationErrorException : ApplicationException
+    {
+        public static void ConditionalThrow<TCommand>(IValidationResult<TCommand> validation)
+        {
+            if (validation.Severity > ValidationRuleSeverity.Warning)
+                throw new ValidationErrorException();
         }
     }
 }

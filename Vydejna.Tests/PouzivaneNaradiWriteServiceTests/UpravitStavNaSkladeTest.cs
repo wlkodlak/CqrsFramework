@@ -62,7 +62,7 @@ namespace Vydejna.Tests.PouzivaneNaradiWriteServiceTests
                 Service.UpravitPocetNaradiNaSklade(cmd);
                 Assert.Fail("Ocekavana chyba validace");
             }
-            catch (DomainErrorException)
+            catch (ValidationErrorException)
             {
             }
         }

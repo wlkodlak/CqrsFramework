@@ -55,7 +55,7 @@ namespace Vydejna.Domain
         public void PrijmoutNaradiZeSkladu(int pocet, Guid dodavatel, decimal cena)
         {
             if (pocet > _pocetNaSklade)
-                throw new DomainErrorException("Nedostatek na skladě");
+                throw new DomainErrorException("Naradi.NedostatekNaSklade", "Nedostatek na skladě");
             Publish(new PrijatoNaradiZeSkladuEvent
             {
                 Id = _id,

@@ -19,8 +19,7 @@ namespace Vydejna.Domain
 
         public void DefinovatPouzivaneNaradi(DefinovatPouzivaneNaradiCommand cmd)
         {
-            var validation = new DefinovatPouzivaneNaradiCommandValidator().Validate(cmd);
-            DomainErrorException.ThrowFromValidation(validation);
+            ValidationErrorException.ConditionalThrow(new DefinovatPouzivaneNaradiCommandValidator().Validate(cmd));
             var naradi = new Naradi();
             naradi.Definovat(cmd.Id, cmd.Vykres, cmd.Rozmer, cmd.Druh);
             _repo.Save(naradi, null, RepositorySaveFlags.Create);
@@ -28,8 +27,7 @@ namespace Vydejna.Domain
 
         public void UpravitPocetNaradiNaSklade(UpravitPocetNaradiNaSkladeCommand cmd)
         {
-            var validation = new UpravitPocetNaradiNaSkladeCommandValidator().Validate(cmd);
-            DomainErrorException.ThrowFromValidation(validation);
+            ValidationErrorException.ConditionalThrow(new UpravitPocetNaradiNaSkladeCommandValidator().Validate(cmd));
             var naradi = _repo.Get(cmd.Id);
             naradi.UpravitPocetNaSklade(cmd.TypUpravy, cmd.ZmenaMnozstvi);
             _repo.Save(naradi, null, RepositorySaveFlags.Append);
@@ -37,6 +35,7 @@ namespace Vydejna.Domain
 
         public void PrijmoutNaradiZeSkladu(PrijmoutNaradiZeSkladuCommand cmd)
         {
+            ValidationErrorException.ConditionalThrow(new PrijmoutNaradiZeSkladuCommandValidator().Validate(cmd));
             var naradi = _repo.Get(cmd.Id);
             naradi.PrijmoutNaradiZeSkladu(cmd.Mnozstvi, cmd.Dodavatel, cmd.Cena);
             _repo.Save(naradi, null, RepositorySaveFlags.Append);

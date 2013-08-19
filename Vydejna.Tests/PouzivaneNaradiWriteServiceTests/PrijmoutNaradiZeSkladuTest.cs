@@ -102,7 +102,21 @@ namespace Vydejna.Tests.PouzivaneNaradiWriteServiceTests
         [TestMethod]
         public void ChybaValidace()
         {
-            Assert.Inconclusive();
+            try
+            {
+                PripravitService(new IEvent[] { EvDefiniceNaradi(), EvUpravitSklad(4) });
+                Service.PrijmoutNaradiZeSkladu(new PrijmoutNaradiZeSkladuCommand
+                {
+                    Id = new Guid("B4D600FE-F446-4B25-A88A-C6EB781B5EDD"),
+                    Mnozstvi = -3,
+                    Dodavatel = Guid.Empty,
+                    Cena = 0
+                });
+                Assert.Fail("Ocekavana chyba validace");
+            }
+            catch (ValidationErrorException)
+            {
+            }
         }
     }
 }
